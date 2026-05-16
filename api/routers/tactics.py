@@ -95,6 +95,12 @@ def _resonance_to_dict(rs) -> Dict[str, Any]:
 
 
 # ──────────────────────────────────────────────────────────
+# 注意: 所有固定路径路由必须定义在 /tactics/{name} 之前
+# 否则 FastAPI 会将固定路径匹配为 name 参数
+# 路由顺序: /list → /screen → /screen/batch → /resonance → /suitability → /{name}
+# ──────────────────────────────────────────────────────────
+
+# ──────────────────────────────────────────────────────────
 # GET /tactics/list — 战法列表
 # ──────────────────────────────────────────────────────────
 
@@ -146,75 +152,6 @@ async def list_tactics(
             "timestamp": datetime.now().isoformat(),
             "stats": stats,
             "tactics": [_tactic_to_dict(t) for t in tactics],
-        }
-    )
-
-
-# ──────────────────────────────────────────────────────────
-# GET /tactics/{name} — 战法详情
-# ──────────────────────────────────────────────────────────
-
-@router.get("/tactics/{name}", response_model=DataResponse)
-async def get_tactic_detail(name: str):
-    """获取战法详情
-
-    返回指定战法的完整规则详情，包括:
-    - 基础信息（名称、编码、核心逻辑）
-    - 5项硬性条件
-    - 3项加分形态条件
-    - 最佳适用环境
-    - 风险边界
-    - 适用/禁忌情绪周期
-
-    Args:
-        name: 战法名称（如 "N字形战法"）或编码（如 "N_SHAPE"）
-
-    Returns:
-        战法完整规则详情
-    """
-    from short_win_ai_trader.modules.m05_tactic_screening.tactics_library import (
-        get_tactic_by_code,
-        get_tactic_by_name,
-    )
-
-    # 先按名称查找，再按编码查找
-    tactic = get_tactic_by_name(name)
-    if tactic is None:
-        tactic = get_tactic_by_code(name)
-
-    if tactic is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"战法 '{name}' 未找到，请检查名称或编码",
-        )
-
-    return DataResponse(
-        data={
-            "tactic": _tactic_to_dict(tactic),
-            "hard_conditions": [
-                {
-                    "name": c["name"],
-                    "indicator": c["indicator"],
-                    "operator": c["operator"],
-                    "threshold": c["threshold"],
-                    "weight": c["weight"],
-                    "description": c["description"],
-                }
-                for c in tactic.hard_conditions
-            ],
-            "shape_conditions": [
-                {
-                    "name": c["name"],
-                    "indicator": c["indicator"],
-                    "operator": c["operator"],
-                    "threshold": c["threshold"],
-                    "weight": c["weight"],
-                    "description": c["description"],
-                }
-                for c in tactic.shape_conditions
-            ],
-            "applicable_cycles": tactic.applicable_cycles,
-            "forbidden_cycles": tactic.forbidden_cycles,
         }
     )
 
@@ -769,3 +706,72 @@ def _build_market_env(emotion_cycle: str) -> Dict[str, Any]:
     env = cycle_env_map.get(emotion_cycle, cycle_env_map["发酵期"])
     env["current_emotion_cycle"] = emotion_cycle
     return env
+
+
+# ──────────────────────────────────────────────────────────
+# GET /tactics/{name} — 战法详情（必须放在所有固定路径之后）
+# ──────────────────────────────────────────────────────────
+
+@router.get("/tactics/{name}", response_model=DataResponse)
+async def get_tactic_detail(name: str):
+    """获取战法详情
+
+    返回指定战法的完整规则详情，包括:
+    - 基础信息（名称、编码、核心逻辑）
+    - 5项硬性条件
+    - 3项加分形态条件
+    - 最佳适用环境
+    - 风险边界
+    - 适用/禁忌情绪周期
+
+    Args:
+        name: 战法名称（如 "N字形战法"）或编码（如 "N_SHAPE"）
+
+    Returns:
+        战法完整规则详情
+    """
+    from short_win_ai_trader.modules.m05_tactic_screening.tactics_library import (
+        get_tactic_by_code,
+        get_tactic_by_name,
+    )
+
+    # 先按名称查找，再按编码查找
+    tactic = get_tactic_by_name(name)
+    if tactic is None:
+        tactic = get_tactic_by_code(name)
+
+    if tactic is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"战法 '{name}' 未找到，请检查名称或编码",
+        )
+
+    return DataResponse(
+        data={
+            "tactic": _tactic_to_dict(tactic),
+            "hard_conditions": [
+                {
+                    "name": c["name"],
+                    "indicator": c["indicator"],
+                    "operator": c["operator"],
+                    "threshold": c["threshold"],
+                    "weight": c["weight"],
+                    "description": c["description"],
+                }
+                for c in tactic.hard_conditions
+            ],
+            "shape_conditions": [
+                {
+                    "name": c["name"],
+                    "indicator": c["indicator"],
+                    "operator": c["operator"],
+                    "threshold": c["threshold"],
+                    "weight": c["weight"],
+                    "description": c["description"],
+                }
+                for c in tactic.shape_conditions
+            ],
+            "applicable_cycles": tactic.applicable_cycles,
+            "forbidden_cycles": tactic.forbidden_cycles,
+        }
+    )
