@@ -1,0 +1,42 @@
+# SWAT API — Docker Compose 配置
+# 短线致胜 AI 交易智能体 API 服务
+
+version: "3.8"
+
+services:
+  swat-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: swat-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+    environment:
+      - SWAT_API_DEBUG=false
+      - SWAT_API_RATE_LIMIT=10
+      - SWAT_API_CACHE_TTL=300
+      - SWAT_API_CORS_ORIGINS=["*"]
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - swat-network
+
+networks:
+  swat-network:
+    driver: bridge
+
+volumes:
+  cache:
+    driver: local
+  logs:
+    driver: local
