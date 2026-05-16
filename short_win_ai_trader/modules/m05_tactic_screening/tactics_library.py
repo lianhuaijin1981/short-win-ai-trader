@@ -845,10 +845,9 @@ ANTI_NUCLEAR_TACTIC = TacticRuleSet(
               description="当日最高价 >= 前日最高价，完成反包"),
         _cond("反包放量", "today_volume_vs_yesterday", "ge", 0.8,
               description="当日成交量 >= 前日成交量的80%"),
-        _cond="人气基础", "is_popular_stock", "eq", True,
-              description="为市场人气股或题材核心股，非冷门股",
-    ) if False else _cond("人气基础", "is_popular_stock", "eq", True,
+        _cond("人气基础", "is_popular_stock", "eq", True,
               description="为市场人气股或题材核心股，非冷门股"),
+    ],
 
     shape_conditions=[
         _cond("竞价超预期", "auction_surprise", "eq", True, weight=0.4,
