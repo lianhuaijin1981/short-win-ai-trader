@@ -482,4 +482,3 @@ async def get_emotion_history(
     except Exception as e:
         logger.error(f"History query failed: {e}")
         raise HTTPException(status_code=500, detail=f"获取历史情绪曲线失败: {str(e)}")
- 

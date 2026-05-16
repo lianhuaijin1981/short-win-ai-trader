@@ -747,7 +747,7 @@ class AnchorSelector:
             advice_parts.append("市场总龙——紧盯分歧低吸机会，断板即离场信号")
         elif candidate.anchor_type == AnchorType.BRANCH_DRAGON:
             advice_parts.append("分支龙头——板块内强弱风向标")
- elif candidate.anchor_type == AnchorType.PIONEER:
+        elif candidate.anchor_type == AnchorType.PIONEER:
             advice_parts.append("先锋龙——情绪点火器，观察持续性")
         elif candidate.anchor_type == AnchorType.SECTOR_CORE:
             advice_parts.append("板块中军——大资金战场，趋势锚定")
