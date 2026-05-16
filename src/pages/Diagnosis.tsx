@@ -14,14 +14,14 @@ import {
   CheckCircle2,
   Circle,
   Lightbulb,
-  ShieldAlert,
-  Award,
+  // ShieldAlert,
+  // Award,
   Brain,
-  Crosshair,
-  Timer,
-  Newspaper,
-  Layers,
-  Settings,
+  // Crosshair,
+  // Timer,
+  // Newspaper,
+  // Layers,
+  // Settings,
 } from 'lucide-react';
 import DataCard from '@/components/DataCard';
 import { cn } from '@/lib/utils';

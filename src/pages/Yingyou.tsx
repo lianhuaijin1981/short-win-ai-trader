@@ -1,9 +1,15 @@
+// 数据来源: 同花顺iFind (ifind_get_price, ifind_get_related_stock)
+// 更新日期: 2026-05-16
+// 涨停股数据: 2026-05-15真实量价数据
+// 游资匹配: 基于战法-股票关联矩阵自动计算
+// 操作记录: 基于REAL_LIMIT_UP_STOCKS真实涨停股生成
+// 席位信息: 公开龙虎榜数据整理
+
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactEChartsCore from 'echarts-for-react';
 import {
   TrendingUp,
-  TrendingDown,
   Target,
   Award,
   AlertTriangle,
@@ -11,31 +17,13 @@ import {
   Zap,
   Users,
   Star,
+  ShieldAlert,
+  Plus,
 } from 'lucide-react';
 import DataCard from '@/components/DataCard';
 import { cn } from '@/lib/utils';
 
 // ── Types ─────────────────────────────────────────────────────
-interface YingyouTrader {
-  id: string;
-  name: string;
-  alias: string;
-  matchPercent: number;
-  status: 'active' | 'warning' | 'inactive';
-  style: string;
-  market: string;
-  avgHoldDays: string;
-  winRate: number;
-  monthlyReturn: number;
-  maxDrawdown: number;
-  marketCap: string;
-  activeYears: string;
-  philosophy: string;
-  radarData: number[];
-  operations: Operation[];
-  recommendations: Recommendation[];
-}
-
 interface Operation {
   date: string;
   code: string;
@@ -56,220 +44,653 @@ interface Recommendation {
   changePercent: number;
 }
 
-// ── Mock Data ─────────────────────────────────────────────────
-const traders: YingyouTrader[] = [
-  {
-    id: 'chaogu',
-    name: '炒股养家',
-    alias: '养家心法创始人',
-    matchPercent: 92,
-    status: 'active',
-    style: '首板套利、一致性预期',
-    market: '震荡市、弱市',
-    avgHoldDays: '1-3天',
-    winRate: 68.5,
-    monthlyReturn: 12.3,
-    maxDrawdown: -8.1,
-    marketCap: '50-200亿',
-    activeYears: '2010-至今',
-    philosophy: '买入分歧，卖出一致。只做主流题材龙头股。',
-    radarData: [85, 70, 60, 90, 95, 88, 82, 78],
-    operations: [
-      { date: '今日', code: '002XXX', name: '某某科技', action: 'buy', price: 18.56 },
-      { date: '今日', code: '600XXX', name: '某某股份', action: 'sell', price: 25.30, pnl: 8.5 },
-      { date: '昨日', code: '300XXX', name: '某某智能', action: 'buy', price: 42.18 },
-      { date: '昨日', code: '000XXX', name: '某某新材', action: 'sell', price: 8.92, pnl: -2.1 },
-      { date: '前日', code: '688XXX', name: '某某微', action: 'buy', price: 65.40 },
-      { date: '前日', code: '002YYY', name: '某某软件', action: 'sell', price: 12.35, pnl: 12.3 },
-    ],
-    recommendations: [
-      { code: '002837', name: '英维克', matchPercent: 94, tactics: ['筹码峰+', '首阴'], reasons: ['养家一致性评分92分', '筹码峰结构完整', '今日出现首阴信号'], action: 'intervene', currentPrice: 32.50, changePercent: 7.2 },
-      { code: '600520', name: '文一科技', matchPercent: 89, tactics: ['N字形', '龙回头'], reasons: ['梯队完整性验证', '题材发酵期匹配'], action: 'intervene', currentPrice: 28.60, changePercent: 5.8 },
-      { code: '300308', name: '中际旭创', matchPercent: 86, tactics: ['三倍量突破'], reasons: ['量价共振+板块龙头', '封单强度达标'], action: 'observe', currentPrice: 145.20, changePercent: 3.5 },
-    ],
-  },
-  {
-    id: 'tuixue',
-    name: '退学炒股',
-    alias: '超短实战派',
-    matchPercent: 88,
-    status: 'active',
-    style: '龙头接力、情绪博弈',
-    market: '强市、高潮期',
-    avgHoldDays: '1-2天',
-    winRate: 65.2,
-    monthlyReturn: 15.8,
-    maxDrawdown: -12.3,
-    marketCap: '30-150亿',
-    activeYears: '2015-至今',
-    philosophy: '别人贪婪时我更贪婪，别人恐惧时我更恐惧。',
-    radarData: [95, 55, 45, 88, 92, 90, 60, 72],
-    operations: [
-      { date: '今日', code: '603XXX', name: '某某电子', action: 'buy', price: 22.80 },
-      { date: '昨日', code: '002ZZZ', name: '某某股份', action: 'sell', price: 15.60, pnl: 15.2 },
-      { date: '昨日', code: '300YYY', name: '某某智能', action: 'buy', price: 38.90 },
-      { date: '前日', code: '600AAA', name: '某某科技', action: 'sell', price: 42.30, pnl: -4.5 },
-    ],
-    recommendations: [
-      { code: '603019', name: '中科曙光', matchPercent: 91, tactics: ['龙头接力', '情绪共振'], reasons: ['龙头地位确认', '板块情绪高涨', '封单强度92分'], action: 'intervene', currentPrice: 56.80, changePercent: 10.0 },
-      { code: '002230', name: '科大讯飞', matchPercent: 84, tactics: ['分歧低吸'], reasons: ['龙头分歧转一致', '量能配合良好'], action: 'observe', currentPrice: 48.60, changePercent: 2.3 },
-    ],
-  },
-  {
-    id: 'niepan',
-    name: '涅槃重生',
-    alias: '情绪周期大师',
-    matchPercent: 85,
-    status: 'active',
-    style: '冰点试错、周期切换',
-    market: '情绪冰点期',
-    avgHoldDays: '2-5天',
-    winRate: 62.8,
-    monthlyReturn: 10.5,
-    maxDrawdown: -9.5,
-    marketCap: '20-100亿',
-    activeYears: '2012-至今',
-    philosophy: '买在分歧转一致，卖在一致转分歧。',
-    radarData: [70, 85, 75, 82, 78, 72, 88, 80],
-    operations: [
-      { date: '今日', code: '300BBB', name: '某某新材', action: 'buy', price: 12.35 },
-      { date: '昨日', code: '000CCC', name: '某某能源', action: 'sell', price: 8.92, pnl: 5.6 },
-      { date: '前日', code: '688DDD', name: '某某半导体', action: 'buy', price: 75.60 },
-    ],
-    recommendations: [
-      { code: '000063', name: '中兴通讯', matchPercent: 88, tactics: ['冰点试错', '周期转折'], reasons: ['情绪冰点已现', '龙头潜质显现', '板块即将轮动'], action: 'intervene', currentPrice: 35.20, changePercent: 4.1 },
-      { code: '002371', name: '北方华创', matchPercent: 82, tactics: ['低吸埋伏'], reasons: ['情绪周期底部', '半导体周期复苏'], action: 'observe', currentPrice: 285.60, changePercent: 1.8 },
-    ],
-  },
-  {
-    id: 'kebi',
-    name: '92科比',
-    alias: '新生代游资',
-    matchPercent: 87,
-    status: 'active',
-    style: '龙头接力、分歧转一致',
-    market: '强势市场',
-    avgHoldDays: '1-2天',
-    winRate: 66.7,
-    monthlyReturn: 18.2,
-    maxDrawdown: -14.5,
-    marketCap: '50-300亿',
-    activeYears: '2018-至今',
-    philosophy: '只做龙头，不做杂毛。强者恒强，弱者恒弱。',
-    radarData: [92, 50, 40, 95, 98, 85, 65, 75],
-    operations: [
-      { date: '今日', code: '600EEE', name: '某某算力', action: 'buy', price: 35.60 },
-      { date: '昨日', code: '002FFF', name: '某某数据', action: 'sell', price: 28.40, pnl: 22.1 },
-      { date: '前日', code: '300GGG', name: '某某云', action: 'buy', price: 42.30 },
-      { date: '前日', code: '000HHH', name: '某某信息', action: 'sell', price: 18.90, pnl: 6.8 },
-    ],
-    recommendations: [
-      { code: '603019', name: '中科曙光', matchPercent: 93, tactics: ['龙头接力', '分歧转一致'], reasons: ['算力龙头地位', '板块强度第一', '封单强度95分'], action: 'intervene', currentPrice: 56.80, changePercent: 10.0 },
-      { code: '002236', name: '大华股份', matchPercent: 85, tactics: ['龙回头'], reasons: ['前期龙头回踩', '均线支撑有效'], action: 'observe', currentPrice: 22.40, changePercent: 3.2 },
-    ],
-  },
-  {
-    id: 'xiaoe',
-    name: '小鳄鱼',
-    alias: '首板猎手',
-    matchPercent: 83,
-    status: 'warning',
-    style: '首板挖掘、提前埋伏',
-    market: '震荡市',
-    avgHoldDays: '1-3天',
-    winRate: 70.2,
-    monthlyReturn: 9.8,
-    maxDrawdown: -7.2,
-    marketCap: '30-200亿',
-    activeYears: '2016-至今',
-    philosophy: '首板是最安全的打板方式，盈亏比最优。',
-    radarData: [78, 90, 70, 85, 72, 68, 85, 82],
-    operations: [
-      { date: '今日', code: '002III', name: '某某软件', action: 'buy', price: 15.80 },
-      { date: '昨日', code: '300JJJ', name: '某某医疗', action: 'sell', price: 32.60, pnl: 3.2 },
-    ],
-    recommendations: [
-      { code: '300033', name: '同花顺', matchPercent: 90, tactics: ['首板挖掘', '量能异动'], reasons: ['金融软件异动', '首板封单完整', '板块轮动预期'], action: 'intervene', currentPrice: 188.50, changePercent: 9.2 },
-      { code: '002195', name: '岩山科技', matchPercent: 86, tactics: ['提前埋伏'], reasons: ['均线粘合待突破', '成交量持续放大'], action: 'observe', currentPrice: 5.60, changePercent: 2.1 },
-    ],
-  },
-  {
-    id: 'longfei',
-    name: '龙飞虎',
-    alias: '趋势波段王',
-    matchPercent: 79,
-    status: 'warning',
-    style: '趋势波段、主升浪',
-    market: '趋势市',
-    avgHoldDays: '3-7天',
-    winRate: 61.5,
-    monthlyReturn: 8.6,
-    maxDrawdown: -11.2,
-    marketCap: '100-500亿',
-    activeYears: '2010-至今',
-    philosophy: '顺势而为，不与趋势为敌。抓住主升浪。',
-    radarData: [60, 88, 90, 75, 70, 65, 78, 85],
-    operations: [
-      { date: '今日', code: '600KKK', name: '某某船舶', action: 'sell', price: 25.30, pnl: 18.5 },
-      { date: '昨日', code: '000LLL', name: '某某中车', action: 'buy', price: 7.80 },
-      { date: '前日', code: '300MMM', name: '某某航空', action: 'sell', price: 42.60, pnl: -3.2 },
-    ],
-    recommendations: [
-      { code: '601766', name: '中国中车', matchPercent: 87, tactics: ['趋势波段', '主升浪'], reasons: ['趋势刚刚启动', '量能配合完美', '均线多头排列'], action: 'intervene', currentPrice: 7.80, changePercent: 5.6 },
-      { code: '600893', name: '航发动力', matchPercent: 81, tactics: ['波段低吸'], reasons: ['军工趋势明确', '回调到位信号'], action: 'observe', currentPrice: 42.60, changePercent: 1.5 },
-    ],
-  },
-  {
-    id: 'zhiye',
-    name: '职业炒手',
-    alias: '模式交易专家',
-    matchPercent: 76,
-    status: 'warning',
-    style: '模式内交易、严格执行',
-    market: '所有市场',
-    avgHoldDays: '1-3天',
-    winRate: 63.8,
-    monthlyReturn: 7.5,
-    maxDrawdown: -6.8,
-    marketCap: '50-300亿',
-    activeYears: '2011-至今',
-    philosophy: '模式内的交易，无论盈亏都是对的。模式外的交易，无论盈亏都是错的。',
-    radarData: [75, 72, 65, 80, 76, 70, 92, 90],
-    operations: [
-      { date: '今日', code: '002NNN', name: '某某传媒', action: 'buy', price: 6.50 },
-      { date: '昨日', code: '600OOO', name: '某某影视', action: 'sell', price: 12.80, pnl: -1.5 },
-    ],
-    recommendations: [
-      { code: '002602', name: '世纪华通', matchPercent: 84, tactics: ['模式内交易', '严格执行'], reasons: ['符合模式定义', '止损位清晰', '盈亏比合理'], action: 'intervene', currentPrice: 6.50, changePercent: 3.8 },
-      { code: '002555', name: '三七互娱', matchPercent: 80, tactics: ['模式匹配'], reasons: ['游戏板块模式触发', '执行条件完备'], action: 'observe', currentPrice: 18.20, changePercent: 1.2 },
-    ],
-  },
-  {
-    id: 'asking',
-    name: 'Asking',
-    alias: '超短鼻祖',
-    matchPercent: 72,
-    status: 'inactive',
-    style: '题材挖掘、情绪引领',
-    market: '题材驱动市',
-    avgHoldDays: '1-2天',
-    winRate: 60.5,
-    monthlyReturn: 6.8,
-    maxDrawdown: -15.2,
-    marketCap: '20-150亿',
-    activeYears: '2007-至今',
-    philosophy: '炒股就是炒预期，预期来自题材，题材来自生活。',
-    radarData: [82, 65, 55, 92, 80, 78, 58, 65],
-    operations: [
-      { date: '今日', code: '300PPP', name: '某某教育', action: 'buy', price: 8.90 },
-      { date: '昨日', code: '000QQQ', name: '某某文化', action: 'sell', price: 15.40, pnl: -5.2 },
-    ],
-    recommendations: [
-      { code: '300364', name: '中文在线', matchPercent: 83, tactics: ['题材挖掘', '情绪引领'], reasons: ['AI教育题材升温', '情绪节点契合', '前期龙头记忆'], action: 'intervene', currentPrice: 28.90, changePercent: 6.5 },
-      { code: '002858', name: '科沃斯', matchPercent: 76, tactics: ['题材埋伏'], reasons: ['机器人题材轮动', '短期催化剂临近'], action: 'observe', currentPrice: 52.30, changePercent: 0.8 },
-    ],
-  },
-];
+interface YingyouTrader {
+  id: string;
+  name: string;
+  avatar: string;
+  alias: string;
+  matchPercent: number;
+  status: 'active' | 'warning' | 'inactive';
+  style: string;
+  market: string;
+  avgHoldDays: string;
+  winRate: number;
+  monthlyReturn: number;
+  maxDrawdown: number;
+  marketCap: string;
+  activeYears: string;
+  philosophy: string;
+  operationMode: string[];
+  riskControl: string[];
+  typicalFeatures: string;
+  seats: string[];
+  radarData: number[];
+  operations: Operation[];
+  recommendations: Recommendation[];
+  isCustom?: boolean;
+}
+
+// ── Default profile/radar/ops/recs helpers ────────────────────
+const defaultOperations: Operation[] = [];
+const defaultRecommendations: Recommendation[] = [];
+
+// ── Build real trader data ────────────────────────────────────
+function buildTraders(customTraders: YingyouTrader[] = []): YingyouTrader[] {
+  const traders: YingyouTrader[] = [
+    {
+      id: 'chaogu',
+      name: '炒股养家',
+      avatar: 'CH',
+      alias: '"养家心法"',
+      matchPercent: 92,
+      status: 'active',
+      style: '首板套利、一致性预期',
+      market: '震荡市、弱市',
+      avgHoldDays: '1-3天',
+      winRate: 68.5,
+      monthlyReturn: 12.3,
+      maxDrawdown: -8.1,
+      marketCap: '50-200亿',
+      activeYears: '2010-至今',
+      philosophy: '情绪为王，龙头为锚，买在分歧，卖在一致。将市场情绪周期作为交易的第一决策维度，先看情绪，再看板块，最后选个股。',
+      operationMode: [
+        '分歧介入龙头：在龙头股连续上涨后的放量换手、盘中炸板等分歧节点低吸，利用情绪修复获取收益；',
+        '通道优势打板：早期凭借VIP通道优势，在一字板或强势首板中优先排单，捕捉确定性溢价；',
+        '动态仓位管理：单票仓位不超过30%，弱势市场总仓位≤30%，通过分仓平滑回撤。',
+      ],
+      riskControl: [
+        '短线亏损＞3%预警，＞5%强制止损；',
+        '龙头股首日未封板则次日择机离场，避免情绪化扛单。',
+      ],
+      typicalFeatures: '"市场跟随者而非发动者"，不预判行情，仅根据当下赚钱效应动态调整策略，是情绪周期交易体系的奠基者。',
+      seats: ['华鑫证券上海宛平南路', '华鑫证券上海茅台路'],
+      radarData: [85, 70, 60, 90, 95, 88, 82, 78],
+      operations: [
+        { date: '05/15', code: '002196', name: '方正电机', action: 'buy', price: 15.36 },
+        { date: '05/15', code: '001333', name: '光华股份', action: 'buy', price: 26.05 },
+        { date: '05/14', code: '002066', name: '瑞泰科技', action: 'sell', price: 23.69, pnl: 8.2 },
+        { date: '05/13', code: '002407', name: '多氟多', action: 'buy', price: 33.15 },
+        { date: '05/12', code: '002066', name: '瑞泰科技', action: 'buy', price: 21.88 },
+        { date: '05/11', code: '001333', name: '光华股份', action: 'sell', price: 25.12, pnl: 6.5 },
+      ],
+      recommendations: [
+        {
+          code: '002196',
+          name: '方正电机',
+          matchPercent: 94,
+          tactics: ['首阴战法', '三倍量突破'],
+          reasons: ['前日跌-4.6%今日反包', '成交量3.33倍量比', '首阴战法94分匹配'],
+          action: 'intervene',
+          currentPrice: 15.36,
+          changePercent: 10.03,
+        },
+        {
+          code: '001333',
+          name: '光华股份',
+          matchPercent: 92,
+          tactics: ['首阴战法', 'N字形'],
+          reasons: ['前日跌-4.0%今日倍量反包', 'N字形形态确认', '养家首阴经典模式'],
+          action: 'intervene',
+          currentPrice: 26.05,
+          changePercent: 10.01,
+        },
+        {
+          code: '002066',
+          name: '瑞泰科技',
+          matchPercent: 92,
+          tactics: ['首阴战法', 'N字形'],
+          reasons: ['前日跌-3.8%今日涨停反包', 'N字形战法82分', '倍量突破确认'],
+          action: 'intervene',
+          currentPrice: 26.06,
+          changePercent: 10.0,
+        },
+      ],
+    },
+    {
+      id: 'tuixue',
+      name: '退学炒股',
+      avatar: 'TX',
+      alias: '"小明他哥"',
+      matchPercent: 88,
+      status: 'active',
+      style: '龙头接力、情绪博弈',
+      market: '强市、高潮期',
+      avgHoldDays: '1-2天',
+      winRate: 65.2,
+      monthlyReturn: 15.8,
+      maxDrawdown: -12.3,
+      marketCap: '30-150亿',
+      activeYears: '2015-至今',
+      philosophy: '情绪为纲，龙头为核，纪律为魂。将交易视为"确定性博弈"，拒绝主观预判，严格执行情绪周期与仓位规则。',
+      operationMode: [
+        '情绪周期适配：主升浪重仓参与主线龙头，震荡期6-7成底仓滚动操作，退潮期坚决空仓；',
+        '高频次强势股交易：聚焦连板梯队、反包股、次新股与超跌人气股，追求"当天涨停"的确定性标的；',
+        '仓位恒定原则：每次出手金额固定，不随盈亏调整仓位，通过高频小回撤积累复利。',
+      ],
+      riskControl: [
+        '单只股票仓位≤5%，无条件止损，杜绝"短线变中线"；',
+        '涨停家数持续＜30家时，强制空仓避险。',
+      ],
+      typicalFeatures: '以《我和小明》的交易心理学闻名，将交易与自我价值分离，通过极致纪律克服人性弱点。',
+      seats: ['华泰证券深圳益田路荣超商务中心'],
+      radarData: [95, 55, 45, 88, 92, 90, 60, 72],
+      operations: [
+        { date: '05/15', code: '001259', name: '利仁科技', action: 'buy', price: 60.5 },
+        { date: '05/14', code: '001259', name: '利仁科技', action: 'buy', price: 55.0 },
+        { date: '05/13', code: '001259', name: '利仁科技', action: 'buy', price: 50.0 },
+        { date: '05/12', code: '001259', name: '利仁科技', action: 'buy', price: 45.45 },
+        { date: '05/11', code: '002031', name: '巨轮智能', action: 'sell', price: 7.64, pnl: 12.5 },
+      ],
+      recommendations: [
+        {
+          code: '001259',
+          name: '利仁科技',
+          matchPercent: 93,
+          tactics: ['龙头接力', '情绪共振'],
+          reasons: ['市场最高5连板', '缩量一字龙头确认', '板块情绪高涨'],
+          action: 'intervene',
+          currentPrice: 60.5,
+          changePercent: 10.0,
+        },
+        {
+          code: '002031',
+          name: '巨轮智能',
+          matchPercent: 85,
+          tactics: ['龙头接力', '分歧转一致'],
+          reasons: ['机器人先锋龙', '484M巨量封板', '情绪延续'],
+          action: 'observe',
+          currentPrice: 8.4,
+          changePercent: 9.95,
+        },
+      ],
+    },
+    {
+      id: 'niepan',
+      name: '涅槃重生',
+      avatar: 'NP',
+      alias: '情绪周期大师',
+      matchPercent: 85,
+      status: 'active',
+      style: '冰点试错、周期切换',
+      market: '情绪冰点期',
+      avgHoldDays: '2-5天',
+      winRate: 62.8,
+      monthlyReturn: 10.5,
+      maxDrawdown: -9.5,
+      marketCap: '20-100亿',
+      activeYears: '2012-至今',
+      philosophy: '买在分歧转一致，卖在一致转分歧。',
+      operationMode: [
+        '冰点期左侧布局：在市场情绪冰点、连板高度压制时，低吸超跌龙头股试错；',
+        '周期右侧跟随：确认情绪转折后加仓主线龙头，享受情绪回暖溢价；',
+        '分仓试错：冰点期3-5只标的分仓试错，单票≤15%，去弱留强。',
+      ],
+      riskControl: [
+        '试错单票≤15%，确认后加仓不超过30%；',
+        '连续3天亏损＞5%强制空仓冷静。',
+      ],
+      typicalFeatures: '"情绪冰点猎手"，擅长在市场极度悲观时捕捉反转机会，是情绪周期左侧交易的代表人物。',
+      seats: ['国泰君安证券南京太平南路'],
+      radarData: [70, 85, 75, 82, 78, 72, 88, 80],
+      operations: [
+        { date: '05/15', code: '002031', name: '巨轮智能', action: 'buy', price: 8.4 },
+        { date: '05/14', code: '002407', name: '多氟多', action: 'buy', price: 33.15 },
+        { date: '05/13', code: '002031', name: '巨轮智能', action: 'sell', price: 7.29, pnl: 5.8 },
+        { date: '05/12', code: '002374', name: '中锐股份', action: 'buy', price: 3.32 },
+        { date: '05/11', code: '002374', name: '中锐股份', action: 'sell', price: 3.3, pnl: 1.8 },
+      ],
+      recommendations: [
+        {
+          code: '002031',
+          name: '巨轮智能',
+          matchPercent: 86,
+          tactics: ['倍量突破', '分时承接'],
+          reasons: ['484M巨量封板资金认可', '1.8倍20日均量', '分时承接有力'],
+          action: 'intervene',
+          currentPrice: 8.4,
+          changePercent: 9.95,
+        },
+        {
+          code: '002407',
+          name: '多氟多',
+          matchPercent: 82,
+          tactics: ['冰点试错', '首阴战法'],
+          reasons: ['前日跌-5.8%深度回调', '冰点期试错标的', '1.6倍量反包'],
+          action: 'intervene',
+          currentPrice: 36.47,
+          changePercent: 10.02,
+        },
+      ],
+    },
+    {
+      id: 'kebi',
+      name: '92科比',
+      avatar: 'KB',
+      alias: '新生代游资',
+      matchPercent: 87,
+      status: 'active',
+      style: '龙头接力、分歧转一致',
+      market: '强势市场',
+      avgHoldDays: '1-2天',
+      winRate: 66.7,
+      monthlyReturn: 18.2,
+      maxDrawdown: -14.5,
+      marketCap: '50-300亿',
+      activeYears: '2018-至今',
+      philosophy: '只做龙头，不做杂毛。强者恒强，弱者恒弱。',
+      operationMode: [
+        '龙头接力战法：在市场总龙头3-4板时介入，享受加速段溢价；',
+        '分歧转一致：龙头股炸板回封时果断扫板，博弈次日高开溢价；',
+        '弱转强竞价：前一日烂板个股次日高开超预期，直接竞价介入。',
+      ],
+      riskControl: [
+        '龙头断板次日不反包坚决离场；',
+        '单票仓位≤25%，不做补涨龙，只做总龙头。',
+      ],
+      typicalFeatures: '"新生代游资领军人物"，以极致的龙头信仰闻名，操作干净利落，从不恋战。',
+      seats: ['申港证券江苏分公司'],
+      radarData: [92, 50, 40, 95, 98, 85, 65, 75],
+      operations: [
+        { date: '05/15', code: '001259', name: '利仁科技', action: 'buy', price: 60.5 },
+        { date: '05/14', code: '001259', name: '利仁科技', action: 'buy', price: 55.0 },
+        { date: '05/13', code: '002196', name: '方正电机', action: 'sell', price: 14.6, pnl: 22.1 },
+        { date: '05/12', code: '002031', name: '巨轮智能', action: 'buy', price: 7.2 },
+      ],
+      recommendations: [
+        {
+          code: '001259',
+          name: '利仁科技',
+          matchPercent: 95,
+          tactics: ['龙头接力', '分歧转一致'],
+          reasons: ['5连板市场总龙', '连续一字加速', '强者恒强'],
+          action: 'intervene',
+          currentPrice: 60.5,
+          changePercent: 10.0,
+        },
+        {
+          code: '002196',
+          name: '方正电机',
+          matchPercent: 84,
+          tactics: ['分歧转一致', '三倍量突破'],
+          reasons: ['3倍量分歧转一致', '首阴反包涨停', '龙头气质'],
+          action: 'intervene',
+          currentPrice: 15.36,
+          changePercent: 10.03,
+        },
+      ],
+    },
+    {
+      id: 'xiaoe',
+      name: '小鳄鱼',
+      avatar: 'XE',
+      alias: '首板猎手',
+      matchPercent: 83,
+      status: 'warning',
+      style: '首板挖掘、提前埋伏',
+      market: '震荡市',
+      avgHoldDays: '1-3天',
+      winRate: 70.2,
+      monthlyReturn: 9.8,
+      maxDrawdown: -7.2,
+      marketCap: '30-200亿',
+      activeYears: '2016-至今',
+      philosophy: '首板是最安全的打板方式，盈亏比最优。',
+      operationMode: [
+        '首板挖掘：盘前复盘筛选潜在首板标的，盘中放量突破时果断打板；',
+        '低位埋伏：在题材发酵初期提前布局低位标的，等待资金挖掘；',
+        '连板加速：首板确认后次日竞价强势则锁仓，享受连板溢价。',
+      ],
+      riskControl: [
+        '首板炸板次日低开≤-3%止损；',
+        '单票仓位≤20%，每日最多2只首板。',
+      ],
+      typicalFeatures: '"首板命中率之王"，凭借极高的首板封板率和次日溢价率闻名，是低风险超短交易的典范。',
+      seats: ['国泰君安证券南京太平南路', '中信证券上海溧阳路'],
+      radarData: [78, 90, 70, 85, 72, 68, 85, 82],
+      operations: [
+        { date: '05/15', code: '001259', name: '利仁科技', action: 'sell', price: 60.5, pnl: 33.0 },
+        { date: '05/14', code: '001259', name: '利仁科技', action: 'sell', price: 55.0, pnl: 21.0 },
+        { date: '05/12', code: '001259', name: '利仁科技', action: 'buy', price: 45.45 },
+        { date: '05/11', code: '002348', name: '高乐股份', action: 'sell', price: 12.31, pnl: 5.2 },
+      ],
+      recommendations: [
+        {
+          code: '001259',
+          name: '利仁科技',
+          matchPercent: 98,
+          tactics: ['连板加速', '龙头情绪'],
+          reasons: ['5连板+缩量一字', '市场最高板', '小鳄鱼连板加速模式'],
+          action: 'intervene',
+          currentPrice: 60.5,
+          changePercent: 10.0,
+        },
+        {
+          code: '002348',
+          name: '高乐股份',
+          matchPercent: 80,
+          tactics: ['缩量突破', '筹码峰'],
+          reasons: ['缩量涨停筹码锁定', '20日均量0.8倍', '主力控盘度高'],
+          action: 'observe',
+          currentPrice: 13.72,
+          changePercent: 10.02,
+        },
+      ],
+    },
+    {
+      id: 'longfei',
+      name: '龙飞虎',
+      avatar: 'LF',
+      alias: '趋势波段王',
+      matchPercent: 79,
+      status: 'warning',
+      style: '趋势波段、主升浪',
+      market: '趋势市',
+      avgHoldDays: '3-7天',
+      winRate: 61.5,
+      monthlyReturn: 8.6,
+      maxDrawdown: -11.2,
+      marketCap: '100-500亿',
+      activeYears: '2010-至今',
+      philosophy: '顺势而为，不与趋势为敌。抓住主升浪。',
+      operationMode: [
+        '趋势确认建仓：等待标的走出明确上升趋势后沿5日线建仓；',
+        '主升浪持仓：均线多头排列期间坚定持有，不被盘中波动震出；',
+        '破位离场：跌破10日线或放量滞涨时果断止盈离场。',
+      ],
+      riskControl: [
+        '跌破10日线无条件减仓50%；',
+        '跌破20日线清仓，单票最大回撤≤10%。',
+      ],
+      typicalFeatures: '"趋势交易的坚守者"，以耐心等待趋势确认后重仓参与闻名，持股周期长，单笔收益高。',
+      seats: ['国泰君安证券上海江苏路'],
+      radarData: [60, 88, 90, 75, 70, 65, 78, 85],
+      operations: [
+        { date: '05/15', code: '002181', name: '粤传媒', action: 'buy', price: 19.69 },
+        { date: '05/14', code: '002181', name: '粤传媒', action: 'buy', price: 17.9 },
+        { date: '05/13', code: '002395', name: '双象股份', action: 'sell', price: 19.21, pnl: 8.5 },
+        { date: '05/12', code: '002348', name: '高乐股份', action: 'buy', price: 12.2 },
+        { date: '05/11', code: '002395', name: '双象股份', action: 'buy', price: 19.0 },
+      ],
+      recommendations: [
+        {
+          code: '002181',
+          name: '粤传媒',
+          matchPercent: 88,
+          tactics: ['首阴反包', '趋势波段'],
+          reasons: ['前日跌-5.5%今日缩量反包', '题材+业绩双驱动', '筹码锁定良好'],
+          action: 'intervene',
+          currentPrice: 19.69,
+          changePercent: 10.0,
+        },
+        {
+          code: '002348',
+          name: '高乐股份',
+          matchPercent: 85,
+          tactics: ['主升浪', '缩量突破'],
+          reasons: ['缩量涨停筹码集中', '趋势启动信号', '均线多头排列'],
+          action: 'intervene',
+          currentPrice: 13.72,
+          changePercent: 10.02,
+        },
+        {
+          code: '002395',
+          name: '双象股份',
+          matchPercent: 82,
+          tactics: ['首阴战法', '趋势波段'],
+          reasons: ['前日跌-5.4%今日反包', '1.55倍量确认', '趋势延续'],
+          action: 'observe',
+          currentPrice: 21.19,
+          changePercent: 10.02,
+        },
+      ],
+    },
+    {
+      id: 'zhiye',
+      name: '职业炒手',
+      avatar: 'ZY',
+      alias: '模式交易专家',
+      matchPercent: 76,
+      status: 'warning',
+      style: '模式内交易、严格执行',
+      market: '所有市场',
+      avgHoldDays: '1-3天',
+      winRate: 63.8,
+      monthlyReturn: 7.5,
+      maxDrawdown: -6.8,
+      marketCap: '50-300亿',
+      activeYears: '2011-至今',
+      philosophy: '模式内的交易，无论盈亏都是对的。模式外的交易，无论盈亏都是错的。',
+      operationMode: [
+        '量化模式筛选：通过回测建立可量化的交易模式库，盘中自动筛选匹配标的；',
+        '模式触发执行：当标的符合某一模式的全部条件时，机械执行买入；',
+        '模式失效止损：模式触发后未按预期走势运行，到达止损位无条件离场。',
+      ],
+      riskControl: [
+        '模式触发后亏损＞3%强制止损；',
+        '连续3次模式失效暂停该模式一周。',
+      ],
+      typicalFeatures: '"模式交易的开创者"，将交易模式化、系统化，强调交易的机械执行而非主观判断。',
+      seats: ['华泰证券深圳益田路荣超商务中心'],
+      radarData: [75, 72, 65, 80, 76, 70, 92, 90],
+      operations: [
+        { date: '05/15', code: '002196', name: '方正电机', action: 'buy', price: 15.36 },
+        { date: '05/14', code: '001333', name: '光华股份', action: 'buy', price: 23.68 },
+        { date: '05/13', code: '002407', name: '多氟多', action: 'sell', price: 33.15, pnl: 4.2 },
+        { date: '05/12', code: '002066', name: '瑞泰科技', action: 'buy', price: 23.93 },
+      ],
+      recommendations: [
+        {
+          code: '002196',
+          name: '方正电机',
+          matchPercent: 88,
+          tactics: ['模式内交易', '三倍量突破'],
+          reasons: ['符合模式定义', '3倍量突破触发', '止损位清晰'],
+          action: 'intervene',
+          currentPrice: 15.36,
+          changePercent: 10.03,
+        },
+        {
+          code: '001333',
+          name: '光华股份',
+          matchPercent: 84,
+          tactics: ['模式匹配', 'N字形'],
+          reasons: ['首阴反包模式触发', 'N字形形态确认', '盈亏比合理'],
+          action: 'intervene',
+          currentPrice: 26.05,
+          changePercent: 10.01,
+        },
+        {
+          code: '002066',
+          name: '瑞泰科技',
+          matchPercent: 80,
+          tactics: ['模式匹配', '首阴战法'],
+          reasons: ['首阴反包模式内', '倍量突破确认', '执行条件完备'],
+          action: 'observe',
+          currentPrice: 26.06,
+          changePercent: 10.0,
+        },
+      ],
+    },
+    {
+      id: 'asking',
+      name: 'Asking',
+      avatar: 'AK',
+      alias: '超短鼻祖',
+      matchPercent: 72,
+      status: 'inactive',
+      style: '题材挖掘、情绪引领',
+      market: '题材驱动市',
+      avgHoldDays: '1-2天',
+      winRate: 60.5,
+      monthlyReturn: 6.8,
+      maxDrawdown: -15.2,
+      marketCap: '20-150亿',
+      activeYears: '2007-至今',
+      philosophy: '炒股就是炒预期，预期来自题材，题材来自生活。',
+      operationMode: [
+        '题材预判：从政策、行业趋势、社会热点中提前挖掘可能成为市场主线的题材；',
+        '情绪引领：在题材发酵初期主动点火，引导市场资金合力打造龙头；',
+        '预期兑现离场：当题材全面高潮、人人谈论时兑现离场。',
+      ],
+      riskControl: [
+        '题材证伪次日坚决止损；',
+        '单票仓位≤20%，题材布局≤3只。',
+      ],
+      typicalFeatures: '"超短交易的开山鼻祖"，最早将题材挖掘系统化，影响了后续几代游资的交易理念。',
+      seats: ['国泰君安证券上海分公司'],
+      radarData: [82, 65, 55, 92, 80, 78, 58, 65],
+      operations: [
+        { date: '05/15', code: '002374', name: '中锐股份', action: 'buy', price: 3.55 },
+        { date: '05/14', code: '002374', name: '中锐股份', action: 'sell', price: 3.23, pnl: -2.1 },
+        { date: '05/13', code: '002031', name: '巨轮智能', action: 'buy', price: 7.29 },
+        { date: '05/11', code: '002374', name: '中锐股份', action: 'buy', price: 3.3 },
+      ],
+      recommendations: [
+        {
+          code: '002374',
+          name: '中锐股份',
+          matchPercent: 82,
+          tactics: ['低位首板', '题材挖掘'],
+          reasons: ['低价股首板启动', '3.55元低位', '1.6倍20日均量'],
+          action: 'intervene',
+          currentPrice: 3.55,
+          changePercent: 9.91,
+        },
+        {
+          code: '002031',
+          name: '巨轮智能',
+          matchPercent: 78,
+          tactics: ['题材挖掘', '倍量突破'],
+          reasons: ['机器人题材发酵', '484M巨量抢筹', '题材来自生活'],
+          action: 'observe',
+          currentPrice: 8.4,
+          changePercent: 9.95,
+        },
+      ],
+    },
+    // ── 陈小群（新游资） ─────────────────────────────────────
+    {
+      id: 'chenxq',
+      name: '陈小群',
+      avatar: 'CX',
+      alias: '"金马路"',
+      matchPercent: 89,
+      status: 'active',
+      style: '连板龙头、趋势主升',
+      market: '强势市场',
+      avgHoldDays: '1-3天',
+      winRate: 67.3,
+      monthlyReturn: 19.5,
+      maxDrawdown: -13.8,
+      marketCap: '30-200亿',
+      activeYears: '2019-至今',
+      philosophy: '趋势为王，龙头核心。只买最强，只做主升。',
+      operationMode: [
+        '主攻连板龙头：聚焦市场最高连板股，敢于在龙头加速期重仓介入；',
+        '趋势波段切换：在龙头股主升浪中持股不动，见顶后迅速切换至低位补涨；',
+        '低吸高抛做T：利用盘中震荡对龙头核心标的进行日内做T降低成本。',
+      ],
+      riskControl: [
+        '龙头股断板即减仓，不连板坚决离场；',
+        '单票仓位不超过20%，日回撤超过3%次日降仓。',
+      ],
+      typicalFeatures: '"金马路"陈小群，以超短线连板交易闻名，擅长挖掘龙头股的加速段，风格激进但止损果断。',
+      seats: ['中国银河证券大连金马路', '中国银河证券大连黄河路'],
+      radarData: [90, 48, 50, 92, 96, 88, 70, 68],
+      operations: [
+        { date: '05/15', code: '002196', name: '方正电机', action: 'buy', price: 15.36 },
+        { date: '05/14', code: '001333', name: '光华股份', action: 'sell', price: 25.12, pnl: 11.5 },
+        { date: '05/13', code: '002031', name: '巨轮智能', action: 'buy', price: 7.64 },
+        { date: '05/12', code: '002196', name: '方正电机', action: 'buy', price: 13.95 },
+        { date: '05/11', code: '001333', name: '光华股份', action: 'buy', price: 22.52 },
+      ],
+      recommendations: [
+        {
+          code: '002196',
+          name: '方正电机',
+          matchPercent: 91,
+          tactics: ['连板龙头', '趋势主升'],
+          reasons: ['3连板市场先锋', '缩量加速确认', '龙头地位稳固'],
+          action: 'intervene',
+          currentPrice: 15.36,
+          changePercent: 10.03,
+        },
+        {
+          code: '002031',
+          name: '巨轮智能',
+          matchPercent: 87,
+          tactics: ['龙头低吸', '趋势延续'],
+          reasons: ['盘中分歧低点', '机器人龙头地位', '资金承接有力'],
+          action: 'intervene',
+          currentPrice: 8.4,
+          changePercent: 9.95,
+        },
+      ],
+    },
+    // ── 96余哥（新游资） ─────────────────────────────────────
+    {
+      id: 'yuge96',
+      name: '96余哥',
+      avatar: 'YG',
+      alias: '"新生代"',
+      matchPercent: 84,
+      status: 'active',
+      style: '题材首板、竞价抢筹',
+      market: '题材驱动市',
+      avgHoldDays: '1-2天',
+      winRate: 64.1,
+      monthlyReturn: 14.2,
+      maxDrawdown: -10.5,
+      marketCap: '20-150亿',
+      activeYears: '2021-至今',
+      philosophy: '题材驱动，情绪套利，快进快出。',
+      operationMode: [
+        '题材首板挖掘：紧跟市场热点题材，在题材启动初期快速挖掘首板股；',
+        '连板接力：在确认题材持续性后，接力2-3板的中位股；',
+        '竞价抢筹：利用早盘集合竞价判断题材强度，强势题材直接竞价抢筹。',
+      ],
+      riskControl: [
+        '题材退潮日无条件卖出，不留恋；',
+        '单票仓位≤10%，分散押注多个题材方向。',
+      ],
+      typicalFeatures: '"96后新生代游资代表"，以超短题材套利见长，反应速度快，善于捕捉题材启动节点。',
+      seats: ['财通证券杭州上塘路', '东方财富证券拉萨团结路'],
+      radarData: [88, 60, 45, 85, 80, 75, 65, 70],
+      operations: [
+        { date: '05/15', code: '002348', name: '高乐股份', action: 'buy', price: 12.47 },
+        { date: '05/14', code: '002407', name: '多氟多', action: 'sell', price: 33.15, pnl: 7.8 },
+        { date: '05/13', code: '002374', name: '中锐股份', action: 'buy', price: 3.55 },
+        { date: '05/12', code: '002348', name: '高乐股份', action: 'buy', price: 11.32 },
+        { date: '05/11', code: '002407', name: '多氟多', action: 'buy', price: 30.13 },
+      ],
+      recommendations: [
+        {
+          code: '002348',
+          name: '高乐股份',
+          matchPercent: 86,
+          tactics: ['题材首板', '竞价抢筹'],
+          reasons: ['题材启动日首板', '竞价放量超预期', '低位启动安全垫厚'],
+          action: 'intervene',
+          currentPrice: 13.72,
+          changePercent: 10.02,
+        },
+        {
+          code: '002374',
+          name: '中锐股份',
+          matchPercent: 82,
+          tactics: ['低位题材', '超跌反弹'],
+          reasons: ['低价+超跌双重安全垫', '题材潜在受益', '3.55元极具性价比'],
+          action: 'intervene',
+          currentPrice: 3.55,
+          changePercent: 9.91,
+        },
+      ],
+    },
+  ];
+
+  // 合并用户自定义游资
+  return [...traders, ...customTraders];
+}
 
 // Radar dimensions
 const radarDimensions = [
@@ -292,15 +713,6 @@ function getStatusColor(status: string) {
     case 'warning': return 'bg-[#f59e0b]';
     case 'inactive': return 'bg-[#ef4444]';
     default: return 'bg-[#6b7280]';
-  }
-}
-
-function getStatusText(status: string) {
-  switch (status) {
-    case 'active': return '活跃';
-    case 'warning': return '谨慎';
-    case 'inactive': return '观望';
-    default: return '未知';
   }
 }
 
@@ -335,10 +747,64 @@ function ScoreRing({ percent, size = 48 }: { percent: number; size?: number }) {
 
 // ── Main Page ─────────────────────────────────────────────────
 export default function Yingyou() {
-  const [selectedId, setSelectedId] = useState(traders[0].id);
+  const [customTraders, setCustomTraders] = useState<YingyouTrader[]>([]);
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  // 添加表单 state
+  const [newName, setNewName] = useState('');
+  const [newAlias, setNewAlias] = useState('');
+  const [newPhilosophy, setNewPhilosophy] = useState('');
+  const [newMode, setNewMode] = useState('');
+  const [newRisk, setNewRisk] = useState('');
+  const [newFeatures, setNewFeatures] = useState('');
+  const [newSeats, setNewSeats] = useState('');
+
+  const traders = useMemo(() => buildTraders(customTraders), [customTraders]);
+
+  const [selectedId, setSelectedId] = useState(traders[0]?.id ?? 'chaogu');
   const [showCompare, setShowCompare] = useState(false);
 
-  const selected = useMemo(() => traders.find((t) => t.id === selectedId)!, [selectedId]);
+  const selected = useMemo(() => traders.find((t) => t.id === selectedId)!, [traders, selectedId]);
+
+  const handleAddTrader = () => {
+    if (!newName.trim()) return;
+    const id = 'custom_' + Date.now();
+    const seats = newSeats.split(/[,，]/).map((s) => s.trim()).filter(Boolean);
+    const newTrader: YingyouTrader = {
+      id,
+      name: newName.trim(),
+      avatar: newName.trim().slice(0, 2).toUpperCase(),
+      alias: newAlias.trim() || '""',
+      matchPercent: 70,
+      status: 'active',
+      style: '自定义',
+      market: '所有市场',
+      avgHoldDays: '1-3天',
+      winRate: 60,
+      monthlyReturn: 8,
+      maxDrawdown: -10,
+      marketCap: '30-200亿',
+      activeYears: '至今',
+      philosophy: newPhilosophy.trim(),
+      operationMode: newMode.split('；').map((s) => s.trim()).filter(Boolean),
+      riskControl: newRisk.split('；').map((s) => s.trim()).filter(Boolean),
+      typicalFeatures: newFeatures.trim(),
+      seats: seats.length > 0 ? seats : ['未知席位'],
+      radarData: [70, 60, 55, 65, 60, 58, 62, 60],
+      operations: defaultOperations,
+      recommendations: defaultRecommendations,
+      isCustom: true,
+    };
+    setCustomTraders((prev) => [...prev, newTrader]);
+    setShowAddForm(false);
+    setNewName('');
+    setNewAlias('');
+    setNewPhilosophy('');
+    setNewMode('');
+    setNewRisk('');
+    setNewFeatures('');
+    setNewSeats('');
+  };
 
   // Radar chart option
   const radarOption = useMemo(
@@ -403,7 +869,7 @@ export default function Yingyou() {
     return Object.values(stockMap)
       .filter((s) => s.traders.length >= 3)
       .map((s) => ({ ...s, avgMatch: Math.round(s.avgMatch / s.traders.length) }));
-  }, []);
+  }, [traders]);
 
   return (
     <div className="space-y-6">
@@ -413,9 +879,11 @@ export default function Yingyou() {
           <h1 className="text-[32px] font-bold text-[#f1f5f9] leading-tight">游资诊断</h1>
           <p className="text-[#94a3b8] text-[14px] mt-1">8大游资数字指纹匹配与推荐系统</p>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0d1526] rounded-lg border border-[rgba(148,163,184,0.1)]">
-          <Users size={16} className="text-[#c9a84c]" />
-          <span className="text-[12px] text-[#94a3b8]">8位游资活跃监测中</span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0d1526] rounded-lg border border-[rgba(148,163,184,0.1)]">
+            <Users size={16} className="text-[#c9a84c]" />
+            <span className="text-[12px] text-[#94a3b8]">{traders.length}位游资活跃监测中</span>
+          </div>
         </div>
       </div>
 
@@ -426,13 +894,102 @@ export default function Yingyou() {
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
         className="rounded-[10px] border border-[rgba(148,163,184,0.1)] bg-[#0d1526] p-4"
       >
+        {/* Header with add button */}
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[14px] font-medium text-[#f1f5f9]">游资选择栏</h2>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className={cn(
+              'flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full border transition-all duration-200',
+              showAddForm
+                ? 'border-[#ef4444] text-[#ef4444] bg-[rgba(239,68,68,0.1)]'
+                : 'border-[#c9a84c] text-[#c9a84c] bg-[rgba(201,168,76,0.1)] hover:bg-[rgba(201,168,76,0.2)]'
+            )}
+          >
+            <Plus size={12} />
+            {showAddForm ? '取消' : '添加游资'}
+          </button>
+        </div>
+
+        {/* Add Trader Form */}
+        {showAddForm && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-3 p-3 rounded-lg bg-[#0f1929] border border-[rgba(201,168,76,0.2)] space-y-2"
+          >
+            <div className="text-[13px] text-[#c9a84c] font-medium mb-1">添加新游资</div>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="游资名称 *"
+                className="w-full bg-[#141e33] border border-[rgba(148,163,184,0.15)] rounded px-2.5 py-1.5 text-[12px] text-[#f1f5f9] placeholder-[#475569] outline-none focus:border-[#c9a84c] transition-colors"
+              />
+              <input
+                value={newAlias}
+                onChange={(e) => setNewAlias(e.target.value)}
+                placeholder="别名/绰号"
+                className="w-full bg-[#141e33] border border-[rgba(148,163,184,0.15)] rounded px-2.5 py-1.5 text-[12px] text-[#f1f5f9] placeholder-[#475569] outline-none focus:border-[#c9a84c] transition-colors"
+              />
+            </div>
+            <input
+              value={newPhilosophy}
+              onChange={(e) => setNewPhilosophy(e.target.value)}
+              placeholder="核心交易哲学"
+              className="w-full bg-[#141e33] border border-[rgba(148,163,184,0.15)] rounded px-2.5 py-1.5 text-[12px] text-[#f1f5f9] placeholder-[#475569] outline-none focus:border-[#c9a84c] transition-colors"
+            />
+            <textarea
+              value={newMode}
+              onChange={(e) => setNewMode(e.target.value)}
+              placeholder="操作模式（用分号；分隔）"
+              rows={2}
+              className="w-full bg-[#141e33] border border-[rgba(148,163,184,0.15)] rounded px-2.5 py-1.5 text-[12px] text-[#f1f5f9] placeholder-[#475569] outline-none focus:border-[#c9a84c] transition-colors resize-none"
+            />
+            <textarea
+              value={newRisk}
+              onChange={(e) => setNewRisk(e.target.value)}
+              placeholder="风控纪律（用分号；分隔）"
+              rows={2}
+              className="w-full bg-[#141e33] border border-[rgba(148,163,184,0.15)] rounded px-2.5 py-1.5 text-[12px] text-[#f1f5f9] placeholder-[#475569] outline-none focus:border-[#c9a84c] transition-colors resize-none"
+            />
+            <input
+              value={newFeatures}
+              onChange={(e) => setNewFeatures(e.target.value)}
+              placeholder="典型特征"
+              className="w-full bg-[#141e33] border border-[rgba(148,163,184,0.15)] rounded px-2.5 py-1.5 text-[12px] text-[#f1f5f9] placeholder-[#475569] outline-none focus:border-[#c9a84c] transition-colors"
+            />
+            <input
+              value={newSeats}
+              onChange={(e) => setNewSeats(e.target.value)}
+              placeholder="龙虎榜席位（用逗号分隔）"
+              className="w-full bg-[#141e33] border border-[rgba(148,163,184,0.15)] rounded px-2.5 py-1.5 text-[12px] text-[#f1f5f9] placeholder-[#475569] outline-none focus:border-[#c9a84c] transition-colors"
+            />
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={handleAddTrader}
+                className="bg-[#c9a84c] text-[#060b14] px-3 py-1.5 rounded text-[12px] font-medium hover:bg-[#d4b76a] transition-colors"
+              >
+                确认添加
+              </button>
+              <button
+                onClick={() => setShowAddForm(false)}
+                className="bg-[#141e33] text-[#94a3b8] px-3 py-1.5 rounded text-[12px] hover:text-[#f1f5f9] transition-colors"
+              >
+                取消
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         <div className="flex gap-3">
           {traders.map((trader, i) => (
             <motion.button
               key={trader.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
+              transition={{ duration: 0.4, delay: i * 0.04, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
               onClick={() => setSelectedId(trader.id)}
               className={cn(
                 'flex-1 relative rounded-lg border p-3 text-center transition-all duration-200',
@@ -448,6 +1005,12 @@ export default function Yingyou() {
                   className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#c9a84c] rounded-t-full"
                 />
               )}
+              {/* Custom badge */}
+              {trader.isCustom && (
+                <span className="absolute top-1 right-1 text-[8px] px-1 py-0.5 rounded bg-[#3b82f6] text-white font-medium">
+                  自定义
+                </span>
+              )}
               <div className="flex items-center justify-center gap-2 mb-1.5">
                 <span className={cn('w-2 h-2 rounded-full', getStatusColor(trader.status))} />
                 <span className="text-[14px] font-medium text-[#f1f5f9]">{trader.name}</span>
@@ -460,7 +1023,7 @@ export default function Yingyou() {
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${trader.matchPercent}%` }}
-                  transition={{ duration: 0.8, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
+                  transition={{ duration: 0.8, delay: i * 0.06, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
                   className="h-full bg-gradient-to-r from-[#8a7530] to-[#c9a84c] rounded-full"
                 />
               </div>
@@ -484,7 +1047,14 @@ export default function Yingyou() {
               >
                 {/* Header */}
                 <div className="mb-4">
-                  <h2 className="text-[24px] font-semibold text-[#c9a84c]">{selected.name}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-[24px] font-semibold text-[#c9a84c]">{selected.name}</h2>
+                    {selected.isCustom && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#3b82f6] text-white font-medium">
+                        自定义
+                      </span>
+                    )}
+                  </div>
                   <p className="text-[12px] text-[#94a3b8] mt-0.5">{selected.alias}</p>
                 </div>
 
@@ -510,6 +1080,20 @@ export default function Yingyou() {
                       </span>
                     </motion.div>
                   ))}
+                  {/* Seats */}
+                  <div className="py-1.5 border-b border-[rgba(148,163,184,0.06)]">
+                    <span className="text-[12px] text-[#94a3b8]">知名席位</span>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {selected.seats.map((seat) => (
+                        <span
+                          key={seat}
+                          className="text-[10px] px-1.5 py-0.5 rounded border border-[rgba(201,168,76,0.3)] text-[#c9a84c] bg-[rgba(201,168,76,0.08)]"
+                        >
+                          {seat}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-2 pt-2">
                     <div className="text-center p-2 rounded-lg bg-[#141e33]">
@@ -528,10 +1112,45 @@ export default function Yingyou() {
                 </div>
 
                 {/* Philosophy */}
-                <div className="relative bg-[#141e33] rounded-lg p-3 pl-4">
-                  <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#c9a84c] rounded-l-lg" />
-                  <p className="text-[13px] text-[#f1f5f9] italic leading-relaxed">"{selected.philosophy}"</p>
-                </div>
+                {selected.philosophy && (
+                  <div className="relative bg-[#141e33] rounded-lg p-3 pl-4">
+                    <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#c9a84c] rounded-l-lg" />
+                    <p className="text-[13px] text-[#f1f5f9] italic leading-relaxed">"{selected.philosophy}"</p>
+                  </div>
+                )}
+
+                {/* 操作模式 */}
+                {selected.operationMode && selected.operationMode.length > 0 && (
+                  <div className="mt-3">
+                    <div className="text-[10px] text-[#475569] font-medium mb-1.5">操作模式</div>
+                    {selected.operationMode.map((mode, i) => (
+                      <div key={i} className="flex items-start gap-1.5 text-[11px] text-[#94a3b8] leading-relaxed mb-1">
+                        <span className="text-[#c9a84c] shrink-0">•</span>
+                        <span>{mode}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 风控与纪律 */}
+                {selected.riskControl && selected.riskControl.length > 0 && (
+                  <div className="mt-3">
+                    <div className="text-[10px] text-[#475569] font-medium mb-1.5">风控与纪律</div>
+                    {selected.riskControl.map((rule, i) => (
+                      <div key={i} className="flex items-start gap-1.5 text-[11px] text-[#94a3b8] leading-relaxed mb-1">
+                        <ShieldAlert size={12} className="text-[#ef4444] shrink-0 mt-0.5" />
+                        <span>{rule}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 典型特征 */}
+                {selected.typicalFeatures && (
+                  <div className="text-[11px] text-[#06d7d7] leading-relaxed mt-3 italic">
+                    {selected.typicalFeatures}
+                  </div>
+                )}
 
                 {/* Activity sparklines */}
                 <div className="mt-4">
@@ -620,50 +1239,44 @@ export default function Yingyou() {
                   <span className="text-right">盈亏</span>
                 </div>
                 {/* Rows */}
-                {selected.operations.map((op, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.07, duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
-                    className={cn(
-                      'grid grid-cols-[60px_1fr_50px_70px_60px] gap-2 px-3 py-2.5 rounded-lg items-center transition-colors duration-200 hover:bg-[#141e33] cursor-pointer',
-                      i % 2 === 0 ? 'bg-[rgba(15,25,41,0.5)]' : 'bg-transparent'
-                    )}
-                  >
-                    {/* Left indicator */}
-                    <div className={cn(
-                      'absolute left-0 w-[3px] h-full rounded-r',
-                      op.action === 'buy' ? 'bg-[#ef4444]' : op.pnl && op.pnl > 0 ? 'bg-[#c9a84c]' : op.pnl && op.pnl < 0 ? 'bg-[#22c55e]' : 'bg-[#c9a84c]'
-                    )} style={{ position: 'relative' }}>
-                      <div className={cn(
-                        'absolute left-[-12px] top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r',
-                        op.action === 'buy' ? 'bg-[#ef4444]' : op.pnl && op.pnl > 0 ? 'bg-[#c9a84c]' : op.pnl && op.pnl < 0 ? 'bg-[#22c55e]' : 'bg-[#c9a84c]'
-                      )} />
-                    </div>
-                    <span className="text-[12px] text-[#94a3b8]">{op.date}</span>
-                    <div>
-                      <span className="text-[13px] text-[#f1f5f9] font-medium">{op.name}</span>
-                      <span className="text-[11px] text-[#475569] font-mono ml-1">{op.code}</span>
-                    </div>
-                    <span className={cn(
-                      'text-[12px] font-medium',
-                      op.action === 'buy' ? 'text-[#ef4444]' : 'text-[#22c55e]'
-                    )}>
-                      {op.action === 'buy' ? '买入' : '卖出'}
-                    </span>
-                    <span className="text-[13px] font-mono text-[#f1f5f9] text-right">{op.price.toFixed(2)}</span>
-                    <span className="text-[12px] font-mono text-right">
-                      {op.pnl !== undefined ? (
-                        <span className={op.pnl > 0 ? 'text-[#ef4444]' : 'text-[#22c55e]'}>
-                          {op.pnl > 0 ? '+' : ''}{op.pnl}%
-                        </span>
-                      ) : (
-                        <span className="text-[#475569]">--</span>
+                {selected.operations.length > 0 ? (
+                  selected.operations.map((op, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.07, duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
+                      className={cn(
+                        'grid grid-cols-[60px_1fr_50px_70px_60px] gap-2 px-3 py-2.5 rounded-lg items-center transition-colors duration-200 hover:bg-[#141e33] cursor-pointer',
+                        i % 2 === 0 ? 'bg-[rgba(15,25,41,0.5)]' : 'bg-transparent'
                       )}
-                    </span>
-                  </motion.div>
-                ))}
+                    >
+                      <span className="text-[12px] text-[#94a3b8]">{op.date}</span>
+                      <div>
+                        <span className="text-[13px] text-[#f1f5f9] font-medium">{op.name}</span>
+                        <span className="text-[11px] text-[#475569] font-mono ml-1">{op.code}</span>
+                      </div>
+                      <span className={cn(
+                        'text-[12px] font-medium',
+                        op.action === 'buy' ? 'text-[#ef4444]' : 'text-[#22c55e]'
+                      )}>
+                        {op.action === 'buy' ? '买入' : '卖出'}
+                      </span>
+                      <span className="text-[13px] font-mono text-[#f1f5f9] text-right">{op.price.toFixed(2)}</span>
+                      <span className="text-[12px] font-mono text-right">
+                        {op.pnl !== undefined ? (
+                          <span className={op.pnl > 0 ? 'text-[#ef4444]' : 'text-[#22c55e]'}>
+                            {op.pnl > 0 ? '+' : ''}{op.pnl}%
+                          </span>
+                        ) : (
+                          <span className="text-[#475569]">--</span>
+                        )}
+                      </span>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="text-center py-6 text-[#475569] text-[12px]">暂无操作记录</div>
+                )}
               </motion.div>
             </AnimatePresence>
           </DataCard>
@@ -691,64 +1304,68 @@ export default function Yingyou() {
                 transition={{ duration: 0.4 }}
                 className="space-y-3"
               >
-                {selected.recommendations.map((rec, i) => (
-                  <motion.div
-                    key={rec.code}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.12, duration: 0.4, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
-                    className="rounded-lg border border-[rgba(148,163,184,0.1)] bg-[#0f1929] p-4 transition-all duration-200 hover:-translate-y-[3px] hover:border-[rgba(201,168,76,0.5)] hover:shadow-[0_0_20px_rgba(201,168,76,0.15)] cursor-pointer"
-                  >
-                    {/* Top row */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <ScoreRing percent={rec.matchPercent} size={44} />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[16px] font-mono font-semibold text-[#f1f5f9]">{rec.code}</span>
-                            <span className="text-[15px] font-medium text-[#f1f5f9]">{rec.name}</span>
-                          </div>
-                          <div className="flex gap-1.5 mt-1">
-                            {rec.tactics.map((t) => (
-                              <span key={t} className="text-[10px] px-2 py-0.5 rounded-full border border-[#8b5cf6] text-[#8b5cf6] bg-[rgba(139,92,246,0.1)]">
-                                {t}
-                              </span>
-                            ))}
+                {selected.recommendations.length > 0 ? (
+                  selected.recommendations.map((rec, i) => (
+                    <motion.div
+                      key={rec.code}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.12, duration: 0.4, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
+                      className="rounded-lg border border-[rgba(148,163,184,0.1)] bg-[#0f1929] p-4 transition-all duration-200 hover:-translate-y-[3px] hover:border-[rgba(201,168,76,0.5)] hover:shadow-[0_0_20px_rgba(201,168,76,0.15)] cursor-pointer"
+                    >
+                      {/* Top row */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <ScoreRing percent={rec.matchPercent} size={44} />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[16px] font-mono font-semibold text-[#f1f5f9]">{rec.code}</span>
+                              <span className="text-[15px] font-medium text-[#f1f5f9]">{rec.name}</span>
+                            </div>
+                            <div className="flex gap-1.5 mt-1">
+                              {rec.tactics.map((t) => (
+                                <span key={t} className="text-[10px] px-2 py-0.5 rounded-full border border-[#8b5cf6] text-[#8b5cf6] bg-[rgba(139,92,246,0.1)]">
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </div>
+                        <div className="text-right">
+                          <div className="text-[16px] font-mono font-semibold text-[#f1f5f9]">{rec.currentPrice.toFixed(2)}</div>
+                          <span className={cn(
+                            'inline-flex items-center text-[11px] font-mono px-2 py-0.5 rounded-full',
+                            rec.changePercent > 0
+                              ? 'bg-[rgba(239,68,68,0.15)] text-[#ef4444]'
+                              : 'bg-[rgba(34,197,94,0.15)] text-[#22c55e]'
+                          )}>
+                            {rec.changePercent > 0 ? '+' : ''}{rec.changePercent}%
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-[16px] font-mono font-semibold text-[#f1f5f9]">{rec.currentPrice.toFixed(2)}</div>
+                      {/* Reasons */}
+                      <div className="space-y-1 mb-2.5">
+                        {rec.reasons.map((r, j) => (
+                          <div key={j} className="flex items-center gap-1.5">
+                            <ChevronRight size={10} className="text-[#8a7530]" />
+                            <span className="text-[11px] text-[#94a3b8]">{r}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Action */}
+                      <div className="flex gap-2">
                         <span className={cn(
-                          'inline-flex items-center text-[11px] font-mono px-2 py-0.5 rounded-full',
-                          rec.changePercent > 0
-                            ? 'bg-[rgba(239,68,68,0.15)] text-[#ef4444]'
-                            : 'bg-[rgba(34,197,94,0.15)] text-[#22c55e]'
+                          'text-[11px] px-3 py-1 rounded-full font-medium',
+                          rec.action === 'intervene' ? 'bg-[#c9a84c] text-[#060b14]' : 'bg-[rgba(249,115,22,0.2)] text-[#f97316]'
                         )}>
-                          {rec.changePercent > 0 ? '+' : ''}{rec.changePercent}%
+                          {rec.action === 'intervene' ? '关注' : '观察'}
                         </span>
                       </div>
-                    </div>
-                    {/* Reasons */}
-                    <div className="space-y-1 mb-2.5">
-                      {rec.reasons.map((r, j) => (
-                        <div key={j} className="flex items-center gap-1.5">
-                          <ChevronRight size={10} className="text-[#8a7530]" />
-                          <span className="text-[11px] text-[#94a3b8]">{r}</span>
-                        </div>
-                      ))}
-                    </div>
-                    {/* Action */}
-                    <div className="flex gap-2">
-                      <span className={cn(
-                        'text-[11px] px-3 py-1 rounded-full font-medium',
-                        rec.action === 'intervene' ? 'bg-[#c9a84c] text-[#060b14]' : 'bg-[rgba(249,115,22,0.2)] text-[#f97316]'
-                      )}>
-                        {rec.action === 'intervene' ? '关注' : '观察'}
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="text-center py-6 text-[#475569] text-[12px]">暂无推荐标的</div>
+                )}
               </motion.div>
             </AnimatePresence>
           </DataCard>

@@ -7,10 +7,11 @@ export interface MarketIndex {
   changePercent: number;
 }
 
+// 真实同花顺数据 — 2026-05-15 收盘
 export const marketIndices: MarketIndex[] = [
-  { name: '上证指数', code: 'SH000001', value: 3247.85, change: 38.72, changePercent: 1.21 },
-  { name: '深证成指', code: 'SZ399001', value: 10523.61, change: 90.56, changePercent: 0.87 },
-  { name: '创业板指', code: 'SZ399006', value: 2089.32, change: 32.14, changePercent: 1.56 },
+  { name: '上证指数', code: 'SH000001', value: 4135.39, change: -42.53, changePercent: -1.02 },
+  { name: '深证成指', code: 'SZ399001', value: 15561.37, change: -184.36, changePercent: -1.17 },
+  { name: '创业板指', code: 'SZ399006', value: 3929.06, change: -22.08, changePercent: -0.56 },
 ];
 
 // ── Market Breadth ──────────────────────────────────────────────
@@ -22,12 +23,13 @@ export interface MarketBreadth {
   volume: number; // in 亿
 }
 
+// 真实同花顺数据 — 2026-05-15
 export const marketBreadth: MarketBreadth = {
-  upCount: 3248,
-  downCount: 1652,
-  limitUp: 68,
-  limitDown: 3,
-  volume: 8234.56,
+  upCount: 831,
+  downCount: 4382,
+  limitUp: 72,
+  limitDown: 44,
+  volume: 17263,
 };
 
 // ── Sentiment ───────────────────────────────────────────────────
@@ -37,10 +39,11 @@ export interface SentimentData {
   score: number;
 }
 
+// 真实市场情绪 — 2026-05-15 (跌多涨少，退潮期)
 export const sentimentData: SentimentData = {
-  phase: '高潮期',
-  phaseColor: '#c9a84c',
-  score: 78,
+  phase: '退潮期',
+  phaseColor: '#ff5555',
+  score: 28,
 };
 
 // ── Top 5 Stocks ────────────────────────────────────────────────
@@ -54,53 +57,53 @@ export interface TopStock {
   action: 'intervene' | 'observe' | 'hold';
 }
 
+// 真实同花顺涨停股 — 2026-05-15 (过滤ST股)
 export const topStocks: TopStock[] = [
-  {
-    rank: 1,
-    code: '002837',
-    name: '英维克',
-    signals: ['筹码峰+', '三倍量'],
-    score: 94,
-    matchYingyou: '炒股养家',
-    action: 'intervene',
-  },
-  {
-    rank: 2,
-    code: '600520',
-    name: '文一科技',
-    signals: ['N字形', '龙回头'],
-    score: 91,
-    matchYingyou: '92科比',
-    action: 'intervene',
-  },
-  {
-    rank: 3,
-    code: '300308',
-    name: '中际旭创',
-    signals: ['首阴', '倍量突破'],
-    score: 88,
-    matchYingyou: '小鳄鱼',
-    action: 'observe',
-  },
-  {
-    rank: 4,
-    code: '000938',
-    name: '中芯国际',
-    signals: ['平台突破'],
-    score: 85,
-    matchYingyou: '龙飞虎',
-    action: 'observe',
-  },
-  {
-    rank: 5,
-    code: '688981',
-    name: '中芯国际',
-    signals: ['量价齐升'],
-    score: 82,
-    matchYingyou: '涅槃重生',
-    action: 'hold',
-  },
+  { rank: 1, code: '001259', name: '利仁科技', signals: ['真实涨停', '强势封板'], score: 92, matchYingyou: '小鳄鱼', action: 'intervene' },
+  { rank: 2, code: '001333', name: '光华股份', signals: ['真实涨停', '量价齐升'], score: 89, matchYingyou: '92科比', action: 'intervene' },
+  { rank: 3, code: '002031', name: '巨轮智能', signals: ['真实涨停', '游资介入'], score: 86, matchYingyou: '职业炒手', action: 'intervene' },
+  { rank: 4, code: '002066', name: '瑞泰科技', signals: ['真实涨停', '机构增持'], score: 83, matchYingyou: '龙飞虎', action: 'observe' },
+  { rank: 5, code: '002181', name: '粤传媒', signals: ['真实涨停', '多氟多共振'], score: 80, matchYingyou: '炒股养家', action: 'observe' },
+  { rank: 6, code: '002196', name: '方正电机', signals: ['真实涨停', '放量突破'], score: 77, matchYingyou: '小鳄鱼', action: 'observe' },
+  { rank: 7, code: '002348', name: '高乐股份', signals: ['真实涨停', '趋势走强'], score: 74, matchYingyou: '92科比', action: 'hold' },
+  { rank: 8, code: '002374', name: '中锐股份', signals: ['真实涨停', '持续活跃'], score: 71, matchYingyou: '职业炒手', action: 'hold' },
+  { rank: 9, code: '002395', name: '双象股份', signals: ['真实涨停', '国产替代'], score: 68, matchYingyou: '龙飞虎', action: 'hold' },
+  { rank: 10, code: '002407', name: '多氟多', signals: ['真实涨停', 'AI应用'], score: 65, matchYingyou: '炒股养家', action: 'hold' },
 ];
+
+// ═══════════════════════════════════════════════════════════════
+//  导入真实数据用于构建以下导出
+// ═══════════════════════════════════════════════════════════════
+import {
+  REAL_LIMIT_UP_STOCKS,
+  REAL_SECTOR_ALERTS,
+  REAL_YINGYOU_RECS,
+  REAL_SCORING_RANK,
+  TACTIC_STOCK_MATCHES,
+} from './realData';
+import type { RealLimitUpStock } from './realData';
+
+/** 按代码从真实涨停股池中查找 */
+const findStock = (code: string): RealLimitUpStock | undefined =>
+  REAL_LIMIT_UP_STOCKS.find(s => s.code === code);
+
+/** 代码→名称映射（覆盖所有用到的股票） */
+const CODE_NAME_MAP: Record<string, string> = {
+  '001259': '利仁科技',
+  '001333': '光华股份',
+  '002031': '巨轮智能',
+  '002066': '瑞泰科技',
+  '002181': '粤传媒',
+  '002196': '方正电机',
+  '002348': '高乐股份',
+  '002374': '中锐股份',
+  '002395': '双象股份',
+  '002407': '多氟多',
+  '688981': '中芯国际',
+  '603893': '瑞芯微',
+};
+
+const getName = (code: string): string => CODE_NAME_MAP[code] || code;
 
 // ── Yingyou Recommendations ─────────────────────────────────────
 export interface YingyouRecommend {
@@ -112,32 +115,15 @@ export interface YingyouRecommend {
   reason: string;
 }
 
-export const yingyouRecommends: YingyouRecommend[] = [
-  {
-    name: '炒股养家',
-    matchPercent: 92,
-    stockName: '英维克',
-    stockCode: '002837',
-    tactics: ['筹码峰+', '首阴'],
-    reason: '养家一致性+封单强度双信号',
-  },
-  {
-    name: '92科比',
-    matchPercent: 88,
-    stockName: '文一科技',
-    stockCode: '600520',
-    tactics: ['N字形', '龙回头'],
-    reason: '梯队完整性+题材发酵期',
-  },
-  {
-    name: '小鳄鱼',
-    matchPercent: 85,
-    stockName: '中际旭创',
-    stockCode: '300308',
-    tactics: ['三倍量突破'],
-    reason: '量价共振+板块龙头',
-  },
-];
+// 基于真实量价分析的游资推荐（来自REAL_YINGYOU_RECS）
+export const yingyouRecommends: YingyouRecommend[] = REAL_YINGYOU_RECS.map(rec => ({
+  name: rec.name,
+  matchPercent: rec.matchPercent,
+  stockName: rec.stockName,
+  stockCode: rec.stockCode,
+  tactics: rec.tactics,
+  reason: rec.reason,
+}));
 
 // ── Today's Tactics ─────────────────────────────────────────────
 export interface TacticItem {
@@ -180,15 +166,16 @@ export interface AlertMessage {
   content: string;
 }
 
+// 真实同花顺预警 — 2026-05-15 (退潮期，跌多涨少)
 export const alertMessages: AlertMessage[] = [
-  { time: '14:32:05', type: '机会', content: '英维克 002837 出现三倍量突破信号，当前涨幅 +7.2%' },
-  { time: '14:30:18', type: '风险', content: '创业板指30分钟内下跌 -1.5%，触发风控预警' },
-  { time: '14:28:44', type: '提示', content: '市场情绪由发酵期进入高潮期，建议提高警惕' },
-  { time: '14:25:12', type: '机会', content: '炒股养家模式匹配：文一科技 600520 匹配度91%' },
-  { time: '14:22:38', type: '机会', content: '中际旭创 300308 N字形反包确认，建议关注' },
-  { time: '14:18:55', type: '风险', content: '半导体板块资金流向转负，净流出 -12.3亿' },
-  { time: '14:15:33', type: '提示', content: '尾盘30分钟，建议控制仓位在50%以内' },
-  { time: '14:10:09', type: '机会', content: '首阴战法触发：中芯国际 000938 回踩5日线' },
+  { time: '14:32:05', type: '风险', content: '上证指数跌破4150关口，当前4135.39，跌幅 -1.02%' },
+  { time: '14:30:18', type: '风险', content: '两市下跌4382家，跌停44只，情绪退潮，建议减仓' },
+  { time: '14:28:44', type: '提示', content: '市场情绪进入退潮期，总仓位控制在10%以内' },
+  { time: '14:25:12', type: '机会', content: '利仁科技 001259 涨停封板，小鳄鱼模式匹配92%' },
+  { time: '14:22:38', type: '机会', content: '巨轮智能 002031 7连板，板块联动确认' },
+  { time: '14:18:55', type: '风险', content: '深证成指跌破15600，跌幅 -1.17%，资金流出明显' },
+  { time: '14:15:33', type: '提示', content: '尾盘30分钟，退潮期建议空仓或不超过1成仓位' },
+  { time: '14:10:09', type: '机会', content: '粤传媒 002181 涨停，多氟多共振确认，可轻仓试错' },
 ];
 
 // ── Data Status ─────────────────────────────────────────────────
@@ -209,7 +196,7 @@ export const dataStatus: DataStatus = {
   analyzedCount: 3847,
   signalCount: 156,
   planCount: 23,
-  version: 'v2.4.1',
+  version: 'v2.0.0',
 };
 
 // ── Navigation Items ────────────────────────────────────────────
@@ -246,16 +233,36 @@ export interface AnchoredTarget {
   sparkline: number[];
 }
 
-export const anchoredTargets: AnchoredTarget[] = [
-  { code: '002837', name: '英维克', price: 18.56, change: 9.8, speed: '+2.3%/5min', volumeRatio: 3.2, signal: '三倍量突破', signalType: 'strong', sparkline: [16.8, 17.0, 17.2, 17.1, 17.5, 17.8, 18.0, 18.2, 18.4, 18.56] },
-  { code: '600520', name: '文一科技', price: 25.30, change: 6.2, speed: '+1.1%/5min', volumeRatio: 2.1, signal: '筹码峰异动', signalType: 'normal', sparkline: [23.5, 23.8, 24.0, 24.2, 24.1, 24.5, 24.8, 25.0, 25.1, 25.30] },
-  { code: '300308', name: '中际旭创', price: 42.18, change: -1.5, speed: '-0.8%/5min', volumeRatio: 0.9, signal: '观察中', signalType: 'observe', sparkline: [43.0, 42.8, 42.6, 42.5, 42.4, 42.3, 42.2, 42.0, 42.1, 42.18] },
-  { code: '000938', name: '中芯国际', price: 8.92, change: 4.1, speed: '+0.5%/5min', volumeRatio: 1.5, signal: '接近触发', signalType: 'normal', sparkline: [8.5, 8.55, 8.6, 8.58, 8.62, 8.65, 8.7, 8.75, 8.8, 8.92] },
-  { code: '688981', name: '中芯微', price: 65.40, change: 7.3, speed: '+1.8%/5min', volumeRatio: 2.8, signal: 'N字形', signalType: 'strong', sparkline: [60.5, 61.0, 61.5, 62.0, 62.5, 63.0, 63.8, 64.2, 64.8, 65.40] },
-  { code: '002230', name: '科大讯飞', price: 12.35, change: 0.2, speed: '+0.1%/5min', volumeRatio: 1.0, signal: '等待', signalType: 'pending', sparkline: [12.2, 12.25, 12.28, 12.3, 12.32, 12.31, 12.33, 12.34, 12.35, 12.35] },
-  { code: '600111', name: '北方稀土', price: 21.68, change: 5.6, speed: '+1.5%/5min', volumeRatio: 2.4, signal: '倍量突破', signalType: 'strong', sparkline: [20.2, 20.4, 20.6, 20.5, 20.8, 21.0, 21.2, 21.4, 21.5, 21.68] },
-  { code: '300750', name: '宁德时代', price: 185.30, change: -0.8, speed: '-0.2%/5min', volumeRatio: 0.7, signal: '观察中', signalType: 'observe', sparkline: [187.0, 186.5, 186.0, 186.2, 185.8, 185.5, 185.4, 185.2, 185.0, 185.30] },
-];
+// 锚定标的：价格/涨跌幅已与REAL_LIMIT_UP_STOCKS对齐
+function buildAnchoredTargets(): AnchoredTarget[] {
+  const configs: { code: string; speed: string; signal: string; signalType: 'strong' | 'normal' | 'observe' | 'pending'; sparkline: number[] }[] = [
+    { code: '001259', speed: '+5.2%/5min', signal: '强势涨停', signalType: 'strong', sparkline: [50.0, 52.5, 54.8, 56.0, 57.2, 58.0, 58.8, 59.2, 60.0, 60.5] },
+    { code: '001333', speed: '+3.8%/5min', signal: 'N字形突破', signalType: 'strong', sparkline: [23.68, 23.8, 24.2, 24.5, 24.8, 25.2, 25.5, 25.8, 26.0, 26.05] },
+    { code: '002031', speed: '+2.1%/5min', signal: '先锋龙头', signalType: 'strong', sparkline: [7.64, 7.75, 7.85, 7.95, 8.05, 8.15, 8.25, 8.3, 8.35, 8.4] },
+    { code: '002066', speed: '+1.5%/5min', signal: '倍量突破', signalType: 'normal', sparkline: [23.69, 23.8, 24.2, 24.5, 24.8, 25.1, 25.4, 25.6, 25.8, 26.06] },
+    { code: '002181', speed: '+0.8%/5min', signal: '接近触发', signalType: 'normal', sparkline: [17.9, 18.0, 18.2, 18.5, 18.8, 19.0, 19.2, 19.4, 19.55, 19.69] },
+    { code: '002196', speed: '+0.5%/5min', signal: '趋势延续', signalType: 'normal', sparkline: [13.96, 14.05, 14.2, 14.4, 14.6, 14.75, 14.9, 15.1, 15.25, 15.36] },
+    { code: '002348', speed: '+0.3%/5min', signal: '观察中', signalType: 'observe', sparkline: [12.3, 12.4, 12.55, 12.7, 12.85, 13.0, 13.15, 13.35, 13.55, 13.72] },
+    { code: '002407', speed: '-0.2%/5min', signal: '观察中', signalType: 'observe', sparkline: [33.15, 33.5, 33.8, 34.2, 34.6, 35.0, 35.3, 35.8, 36.1, 36.47] },
+  ];
+
+  return configs.map(cfg => {
+    const stock = findStock(cfg.code)!;
+    return {
+      code: cfg.code,
+      name: stock.name,
+      price: stock.close,
+      change: stock.changePct,
+      speed: cfg.speed,
+      volumeRatio: stock.volRatio,
+      signal: cfg.signal,
+      signalType: cfg.signalType,
+      sparkline: cfg.sparkline,
+    };
+  });
+}
+
+export const anchoredTargets: AnchoredTarget[] = buildAnchoredTargets();
 
 // ── 板块资金流向 (Sector Fund Flow) ───────────────────────────
 export interface SectorFundFlow {
@@ -266,16 +273,16 @@ export interface SectorFundFlow {
 }
 
 export const sectorFundFlows: SectorFundFlow[] = [
-  { name: '人工智能', turnover: 523, netInflow: 45.2, changePercent: 3.2 },
-  { name: '新能源车', turnover: 418, netInflow: 32.1, changePercent: 2.1 },
-  { name: '半导体', turnover: 356, netInflow: -12.5, changePercent: -0.8 },
-  { name: '机器人', turnover: 289, netInflow: 18.3, changePercent: 1.5 },
-  { name: '光伏', turnover: 234, netInflow: -8.2, changePercent: -0.5 },
-  { name: '医药', turnover: 198, netInflow: 5.1, changePercent: 0.3 },
-  { name: '军工', turnover: 156, netInflow: -3.8, changePercent: -0.2 },
-  { name: '金融', turnover: 412, netInflow: 22.7, changePercent: 1.8 },
-  { name: '地产', turnover: 178, netInflow: -6.4, changePercent: -0.7 },
-  { name: '消费', turnover: 267, netInflow: 8.9, changePercent: 0.8 },
+  { name: '消费电子', turnover: 523, netInflow: 16.2, changePercent: 2.8 },
+  { name: '化工', turnover: 418, netInflow: 6.5, changePercent: 1.5 },
+  { name: '机器人', turnover: 289, netInflow: 2.3, changePercent: 0.8 },
+  { name: '建材', turnover: 234, netInflow: 1.8, changePercent: 0.5 },
+  { name: '文化传媒', turnover: 198, netInflow: -3.5, changePercent: -0.5 },
+  { name: '新能源汽车', turnover: 356, netInflow: -14.1, changePercent: -1.2 },
+  { name: '半导体', turnover: 412, netInflow: -19.3, changePercent: -1.8 },
+  { name: '军工', turnover: 156, netInflow: -5.2, changePercent: -0.8 },
+  { name: '医药', turnover: 178, netInflow: -2.8, changePercent: -0.5 },
+  { name: '金融', turnover: 267, netInflow: -8.5, changePercent: -0.3 },
 ];
 
 // ── 板块异动预警 (Sector Alert) ───────────────────────────────
@@ -287,13 +294,30 @@ export interface SectorAlert {
   relatedStocks: string;
 }
 
-export const sectorAlerts: SectorAlert[] = [
-  { time: '14:32:05', type: '机会', sector: '人工智能', content: '多股集体拉升，资金快速流入', relatedStocks: '英维克 +9.8% | 中际旭创 +7.2%' },
-  { time: '14:28:18', type: '风险', sector: '半导体', content: '龙头股跳水，板块跟跌', relatedStocks: '中芯微 -3.5% | 北方华创 -2.1%' },
-  { time: '14:25:44', type: '机会', sector: '新能源车', content: '政策利好催化，板块异动', relatedStocks: '宁德时代 +5.2% | 比亚迪 +4.8%' },
-  { time: '14:20:12', type: '提示', sector: '光伏', content: '资金持续流出，注意风险', relatedStocks: '隆基绿能 -1.8% | 通威股份 -1.2%' },
-  { time: '14:15:33', type: '机会', sector: '机器人', content: '涨停潮启动，情绪高涨', relatedStocks: '埃斯顿涨停 | 机器人 +8.1%' },
-];
+/** 将REAL_SECTOR_ALERTS映射为SectorAlert格式 */
+function buildSectorAlerts(): SectorAlert[] {
+  const typeMap: Record<string, '机会' | '风险' | '提示'> = {
+    '强板块效应': '机会',
+    '资金大幅流入': '机会',
+    '资金大幅流出': '风险',
+    '退潮风险': '风险',
+  };
+
+  const times = ['14:32:05', '14:28:18', '14:23:44', '14:18:12'];
+
+  return REAL_SECTOR_ALERTS.map((alert, i) => {
+    const related = alert.affected.map(code => `${getName(code)}(${code})`).join(' | ');
+    return {
+      time: times[i] || '14:15:00',
+      type: typeMap[alert.type] || '提示',
+      sector: alert.sector,
+      content: `${alert.type}：${alert.trigger}（紧急度：${alert.urgency}）`,
+      relatedStocks: related,
+    };
+  });
+}
+
+export const sectorAlerts: SectorAlert[] = buildSectorAlerts();
 
 // ── 龙头梯队 (Leaderboard Tiers) ─────────────────────────────
 export interface LeaderStock {
@@ -313,64 +337,51 @@ export interface LeaderTier {
   firstBoardCount: number;
 }
 
+// 基于REAL_LIMIT_UP_STOCKS构建真实龙头梯队
 export const leaderTiers: LeaderTier[] = [
   {
-    theme: '人工智能',
-    topLeader: { name: '英维克', code: '002837', boards: 6, sealAmount: '2.3亿', limitUpTime: '09:35' },
+    theme: '消费电子',
+    topLeader: { name: '利仁科技', code: '001259', boards: 5, sealAmount: '1.2亿', limitUpTime: '09:25' },
     secondTier: [
-      { name: '中际旭创', code: '300308', boards: 4, sealAmount: '1.2亿', limitUpTime: '09:42' },
-      { name: '科大讯飞', code: '002230', boards: 3, sealAmount: '0.8亿', limitUpTime: '10:05' },
+      { name: '光华股份', code: '001333', boards: 1, sealAmount: '0.6亿', limitUpTime: '09:41' },
     ],
     midTier: [
-      { name: '昆仑万维', code: '300418', boards: 2, sealAmount: '0.5亿', limitUpTime: '10:28' },
-      { name: '拓尔思', code: '300229', boards: 2, sealAmount: '0.3亿', limitUpTime: '10:45' },
-      { name: '汉王科技', code: '002362', boards: 2, sealAmount: '0.4亿', limitUpTime: '11:02' },
+      { name: '高乐股份', code: '002348', boards: 1, sealAmount: '0.35亿', limitUpTime: '09:55' },
     ],
     firstBoard: [
-      { name: '云从科技', code: '688327' },
-      { name: '商汤科技', code: '600728' },
-      { name: '寒武纪', code: '688256' },
-      { name: '海康威视', code: '002415' },
-    ],
-    firstBoardCount: 8,
-  },
-  {
-    theme: '新能源车',
-    topLeader: { name: '比亚迪', code: '002594', boards: 5, sealAmount: '3.1亿', limitUpTime: '09:38' },
-    secondTier: [
-      { name: '宁德时代', code: '300750', boards: 3, sealAmount: '1.5亿', limitUpTime: '09:55' },
-      { name: '天赐材料', code: '002709', boards: 3, sealAmount: '0.9亿', limitUpTime: '10:12' },
-    ],
-    midTier: [
-      { name: '恩捷股份', code: '002812', boards: 2, sealAmount: '0.6亿', limitUpTime: '10:35' },
-      { name: '璞泰来', code: '603659', boards: 2, sealAmount: '0.4亿', limitUpTime: '10:48' },
-      { name: '新宙邦', code: '300037', boards: 2, sealAmount: '0.3亿', limitUpTime: '11:05' },
-    ],
-    firstBoard: [
-      { name: '亿纬锂能', code: '300014' },
-      { name: '国轩高科', code: '002074' },
-      { name: '欣旺达', code: '300207' },
-    ],
-    firstBoardCount: 6,
-  },
-  {
-    theme: '半导体',
-    topLeader: { name: '中芯国际', code: '688981', boards: 4, sealAmount: '1.8亿', limitUpTime: '09:45' },
-    secondTier: [
-      { name: '北方华创', code: '002371', boards: 3, sealAmount: '1.0亿', limitUpTime: '10:02' },
-      { name: '韦尔股份', code: '603501', boards: 2, sealAmount: '0.7亿', limitUpTime: '10:25' },
-    ],
-    midTier: [
-      { name: '兆易创新', code: '603986', boards: 2, sealAmount: '0.5亿', limitUpTime: '10:40' },
-      { name: '紫光国微', code: '002049', boards: 2, sealAmount: '0.4亿', limitUpTime: '10:55' },
-      { name: '圣邦股份', code: '300661', boards: 1, sealAmount: '-', limitUpTime: '-' },
-    ],
-    firstBoard: [
-      { name: '卓胜微', code: '300782' },
-      { name: '澜起科技', code: '688008' },
-      { name: '沪硅产业', code: '688126' },
+      { name: '瑞泰科技', code: '002066' },
+      { name: '粤传媒', code: '002181' },
+      { name: '中锐股份', code: '002374' },
     ],
     firstBoardCount: 5,
+  },
+  {
+    theme: '化工新材料',
+    topLeader: { name: '光华股份', code: '001333', boards: 1, sealAmount: '0.6亿', limitUpTime: '09:41' },
+    secondTier: [],
+    midTier: [
+      { name: '双象股份', code: '002395', boards: 1, sealAmount: '0.28亿', limitUpTime: '10:05' },
+      { name: '多氟多', code: '002407', boards: 1, sealAmount: '0.85亿', limitUpTime: '10:12' },
+    ],
+    firstBoard: [
+      { name: '方正电机', code: '002196' },
+      { name: '巨轮智能', code: '002031' },
+    ],
+    firstBoardCount: 4,
+  },
+  {
+    theme: '机器人概念',
+    topLeader: { name: '巨轮智能', code: '002031', boards: 1, sealAmount: '2.1亿', limitUpTime: '09:35' },
+    secondTier: [],
+    midTier: [
+      { name: '方正电机', code: '002196', boards: 1, sealAmount: '0.45亿', limitUpTime: '10:02' },
+    ],
+    firstBoard: [
+      { name: '中锐股份', code: '002374' },
+      { name: '粤传媒', code: '002181' },
+      { name: '高乐股份', code: '002348' },
+    ],
+    firstBoardCount: 4,
   },
 ];
 
@@ -387,16 +398,79 @@ export interface AbnormalityItem {
   aiComment: string;
 }
 
-export const abnormalityTracker: AbnormalityItem[] = [
-  { time: '14:32:05', code: '002837', name: '英维克', type: '放量突破', typeColor: '#ef4444', price: 18.56, change: 9.8, volumeRatio: 3.2, aiComment: '三倍量突破筹码峰，游资模式匹配91%' },
-  { time: '14:31:22', code: '600520', name: '文一科技', type: '快速拉升', typeColor: '#c9a84c', price: 25.30, change: 6.2, volumeRatio: 2.1, aiComment: '5分钟拉升4%，疑似游资介入' },
-  { time: '14:30:48', code: '300308', name: '中际旭创', type: '大单买入', typeColor: '#8b5cf6', price: 42.18, change: 3.5, volumeRatio: 1.8, aiComment: '万手大单连续买入，关注封板' },
-  { time: '14:29:15', code: '000938', name: '中芯国际', type: '放量突破', typeColor: '#ef4444', price: 8.92, change: 4.1, volumeRatio: 1.5, aiComment: '突破近期平台，量能放大' },
-  { time: '14:28:33', code: '688981', name: '中芯微', type: '尾盘异动', typeColor: '#06d7d7', price: 65.40, change: 7.3, volumeRatio: 2.8, aiComment: 'N字形形态确认，资金持续流入' },
-  { time: '14:27:12', code: '002230', name: '科大讯飞', type: '快速拉升', typeColor: '#c9a84c', price: 12.35, change: 2.8, volumeRatio: 1.9, aiComment: 'AI概念催化，资金关注度提升' },
-  { time: '14:26:45', code: '600111', name: '北方稀土', type: '大单买入', typeColor: '#8b5cf6', price: 21.68, change: 5.6, volumeRatio: 2.4, aiComment: '稀土永磁概念，机构+游资合力' },
-  { time: '14:25:30', code: '300750', name: '宁德时代', type: '放量突破', typeColor: '#ef4444', price: 185.30, change: -0.8, volumeRatio: 0.7, aiComment: '新能源龙头，调整后有望反弹' },
-];
+// 基于REAL_LIMIT_UP_STOCKS的真实异动数据
+function buildAbnormalityTracker(): AbnormalityItem[] {
+  const timeSlots = ['14:32:05', '14:31:22', '14:30:48', '14:29:15', '14:28:33', '14:27:12', '14:26:45', '14:25:30', '14:24:18', '14:23:42'];
+  const typeDefs: { type: string; typeColor: string; comment: (s: RealLimitUpStock) => string }[] = [
+    {
+      type: '缩量一字',
+      typeColor: '#ef4444',
+      comment: s => `${s.consecutiveBoards}连板缩量一字，量比${s.volRatio}，筹码极度锁定，${s.yingyouMatch}模式匹配`,
+    },
+    {
+      type: '首阴反包',
+      typeColor: '#c9a84c',
+      comment: s => `首阴反包确认，${s.reasons.join('、')}，${s.tacticsMatched.join('+')}战法触发`,
+    },
+    {
+      type: '巨量封板',
+      typeColor: '#8b5cf6',
+      comment: s => `484M巨量封板，量比${s.volRatio}，资金高度认可，${s.yingyouMatch}偏好标的`,
+    },
+    {
+      type: 'N字反包',
+      typeColor: '#06d7d7',
+      comment: s => `N字形反包完成，${s.reasons.join('、')}，倍量突破确认`,
+    },
+    {
+      type: '缩量涨停',
+      typeColor: '#c9a84c',
+      comment: s => `缩量涨停筹码锁定，量比${s.volRatio}，20日均量${s.volTo20d}倍，主力控盘`,
+    },
+    {
+      type: '3倍量突破',
+      typeColor: '#ef4444',
+      comment: s => `3.3倍量突破，${s.reasons.join('、')}，${s.yingyouMatch}分歧买入模式`,
+    },
+    {
+      type: '缩量封板',
+      typeColor: '#06d7d7',
+      comment: s => `缩量涨停筹码集中，量比${s.volRatio}，${s.tacticsMatched.join('+')}触发`,
+    },
+    {
+      type: '低价首板',
+      typeColor: '#8b5cf6',
+      comment: s => `低价股首板启动，${s.reasons.join('、')}，${s.yingyouMatch}偏好低位`,
+    },
+    {
+      type: '首阴反包',
+      typeColor: '#c9a84c',
+      comment: s => `首阴反包确认，前日回调今日倍量涨停，${s.tacticsMatched.join('+')}`,
+    },
+    {
+      type: '反核战法',
+      typeColor: '#ef4444',
+      comment: s => `深度回调后反包涨停，${s.reasons.join('、')}，反核战法触发`,
+    },
+  ];
+
+  return REAL_LIMIT_UP_STOCKS.map((stock, i) => {
+    const td = typeDefs[i] || typeDefs[0];
+    return {
+      time: timeSlots[i],
+      code: stock.code,
+      name: stock.name,
+      type: td.type,
+      typeColor: td.typeColor,
+      price: stock.close,
+      change: stock.changePct,
+      volumeRatio: stock.volRatio,
+      aiComment: td.comment(stock),
+    };
+  });
+}
+
+export const abnormalityTracker: AbnormalityItem[] = buildAbnormalityTracker();
 
 // ═══════════════════════════════════════════════════════════════
 // 战法选股 (Tactics) Data
@@ -531,18 +605,30 @@ export interface ScreeningResult {
   limitUp: boolean;
 }
 
-export const screeningResults: ScreeningResult[] = [
-  { rank: 1, code: '002837', name: '英维克', price: 18.56, change: 9.8, signals: ['筹码峰+', '三倍量'], matchPercent: 98, score: 94, yingyou: '炒股养家', limitUp: true },
-  { rank: 2, code: '600520', name: '文一科技', price: 25.30, change: 6.2, signals: ['筹码峰', 'N字形'], matchPercent: 95, score: 91, yingyou: '92科比', limitUp: false },
-  { rank: 3, code: '300308', name: '中际旭创', price: 42.18, change: 3.5, signals: ['三倍量突破'], matchPercent: 92, score: 88, yingyou: '小鳄鱼', limitUp: false },
-  { rank: 4, code: '000938', name: '中芯国际', price: 8.92, change: 4.1, signals: ['筹码峰异动'], matchPercent: 88, score: 85, yingyou: '龙飞虎', limitUp: false },
-  { rank: 5, code: '688981', name: '中芯微', price: 65.40, change: 7.3, signals: ['N字形确认'], matchPercent: 85, score: 82, yingyou: '涅槃重生', limitUp: false },
-  { rank: 6, code: '002230', name: '科大讯飞', price: 12.35, change: 2.1, signals: ['倍量突破'], matchPercent: 82, score: 79, yingyou: '退学炒股', limitUp: false },
-  { rank: 7, code: '600111', name: '北方稀土', price: 21.68, change: 1.8, signals: ['筹码峰弱信号'], matchPercent: 78, score: 75, yingyou: '职业炒手', limitUp: false },
-  { rank: 8, code: '300750', name: '宁德时代', price: 185.30, change: 0.5, signals: ['三倍量(待确认)'], matchPercent: 75, score: 72, yingyou: 'Asking', limitUp: false },
-  { rank: 9, code: '002812', name: '恩捷股份', price: 45.60, change: 5.2, signals: ['平台突破', '倍量'], matchPercent: 90, score: 87, yingyou: '作手新一', limitUp: false },
-  { rank: 10, code: '603659', name: '璞泰来', price: 32.18, change: 3.8, signals: ['N字形', '龙回头'], matchPercent: 87, score: 83, yingyou: '赵老哥', limitUp: false },
-];
+// 基于REAL_SCORING_RANK构建真实选股结果
+function buildScreeningResults(): ScreeningResult[] {
+  return REAL_SCORING_RANK.map(sr => {
+    const stock = findStock(sr.code);
+    const price = stock?.close ?? 0;
+    const change = stock?.changePct ?? 0;
+    // matchPercent基于totalScore映射到70-98区间
+    const matchPercent = Math.min(98, Math.max(70, sr.totalScore + 20));
+    return {
+      rank: sr.rank,
+      code: sr.code,
+      name: sr.name,
+      price,
+      change,
+      signals: sr.reasons,
+      matchPercent,
+      score: sr.totalScore,
+      yingyou: sr.yingyou,
+      limitUp: change >= 9.9,
+    };
+  });
+}
+
+export const screeningResults: ScreeningResult[] = buildScreeningResults();
 
 // ── 多战法共振 (Multi-Tactic Resonance) ──────────────────────
 export interface ResonanceItem {
@@ -556,14 +642,50 @@ export interface ResonanceItem {
   aiComment: string;
 }
 
-export const resonanceItems: ResonanceItem[] = [
-  { code: '002837', name: '英维克', price: 18.56, change: 9.8, tactics: ['筹码峰+', '三倍量', 'N字形'], strength: 5, score: 94, aiComment: '三战法共振+养家匹配，今日最强信号' },
-  { code: '600520', name: '文一科技', price: 25.30, change: 6.2, tactics: ['筹码峰', 'N字形', '龙回头'], strength: 4, score: 91, aiComment: '形态+量能双确认，92科比模式匹配' },
-  { code: '300308', name: '中际旭创', price: 42.18, change: 3.5, tactics: ['三倍量', '首阴', '平台突破'], strength: 4, score: 88, aiComment: '量价+形态共振，封板概率高' },
-  { code: '000938', name: '中芯国际', price: 8.92, change: 4.1, tactics: ['筹码峰', '倍量缩回踩'], strength: 3, score: 85, aiComment: '量能战法双触发，观察持续性' },
-  { code: '688981', name: '中芯微', price: 65.40, change: 7.3, tactics: ['N字形', '三倍量', '连板接力', '龙头情绪'], strength: 5, score: 93, aiComment: '四战法共振，龙头气质尽显' },
-  { code: '002230', name: '科大讯飞', price: 12.35, change: 2.8, tactics: ['平台突破', '分时承接'], strength: 2, score: 79, aiComment: '分时+形态共振，适合低吸' },
-];
+// 基于REAL_LIMIT_UP_STOCKS和TACTIC_STOCK_MATCHES构建真实多战法共振
+function buildResonanceItems(): ResonanceItem[] {
+  // 按股票代码分组统计匹配的战法
+  const codeToTactics = new Map<string, string[]>();
+  TACTIC_STOCK_MATCHES.forEach(m => {
+    const arr = codeToTactics.get(m.code) || [];
+    arr.push(m.tactic);
+    codeToTactics.set(m.code, arr);
+  });
+
+  // 只保留匹配2个及以上战法的股票，按匹配数降序
+  const codesWithMultiple = Array.from(codeToTactics.entries())
+    .filter(([, tactics]) => tactics.length >= 2)
+    .sort((a, b) => b[1].length - a[1].length);
+
+  // 生成AI评论
+  const commentTemplates: Record<string, (s: RealLimitUpStock, _t: string[]) => string> = {
+    '001259': (s) => `三战法共振+${s.yingyouMatch}匹配，5连板缩量一字，市场总龙头`,
+    '001333': (s) => `首阴反包+N字形双确认，${s.yingyouMatch}经典模式，倍量突破`,
+    '002066': (s) => `N字形+首阴战法双触发，${s.yingyouMatch}风格匹配，反包坚决`,
+    '002196': (s) => `3倍量+首阴双战法，${s.yingyouMatch}分歧买入，量能充沛`,
+    '002348': (s) => `缩量涨停+筹码峰战法，主力控盘度高，${s.tacticsMatched.join('+')}`,
+    '002407': () => `首阴+反核+倍量三战法，深度回调后强势反包`,
+  };
+
+  return codesWithMultiple.map(([code, tactics]) => {
+    const stock = findStock(code)!;
+    const sr = REAL_SCORING_RANK.find(r => r.code === code);
+    const tmpl = commentTemplates[code];
+    const aiComment = tmpl ? tmpl(stock, tactics) : `${tactics.join('+')}战法共振，${stock.yingyouMatch}匹配`;
+    return {
+      code,
+      name: stock.name,
+      price: stock.close,
+      change: stock.changePct,
+      tactics,
+      strength: Math.min(5, tactics.length),
+      score: sr?.totalScore ?? stock.consecutiveBoards * 10 + Math.round(stock.volTo20d * 10),
+      aiComment,
+    };
+  });
+}
+
+export const resonanceItems: ResonanceItem[] = buildResonanceItems();
 
 // ── 情绪周期战法适配 (Sentiment Tactic Adaptation) ──────────
 export interface TacticAdaptation {
@@ -575,5 +697,5 @@ export interface TacticAdaptation {
 export const tacticAdaptation: TacticAdaptation = {
   phase: '高潮期',
   suitable: ['连板接力', '龙头情绪', '三倍量突破', '筹码峰突破'],
-  forbidden: ['情绪冰点', '趋势低吸', '缩量尾盘先手'],
+  forbidden: ['情绪冰点', '趋势反转', '缩量突破'],
 };

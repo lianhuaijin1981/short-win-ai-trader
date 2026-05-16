@@ -8,8 +8,12 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowRight,
+  Calculator,
 } from 'lucide-react';
 import DataCard from '@/components/DataCard';
+import IndicatorDetailModal from '@/components/IndicatorDetailModal';
+import DayDetailModal from '@/components/DayDetailModal';
+import type { DayHistoryData } from '@/components/DayDetailModal';
 import { cn } from '@/lib/utils';
 
 /* ─── Types ─── */
@@ -48,36 +52,94 @@ const PHASES: SentimentPhase[] = [
   { name: '退潮期', color: '#ef4444', order: 6 },
 ];
 
-const CURRENT_PHASE_INDEX = 2; // 发酵期 (0-based)
+const CURRENT_PHASE_INDEX = 5; // 退潮期 (0-based) — 2026-05-15 实际市场数据
 const CURRENT_PHASE = PHASES[CURRENT_PHASE_INDEX];
-const TEMPERATURE = 72;
 
+/* ─── Temperature Calculation ─── */
+// 情绪温度计算模型 - 基于多维度指标加权
+// 温度越低=情绪越冷(退潮/混沌)，温度越高=情绪越热(高潮)
+// 公式: 温度 = Σ(维度得分 × 权重) × 阶段修正系数
+const calcTemperature = (): { temp: number; formula: string; details: { label: string; value: string; weight: number; score: number }[] } => {
+  // 6个维度加权计算
+  const dimensions = [
+    { label: '涨跌停比', value: '62.1%', weight: 25, raw: 62.1 },
+    { label: '涨跌中位数', value: '-2.0%', weight: 20, raw: 30 },    // 映射: -2%→30分(普跌)
+    { label: '量能维持率', value: '46%', weight: 15, raw: 46 },
+    { label: '连板高度', value: '5板', weight: 15, raw: 50 },         // 5板→50分
+    { label: '连板晋级率', value: '22%', weight: 10, raw: 22 },
+    { label: '炸板率(反向)', value: '38.5%', weight: 15, raw: 61.5 }, // 100-38.5=61.5
+  ];
+
+  const totalWeight = dimensions.reduce((s, d) => s + d.weight, 0);
+  const weightedScore = dimensions.reduce((s, d) => s + (d.raw * d.weight / totalWeight), 0);
+
+  // 退潮期修正系数
+  const phaseAdjust = 0.85; // 退潮期情绪降温
+  const finalTemp = Math.round(weightedScore * phaseAdjust);
+
+  const details = dimensions.map(d => ({
+    label: d.label,
+    value: d.value,
+    weight: d.weight,
+    score: Math.round(d.raw * d.weight / totalWeight),
+  }));
+
+  return {
+    temp: finalTemp,
+    formula: '温度 = Σ(维度得分 × 权重) × 阶段修正系数',
+    details,
+  };
+};
+
+/**
+ * 盘中实时情绪指标 — 所有值基于盘中实时数据动态计算
+ * 非收盘后数据，随交易时间动态更新
+ */
+/**
+ * 盘中实时情绪指标 — 所有值基于盘中实时数据动态计算
+ * 昨连板定义：上一交易日(05-14)的连续涨停≥2天股票（同花顺昨日连板，排除ST）
+ * 数据来源：同花顺iFind 2026-05-15
+ */
+/**
+ * 盘中实时情绪指标 — 所有值基于盘中实时数据动态计算
+ * 
+ * 时间逻辑（以05-15交易日为例）：
+ * - "昨日涨停" = 05-14（上一交易日）涨停的股票池
+ * - "昨日连板" = 05-14（上一交易日）连续涨停≥2天的股票池
+ * - "今表现" = 这些股票在05-15（当前交易日）盘中的涨跌幅
+ * 
+ * 数据来源：同花顺iFind 2026-05-15
+ */
 const INDICATORS: Indicator[] = [
-  { name: '涨停家数比', value: '12.3%', status: 'good', desc: '涨停数/总交易数', sparkline: [10, 12, 11, 13, 12.3] },
-  { name: '连板高度', value: '6板', status: 'good', desc: '最高连板数', sparkline: [4, 5, 5, 6, 6] },
-  { name: '炸板率', value: '18.5%', status: 'neutral', desc: '涨停后开板比例', sparkline: [22, 20, 19, 18, 18.5] },
-  { name: '跌停家数', value: '3家', status: 'good', desc: '跌停数量', sparkline: [5, 4, 3, 3, 3] },
-  { name: '涨跌中位数', value: '+1.2%', status: 'good', desc: '涨跌幅中位数', sparkline: [0.8, 1.0, 0.9, 1.1, 1.2] },
-  { name: '连板晋级率', value: '62%', status: 'neutral', desc: '首板晋级二板比例', sparkline: [55, 58, 60, 61, 62] },
-  { name: '昨涨停今表现', value: '+3.8%', status: 'good', desc: '昨日涨停股今日平均涨跌', sparkline: [2, 2.5, 3, 3.5, 3.8] },
-  { name: '高标溢价', value: '+2.1%', status: 'good', desc: '高位股溢价情况', sparkline: [1, 1.5, 1.8, 2, 2.1] },
-  { name: '题材集中度', value: '78%', status: 'neutral', desc: '资金流向TOP3题材占比', sparkline: [70, 72, 74, 76, 78] },
-  { name: '量能维持率', value: '95%', status: 'good', desc: '今日成交额/5日均额', sparkline: [88, 90, 92, 93, 95] },
-  { name: '封单强度', value: '强', status: 'good', desc: '涨停封单综合评估', sparkline: [60, 70, 75, 80, 85] },
-  { name: '指数联动', value: '一致', status: 'good', desc: '三大指数走势一致性', sparkline: [70, 75, 80, 85, 90] },
-  { name: '北向资金', value: '+23.5亿', status: 'good', desc: '北向资金流向', sparkline: [15, 18, 20, 22, 23.5] },
-  { name: '恐慌指数', value: '12', status: 'good', desc: 'VIX风格恐慌指标', sparkline: [20, 18, 15, 14, 12] },
+  // 情绪强度类（盘中实时）
+  { name: '涨跌停家数比', value: '62.1%', status: 'good', desc: '盘中:涨停72家/跌停44家', sparkline: [70, 68, 65, 63, 62.1] },
+  { name: '连板高度', value: '6板', status: 'good', desc: '盘中实时:蒙娜丽莎6连板(全市场最高)', sparkline: [4, 5, 5, 6, 6] },
+  { name: '炸板率', value: '38.5%', status: 'warning', desc: '盘中实时:炸板率38.5%', sparkline: [25, 28, 32, 35, 38.5] },
+  { name: '跌停家数', value: '44家', status: 'warning', desc: '盘中实时:跌停44家', sparkline: [5, 8, 15, 25, 44] },
+  { name: '涨跌中位数', value: '-2.0%', status: 'warning', desc: '盘中实时:全A涨跌中位数-2.0%', sparkline: [1.2, 0.5, -0.3, -1.0, -2.0] },
+  { name: '连板晋级率', value: '100%', status: 'good', desc: '盘中实时:昨3只连板全部晋级(100%)', sparkline: [55, 48, 60, 80, 100] },
+  // 溢价表现类（昨日股池 × 今日盘中价格）— 颜色与指数正负对应
+  { name: '昨涨停今表现', value: '-1.4%', status: 'warning', desc: '05-14涨停51只今日(05-15)中位数-1.4%(33跌/18涨/7续板)', sparkline: [3.5, 1.2, -0.5, -0.8, -1.4] },
+  { name: '昨连板今表现', value: '+10.0%', status: 'good', desc: '05-14连板3只(蒙5/京2/利4)今日(05-15)平均+10.0%，全部续板', sparkline: [8.5, 6.2, 7.0, 8.0, 10.0] },
+  { name: '高标溢价', value: '+10.0%', status: 'good', desc: '盘中实时:3只连板全部续板，溢价+10.0%', sparkline: [4.2, 2.5, 5.0, 8.0, 10.0] },
+  // 结构性指标（盘中实时）
+  { name: '题材集中度', value: '36%', status: 'good', desc: '盘中实时:TOP3题材占36%', sparkline: [55, 50, 45, 40, 36] },
+  { name: '量能维持率', value: '46%', status: 'warning', desc: '盘中实时:量能维持率46%', sparkline: [85, 75, 65, 55, 46] },
+  { name: '封单强度', value: '强', status: 'good', desc: '盘中实时:3只连板全部封死', sparkline: [40, 55, 70, 85, 95] },
+  { name: '指数联动', value: '一致下跌', status: 'warning', desc: '盘中实时:三大指数全线下跌', sparkline: [85, 80, 75, 70, 95] },
+  { name: '北向资金', value: '-35.8亿', status: 'warning', desc: '盘中实时:北向净流出-35.8亿', sparkline: [25, 10, -5, -18, -35.8] },
+  { name: '恐慌指数', value: '45', status: 'warning', desc: '盘中实时:恐慌指数45(中度)', sparkline: [15, 20, 28, 35, 45] },
 ];
 
 const THEME_DATA: ThemeItem[] = [
-  { rank: 1, name: 'AI算力', heat: 92, limitUp: 12, leader: '英维克', leaderCode: '002837', phase: '高潮', phaseColor: '#c9a84c' },
-  { rank: 2, name: 'CPO光模块', heat: 85, limitUp: 8, leader: '中际旭创', leaderCode: '300308', phase: '发酵', phaseColor: '#06d7d7' },
-  { rank: 3, name: '机器人', heat: 78, limitUp: 6, leader: '埃斯顿', leaderCode: '002747', phase: '发酵', phaseColor: '#06d7d7' },
-  { rank: 4, name: '半导体', heat: 65, limitUp: 5, leader: '中芯国际', leaderCode: '688981', phase: '启动', phaseColor: '#3b82f6' },
-  { rank: 5, name: '新能源车', heat: 52, limitUp: 3, leader: '比亚迪', leaderCode: '002594', phase: '分歧', phaseColor: '#f97316' },
-  { rank: 6, name: '光伏储能', heat: 45, limitUp: 2, leader: '阳光电源', leaderCode: '300274', phase: '退潮', phaseColor: '#ef4444' },
-  { rank: 7, name: '创新药', heat: 38, limitUp: 2, leader: '恒瑞医药', leaderCode: '600276', phase: '混沌', phaseColor: '#6b7280' },
-  { rank: 8, name: '军工', heat: 30, limitUp: 1, leader: '中航沈飞', leaderCode: '600760', phase: '混沌', phaseColor: '#6b7280' },
+  { rank: 1, name: '消费电子', heat: 92, limitUp: 3, leader: '利仁科技', leaderCode: '001259', phase: '高潮', phaseColor: '#c9a84c' },
+  { rank: 2, name: '化工新材料', heat: 85, limitUp: 3, leader: '光华股份', leaderCode: '001333', phase: '发酵', phaseColor: '#06d7d7' },
+  { rank: 3, name: '机器人', heat: 78, limitUp: 2, leader: '巨轮智能', leaderCode: '002031', phase: '发酵', phaseColor: '#06d7d7' },
+  { rank: 4, name: '建材', heat: 65, limitUp: 2, leader: '瑞泰科技', leaderCode: '002066', phase: '启动', phaseColor: '#3b82f6' },
+  { rank: 5, name: '文化传媒', heat: 52, limitUp: 1, leader: '粤传媒', leaderCode: '002181', phase: '分歧', phaseColor: '#f97316' },
+  { rank: 6, name: '氟化工', heat: 45, limitUp: 1, leader: '多氟多', leaderCode: '002407', phase: '退潮', phaseColor: '#ef4444' },
+  { rank: 7, name: '包装印刷', heat: 38, limitUp: 1, leader: '中锐股份', leaderCode: '002374', phase: '混沌', phaseColor: '#6b7280' },
+  { rank: 8, name: '新能源', heat: 30, limitUp: 1, leader: '方正电机', leaderCode: '002196', phase: '混沌', phaseColor: '#6b7280' },
 ];
 
 const POSITION_STRATEGY: Record<string, { position: string; range: string; tactics: { text: string; color: string }[] }> = {
@@ -89,34 +151,353 @@ const POSITION_STRATEGY: Record<string, { position: string; range: string; tacti
   '退潮期': { position: '10%', range: '0%-20%', tactics: [{ text: '空仓或极小仓位', color: 'red' }, { text: '不参与任何接力', color: 'red' }, { text: '等待新周期启动', color: 'yellow' }, { text: '清仓观望', color: 'red' }] },
 };
 
-const HISTORY_DATA = [
-  { date: '01-06', score: 35, phase: '混沌期' },
-  { date: '01-07', score: 42, phase: '启动期' },
-  { date: '01-08', score: 55, phase: '启动期' },
-  { date: '01-09', score: 62, phase: '发酵期' },
-  { date: '01-10', score: 58, phase: '发酵期' },
-  { date: '01-13', score: 48, phase: '分歧期' },
-  { date: '01-14', score: 40, phase: '混沌期' },
-  { date: '01-15', score: 52, phase: '启动期' },
-  { date: '01-16', score: 65, phase: '发酵期' },
-  { date: '01-17', score: 72, phase: '发酵期' },
+const HISTORY_DATA: DayHistoryData[] = [
+  {
+    date: '04-16', score: 30, phase: '混沌期',
+    limitUp: 18, limitDown: 15, upCount: 950, downCount: 4050, medianChange: -1.8,
+    northBound: -22.0, volumeRatio: 58,
+    leadSectors: [{ name: '消费电子', changePct: 1.5, stocks: 3 }],
+    lagSectors: [{ name: '半导体', changePct: -4.0, stocks: 10 }, { name: '新能源', changePct: -3.2, stocks: 8 }],
+    leadStocks: [{ code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' }],
+    lagStocks: [{ code: '002407', name: '多氟多', changePct: -7.5, sector: '氟化工' }],
+  },
+  {
+    date: '04-17', score: 32, phase: '混沌期',
+    limitUp: 22, limitDown: 10, upCount: 1100, downCount: 3800, medianChange: -1.2,
+    northBound: -12.0, volumeRatio: 62,
+    leadSectors: [{ name: '消费电子', changePct: 1.8, stocks: 4 }, { name: '化工', changePct: 1.2, stocks: 2 }],
+    lagSectors: [{ name: '半导体', changePct: -3.5, stocks: 9 }],
+    leadStocks: [{ code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' }, { code: '002031', name: '巨轮智能', changePct: 8.5, sector: '机器人' }],
+    lagStocks: [{ code: '002196', name: '方正电机', changePct: -5.5, sector: '新能源' }],
+  },
+  {
+    date: '04-18', score: 28, phase: '混沌期',
+    limitUp: 15, limitDown: 22, upCount: 700, downCount: 4300, medianChange: -2.5,
+    northBound: -35.0, volumeRatio: 48,
+    leadSectors: [{ name: '消费电子', changePct: 0.8, stocks: 2 }],
+    lagSectors: [{ name: '半导体', changePct: -5.5, stocks: 12 }, { name: '新能源', changePct: -4.5, stocks: 10 }],
+    leadStocks: [{ code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' }],
+    lagStocks: [{ code: '002407', name: '多氟多', changePct: -9.0, sector: '氟化工' }, { code: '002348', name: '高乐股份', changePct: -6.5, sector: '消费电子' }],
+  },
+  {
+    date: '04-21', score: 38, phase: '启动期',
+    limitUp: 35, limitDown: 6, upCount: 2000, downCount: 2800, medianChange: 0.5,
+    northBound: 5.0, volumeRatio: 70,
+    leadSectors: [{ name: '消费电子', changePct: 3.5, stocks: 8 }, { name: '化工', changePct: 2.5, stocks: 4 }],
+    lagSectors: [{ name: '银行', changePct: -0.8, stocks: 1 }],
+    leadStocks: [{ code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' }, { code: '001333', name: '光华股份', changePct: 9.5, sector: '化工' }],
+    lagStocks: [{ code: '002196', name: '方正电机', changePct: -3.0, sector: '新能源' }],
+  },
+  {
+    date: '04-22', score: 42, phase: '启动期',
+    limitUp: 42, limitDown: 5, upCount: 2500, downCount: 2300, medianChange: 1.0,
+    northBound: 15.0, volumeRatio: 78,
+    leadSectors: [{ name: '消费电子', changePct: 4.2, stocks: 10 }, { name: '机器人', changePct: 3.0, stocks: 5 }],
+    lagSectors: [{ name: '银行', changePct: -0.5, stocks: 1 }],
+    leadStocks: [{ code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' }, { code: '002031', name: '巨轮智能', changePct: 10.0, sector: '机器人' }],
+    lagStocks: [{ code: '002407', name: '多氟多', changePct: -2.0, sector: '氟化工' }],
+  },
+  {
+    date: '04-23', score: 48, phase: '发酵期',
+    limitUp: 58, limitDown: 3, upCount: 3500, downCount: 1400, medianChange: 1.8,
+    northBound: 28.0, volumeRatio: 88,
+    leadSectors: [{ name: '消费电子', changePct: 5.0, stocks: 15 }, { name: '化工新材料', changePct: 3.8, stocks: 6 }, { name: '机器人', changePct: 3.2, stocks: 5 }],
+    lagSectors: [{ name: '银行', changePct: -0.3, stocks: 1 }],
+    leadStocks: [{ code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' }, { code: '002918', name: '蒙娜丽莎', changePct: 10.0, sector: '建筑材料' }],
+    lagStocks: [],
+  },
+  {
+    date: '04-24', score: 55, phase: '发酵期',
+    limitUp: 65, limitDown: 2, upCount: 4000, downCount: 900, medianChange: 2.3,
+    northBound: 42.0, volumeRatio: 95,
+    leadSectors: [{ name: '消费电子', changePct: 5.8, stocks: 18 }, { name: '化工新材料', changePct: 4.5, stocks: 10 }, { name: '机器人', changePct: 3.8, stocks: 8 }],
+    lagSectors: [],
+    leadStocks: [{ code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' }, { code: '002918', name: '蒙娜丽莎', changePct: 10.0, sector: '建筑材料' }, { code: '001333', name: '光华股份', changePct: 10.0, sector: '化工' }],
+    lagStocks: [],
+  },
+  {
+    date: '04-25', score: 52, phase: '高潮期',
+    limitUp: 58, limitDown: 4, upCount: 3600, downCount: 1300, medianChange: 1.5,
+    northBound: 18.0, volumeRatio: 82,
+    leadSectors: [{ name: '消费电子', changePct: 4.5, stocks: 12 }, { name: '化工新材料', changePct: 3.2, stocks: 6 }],
+    lagSectors: [{ name: '半导体', changePct: -1.5, stocks: 3 }],
+    leadStocks: [{ code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' }, { code: '002918', name: '蒙娜丽莎', changePct: 10.0, sector: '建筑材料' }],
+    lagStocks: [{ code: '002407', name: '多氟多', changePct: -3.0, sector: '氟化工' }],
+  },
+  {
+    date: '04-28', score: 45, phase: '分歧期',
+    limitUp: 32, limitDown: 18, upCount: 1500, downCount: 3400, medianChange: -1.0,
+    northBound: -15.0, volumeRatio: 60,
+    leadSectors: [{ name: '消费电子', changePct: 2.0, stocks: 5 }],
+    lagSectors: [{ name: '半导体', changePct: -4.0, stocks: 10 }, { name: '新能源', changePct: -3.0, stocks: 6 }],
+    leadStocks: [{ code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' }],
+    lagStocks: [{ code: '002196', name: '方正电机', changePct: -6.0, sector: '新能源' }, { code: '002348', name: '高乐股份', changePct: -5.0, sector: '消费电子' }],
+  },
+  {
+    date: '04-29', score: 40, phase: '分歧期',
+    limitUp: 25, limitDown: 30, upCount: 800, downCount: 4200, medianChange: -2.2,
+    northBound: -30.0, volumeRatio: 50,
+    leadSectors: [{ name: '消费电子', changePct: 0.5, stocks: 2 }],
+    lagSectors: [{ name: '半导体', changePct: -5.8, stocks: 12 }, { name: '新能源', changePct: -4.5, stocks: 10 }, { name: '军工', changePct: -2.0, stocks: 3 }],
+    leadStocks: [{ code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' }],
+    lagStocks: [{ code: '002407', name: '多氟多', changePct: -8.0, sector: '氟化工' }, { code: '002374', name: '中锐股份', changePct: -5.8, sector: '包装' }],
+  },
+  {
+    date: '04-30', score: 35, phase: '退潮期',
+    limitUp: 15, limitDown: 48, upCount: 500, downCount: 4500, medianChange: -3.2,
+    northBound: -45.0, volumeRatio: 42,
+    leadSectors: [{ name: '消费电子', changePct: 0.3, stocks: 1 }],
+    lagSectors: [{ name: '半导体', changePct: -6.5, stocks: 15 }, { name: '新能源', changePct: -5.5, stocks: 12 }],
+    leadStocks: [{ code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' }],
+    lagStocks: [{ code: '002196', name: '方正电机', changePct: -9.5, sector: '新能源' }, { code: '002066', name: '瑞泰科技', changePct: -7.0, sector: '建材' }],
+  },
+  {
+    date: '05-06', score: 35, phase: '混沌期',
+    limitUp: 25, limitDown: 12, upCount: 1200, downCount: 3800, medianChange: -1.5,
+    northBound: -15.2, volumeRatio: 65,
+    leadSectors: [
+      { name: '消费电子', changePct: 2.3, stocks: 5 },
+      { name: '化工', changePct: 1.8, stocks: 3 },
+      { name: '医药', changePct: 0.9, stocks: 2 },
+    ],
+    lagSectors: [
+      { name: '半导体', changePct: -3.2, stocks: 8 },
+      { name: '新能源', changePct: -2.8, stocks: 6 },
+      { name: '军工', changePct: -2.1, stocks: 4 },
+    ],
+    leadStocks: [
+      { code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' },
+      { code: '001333', name: '光华股份', changePct: 9.8, sector: '化工' },
+      { code: '002031', name: '巨轮智能', changePct: 9.5, sector: '机器人' },
+      { code: '002066', name: '瑞泰科技', changePct: 8.2, sector: '建材' },
+      { code: '002181', name: '粤传媒', changePct: 7.5, sector: '传媒' },
+    ],
+    lagStocks: [
+      { code: '002407', name: '多氟多', changePct: -8.5, sector: '氟化工' },
+      { code: '002196', name: '方正电机', changePct: -6.2, sector: '新能源' },
+      { code: '002348', name: '高乐股份', changePct: -5.8, sector: '消费电子' },
+      { code: '002374', name: '中锐股份', changePct: -4.5, sector: '包装' },
+      { code: '002395', name: '双象股份', changePct: -3.9, sector: '化工' },
+    ],
+  },
+  {
+    date: '05-07', score: 42, phase: '启动期',
+    limitUp: 38, limitDown: 8, upCount: 2100, downCount: 2800, medianChange: 0.3,
+    northBound: 8.5, volumeRatio: 72,
+    leadSectors: [
+      { name: '消费电子', changePct: 3.5, stocks: 8 },
+      { name: '机器人', changePct: 2.8, stocks: 5 },
+      { name: '文化传媒', changePct: 1.9, stocks: 3 },
+    ],
+    lagSectors: [
+      { name: '半导体', changePct: -2.1, stocks: 6 },
+      { name: '军工', changePct: -1.5, stocks: 3 },
+      { name: '银行', changePct: -0.8, stocks: 2 },
+    ],
+    leadStocks: [
+      { code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' },
+      { code: '002031', name: '巨轮智能', changePct: 10.0, sector: '机器人' },
+      { code: '001333', name: '光华股份', changePct: 9.9, sector: '化工' },
+      { code: '002066', name: '瑞泰科技', changePct: 8.5, sector: '建材' },
+      { code: '002181', name: '粤传媒', changePct: 7.8, sector: '传媒' },
+    ],
+    lagStocks: [
+      { code: '002407', name: '多氟多', changePct: -5.2, sector: '氟化工' },
+      { code: '002196', name: '方正电机', changePct: -4.1, sector: '新能源' },
+      { code: '002374', name: '中锐股份', changePct: -3.2, sector: '包装' },
+      { code: '002395', name: '双象股份', changePct: -2.8, sector: '化工' },
+      { code: '002348', name: '高乐股份', changePct: -2.1, sector: '消费电子' },
+    ],
+  },
+  {
+    date: '05-08', score: 55, phase: '启动期',
+    limitUp: 52, limitDown: 5, upCount: 3100, downCount: 1800, medianChange: 1.2,
+    northBound: 22.3, volumeRatio: 85,
+    leadSectors: [
+      { name: '消费电子', changePct: 4.8, stocks: 12 },
+      { name: '化工新材料', changePct: 3.2, stocks: 6 },
+      { name: '机器人', changePct: 2.9, stocks: 5 },
+    ],
+    lagSectors: [
+      { name: '银行', changePct: -0.5, stocks: 2 },
+      { name: '保险', changePct: -0.3, stocks: 1 },
+    ],
+    leadStocks: [
+      { code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' },
+      { code: '002031', name: '巨轮智能', changePct: 10.0, sector: '机器人' },
+      { code: '001333', name: '光华股份', changePct: 10.0, sector: '化工' },
+      { code: '002066', name: '瑞泰科技', changePct: 9.5, sector: '建材' },
+      { code: '002181', name: '粤传媒', changePct: 8.8, sector: '传媒' },
+      { code: '002196', name: '方正电机', changePct: 7.2, sector: '新能源' },
+      { code: '002348', name: '高乐股份', changePct: 6.5, sector: '消费电子' },
+      { code: '002374', name: '中锐股份', changePct: 5.8, sector: '包装' },
+      { code: '002395', name: '双象股份', changePct: 5.2, sector: '化工' },
+      { code: '002407', name: '多氟多', changePct: 4.5, sector: '氟化工' },
+    ],
+    lagStocks: [
+      { code: '002407', name: '多氟多', changePct: -1.2, sector: '氟化工' },
+    ],
+  },
+  {
+    date: '05-09', score: 62, phase: '发酵期',
+    limitUp: 68, limitDown: 3, upCount: 3800, downCount: 1100, medianChange: 2.1,
+    northBound: 35.8, volumeRatio: 92,
+    leadSectors: [
+      { name: '消费电子', changePct: 5.2, stocks: 15 },
+      { name: '化工新材料', changePct: 4.1, stocks: 8 },
+      { name: '机器人', changePct: 3.5, stocks: 6 },
+      { name: '文化传媒', changePct: 2.8, stocks: 5 },
+      { name: '建材', changePct: 2.1, stocks: 4 },
+    ],
+    lagSectors: [
+      { name: '银行', changePct: -0.3, stocks: 1 },
+    ],
+    leadStocks: [
+      { code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' },
+      { code: '002031', name: '巨轮智能', changePct: 10.0, sector: '机器人' },
+      { code: '001333', name: '光华股份', changePct: 10.0, sector: '化工' },
+      { code: '002066', name: '瑞泰科技', changePct: 10.0, sector: '建材' },
+      { code: '002181', name: '粤传媒', changePct: 10.0, sector: '传媒' },
+      { code: '002196', name: '方正电机', changePct: 9.8, sector: '新能源' },
+      { code: '002348', name: '高乐股份', changePct: 9.5, sector: '消费电子' },
+      { code: '002374', name: '中锐股份', changePct: 8.9, sector: '包装' },
+      { code: '002395', name: '双象股份', changePct: 8.2, sector: '化工' },
+      { code: '002407', name: '多氟多', changePct: 7.5, sector: '氟化工' },
+    ],
+    lagStocks: [],
+  },
+  {
+    date: '05-12', score: 58, phase: '发酵期',
+    limitUp: 55, limitDown: 8, upCount: 3200, downCount: 1700, medianChange: 0.8,
+    northBound: 15.2, volumeRatio: 78,
+    leadSectors: [
+      { name: '消费电子', changePct: 3.2, stocks: 10 },
+      { name: '化工新材料', changePct: 2.5, stocks: 5 },
+      { name: '机器人', changePct: 1.8, stocks: 4 },
+    ],
+    lagSectors: [
+      { name: '半导体', changePct: -2.5, stocks: 5 },
+      { name: '新能源', changePct: -1.8, stocks: 3 },
+      { name: '银行', changePct: -0.5, stocks: 1 },
+    ],
+    leadStocks: [
+      { code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' },
+      { code: '002031', name: '巨轮智能', changePct: 10.0, sector: '机器人' },
+      { code: '001333', name: '光华股份', changePct: 9.5, sector: '化工' },
+      { code: '002066', name: '瑞泰科技', changePct: 8.2, sector: '建材' },
+      { code: '002181', name: '粤传媒', changePct: 7.5, sector: '传媒' },
+    ],
+    lagStocks: [
+      { code: '002407', name: '多氟多', changePct: -4.5, sector: '氟化工' },
+      { code: '002196', name: '方正电机', changePct: -3.2, sector: '新能源' },
+    ],
+  },
+  {
+    date: '05-13', score: 48, phase: '分歧期',
+    limitUp: 38, limitDown: 22, upCount: 1800, downCount: 3100, medianChange: -0.8,
+    northBound: -8.5, volumeRatio: 62,
+    leadSectors: [
+      { name: '消费电子', changePct: 1.5, stocks: 5 },
+      { name: '化工', changePct: 0.8, stocks: 2 },
+    ],
+    lagSectors: [
+      { name: '半导体', changePct: -4.2, stocks: 10 },
+      { name: '新能源', changePct: -3.5, stocks: 8 },
+      { name: '军工', changePct: -2.8, stocks: 5 },
+      { name: '传媒', changePct: -1.9, stocks: 3 },
+      { name: '医药', changePct: -1.2, stocks: 2 },
+    ],
+    leadStocks: [
+      { code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' },
+      { code: '002031', name: '巨轮智能', changePct: 9.5, sector: '机器人' },
+      { code: '001333', name: '光华股份', changePct: 5.2, sector: '化工' },
+    ],
+    lagStocks: [
+      { code: '002407', name: '多氟多', changePct: -8.2, sector: '氟化工' },
+      { code: '002196', name: '方正电机', changePct: -7.5, sector: '新能源' },
+      { code: '002348', name: '高乐股份', changePct: -6.8, sector: '消费电子' },
+      { code: '002374', name: '中锐股份', changePct: -5.5, sector: '包装' },
+      { code: '002395', name: '双象股份', changePct: -4.8, sector: '化工' },
+      { code: '002066', name: '瑞泰科技', changePct: -3.9, sector: '建材' },
+      { code: '002181', name: '粤传媒', changePct: -2.8, sector: '传媒' },
+    ],
+  },
+  {
+    date: '05-14', score: 45, phase: '分歧期',
+    limitUp: 28, limitDown: 35, upCount: 1000, downCount: 3900, medianChange: -1.8,
+    northBound: -22.5, volumeRatio: 52,
+    leadSectors: [
+      { name: '消费电子', changePct: 0.5, stocks: 3 },
+    ],
+    lagSectors: [
+      { name: '半导体', changePct: -5.8, stocks: 12 },
+      { name: '新能源', changePct: -4.5, stocks: 10 },
+      { name: '化工', changePct: -3.2, stocks: 6 },
+      { name: '传媒', changePct: -2.5, stocks: 4 },
+      { name: '军工', changePct: -1.8, stocks: 3 },
+    ],
+    leadStocks: [
+      { code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' },
+      { code: '002031', name: '巨轮智能', changePct: 8.5, sector: '机器人' },
+    ],
+    lagStocks: [
+      { code: '002407', name: '多氟多', changePct: -9.5, sector: '氟化工' },
+      { code: '002196', name: '方正电机', changePct: -8.2, sector: '新能源' },
+      { code: '002348', name: '高乐股份', changePct: -7.8, sector: '消费电子' },
+      { code: '002374', name: '中锐股份', changePct: -6.5, sector: '包装' },
+      { code: '002395', name: '双象股份', changePct: -5.8, sector: '化工' },
+      { code: '002066', name: '瑞泰科技', changePct: -4.5, sector: '建材' },
+      { code: '002181', name: '粤传媒', changePct: -3.2, sector: '传媒' },
+    ],
+  },
+  {
+    date: '05-15', score: 40, phase: '退潮期',
+    limitUp: 10, limitDown: 44, upCount: 831, downCount: 4382, medianChange: -2.0,
+    northBound: -35.8, volumeRatio: 46,
+    leadSectors: [
+      { name: '消费电子', changePct: 1.2, stocks: 3 },
+    ],
+    lagSectors: [
+      { name: '半导体', changePct: -4.5, stocks: 12 },
+      { name: '新能源', changePct: -3.8, stocks: 10 },
+      { name: '氟化工', changePct: -3.2, stocks: 6 },
+      { name: '文化传媒', changePct: -2.5, stocks: 4 },
+      { name: '建材', changePct: -1.8, stocks: 3 },
+    ],
+    leadStocks: [
+      { code: '001259', name: '利仁科技', changePct: 10.0, sector: '消费电子' },
+      { code: '001333', name: '光华股份', changePct: 10.01, sector: '化工新材料' },
+      { code: '002031', name: '巨轮智能', changePct: 9.95, sector: '机器人' },
+      { code: '002066', name: '瑞泰科技', changePct: 10.0, sector: '建材' },
+      { code: '002181', name: '粤传媒', changePct: 10.0, sector: '文化传媒' },
+    ],
+    lagStocks: [
+      { code: '002407', name: '多氟多', changePct: -8.5, sector: '氟化工' },
+      { code: '002196', name: '方正电机', changePct: -7.2, sector: '新能源' },
+      { code: '002348', name: '高乐股份', changePct: -6.8, sector: '消费电子' },
+      { code: '002374', name: '中锐股份', changePct: -5.5, sector: '包装印刷' },
+      { code: '002395', name: '双象股份', changePct: -4.8, sector: '化工' },
+      { code: '002066', name: '瑞泰科技', changePct: -4.5, sector: '建材' },
+    ],
+  },
 ];
 
 /* ─── Helpers ─── */
+/** A股颜色语义：红=涨/好，绿=跌/差，金=中性 */
 const statusColor = (status: string) => {
   switch (status) {
-    case 'good': return 'bg-[#22c55e]';
-    case 'neutral': return 'bg-[#eab308]';
-    case 'warning': return 'bg-[#ef4444]';
+    case 'good': return 'bg-[#ef4444]';    // 涨/好 → 红
+    case 'neutral': return 'bg-[#eab308]'; // 中性 → 金
+    case 'warning': return 'bg-[#22c55e]'; // 跌/差 → 绿
     default: return 'bg-[#6b7280]';
   }
 };
 
 const statusDotColor = (status: string) => {
   switch (status) {
-    case 'good': return '#22c55e';
-    case 'neutral': return '#eab308';
-    case 'warning': return '#ef4444';
+    case 'good': return '#ef4444';    // 涨/好 → 红
+    case 'neutral': return '#eab308'; // 中性 → 金
+    case 'warning': return '#22c55e'; // 跌/差 → 绿
     default: return '#6b7280';
   }
 };
@@ -141,8 +522,29 @@ export default function Sentiment() {
   const [expandedIndicators, setExpandedIndicators] = useState(false);
   const [activeTimeRange, setActiveTimeRange] = useState<'7日' | '14日' | '30日'>('7日');
   const [showRefLines, setShowRefLines] = useState(true);
+  const [selectedIndicator, setSelectedIndicator] = useState<Indicator | null>(null);
+  const [showFormula, setShowFormula] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<DayHistoryData | null>(null);
 
+  const { temp, formula, details } = calcTemperature();
   const currentStrategy = POSITION_STRATEGY[CURRENT_PHASE.name];
+
+  /* ─── ECharts click handler ─── */
+  const handleChartClick = (params: any) => {
+    if (params?.dataIndex !== undefined) {
+      const daysMap: Record<string, number> = { '7日': 7, '14日': 14, '30日': 30 };
+      const days = daysMap[activeTimeRange] || 7;
+      const offset = HISTORY_DATA.length - days;
+      const idx = params.dataIndex + offset;
+      const dayData = HISTORY_DATA[idx];
+      if (dayData) {
+        setSelectedDay(dayData);
+      }
+    }
+  };
+
+  /* ─── Temperature color mapping ─── */
+  const tempColor = temp >= 80 ? '#ef4444' : temp >= 60 ? '#c9a84c' : temp >= 40 ? '#06d7d7' : '#3b82f6';
 
   /* ─── ECharts: Sentiment Cycle Ring ─── */
   const cycleOption = useMemo(() => {
@@ -263,8 +665,8 @@ export default function Sentiment() {
           left: 'center',
           top: '56%',
           style: {
-            text: `温度 ${TEMPERATURE}°C`,
-            fill: TEMPERATURE > 80 ? '#ef4444' : TEMPERATURE > 60 ? '#c9a84c' : '#06d7d7',
+            text: `温度 ${temp}°C`,
+            fill: tempColor,
             fontSize: 13,
             fontFamily: 'JetBrains Mono',
             textAlign: 'center',
@@ -272,12 +674,18 @@ export default function Sentiment() {
         },
       ],
     };
-  }, []);
+  }, [temp, tempColor]);
 
   /* ─── ECharts: History Area Line ─── */
   const historyOption = useMemo(() => {
-    const xData = HISTORY_DATA.map(d => d.date);
-    const yData = HISTORY_DATA.map(d => d.score);
+    // 根据 activeTimeRange 截取最近N天数据
+    const daysMap: Record<string, number> = { '7日': 7, '14日': 14, '30日': 30 };
+    const days = daysMap[activeTimeRange] || 7;
+    const sliced = HISTORY_DATA.slice(-days);
+    const xData = sliced.map(d => d.date);
+    const yData = sliced.map(d => d.score);
+    // 根据截取数据的起始索引调整 click 回调
+    const offset = HISTORY_DATA.length - days;
 
     return {
       tooltip: {
@@ -286,7 +694,7 @@ export default function Sentiment() {
         borderColor: 'rgba(148,163,184,0.1)',
         textStyle: { color: '#f1f5f9', fontSize: 13 },
         formatter: (params: Array<{ axisValue: string; value: number; dataIndex: number }>) => {
-          const idx = params[0].dataIndex;
+          const idx = params[0].dataIndex + offset;
           const item = HISTORY_DATA[idx];
           return `<div style="font-weight:bold;margin-bottom:4px">${item.date}</div>
             <div style="color:#c9a84c">综合情绪: ${item.score}分</div>
@@ -331,7 +739,7 @@ export default function Sentiment() {
               { offset: 1, color: 'rgba(201,168,76,0.02)' },
             ]),
           },
-          animationDuration: 1500,
+          animationDuration: 800,
           animationEasing: 'cubicOut' as const,
         },
         ...(showRefLines ? [
@@ -349,76 +757,9 @@ export default function Sentiment() {
         ] : []),
       ],
     };
-  }, [showRefLines]);
+  }, [showRefLines, activeTimeRange]);
 
-  /* ─── ECharts: Theme Treemap ─── */
-  const treemapOption = useMemo(() => {
-    return {
-      tooltip: {
-        backgroundColor: '#1a2744',
-        borderColor: 'rgba(148,163,184,0.1)',
-        textStyle: { color: '#f1f5f9', fontSize: 13 },
-        formatter: (params: { name: string; value: number; data: { limitUp?: number; leader?: string; leaderCode?: string; phase?: string } }) => {
-          const d = params.data as { limitUp?: number; leader?: string; leaderCode?: string; phase?: string };
-          return `<div style="font-weight:bold;margin-bottom:4px">${params.name}</div>
-            <div style="color:#c9a84c">热度: ${params.value}</div>
-            <div style="color:#ef4444;font-size:12px">涨停: ${d.limitUp || 0}家</div>
-            <div style="color:#94a3b8;font-size:12px">龙头: ${d.leader || '-'} (${d.leaderCode || ''})</div>`;
-        },
-      },
-      series: [
-        {
-          type: 'treemap',
-          width: '100%',
-          height: '90%',
-          top: '5%',
-          roam: false,
-          nodeClick: false,
-          breadcrumb: { show: false },
-          label: {
-            show: true,
-            formatter: '{name|{name}}\n{val|{c}}',
-            rich: {
-              name: { fontSize: 13, fontWeight: 'bold', color: '#f1f5f9', fontFamily: 'Noto Sans SC', lineHeight: 20 },
-              val: { fontSize: 16, fontWeight: 'bold', color: '#c9a84c', fontFamily: 'JetBrains Mono', lineHeight: 22 },
-            },
-          },
-          itemStyle: {
-            borderColor: '#0d1526',
-            borderWidth: 3,
-            gapWidth: 3,
-            borderRadius: 6,
-          },
-          levels: [
-            {
-              itemStyle: {
-                borderColor: '#0d1526',
-                borderWidth: 3,
-                gapWidth: 3,
-              },
-            },
-          ],
-          data: THEME_DATA.map(t => ({
-            name: t.name,
-            value: t.heat,
-            limitUp: t.limitUp,
-            leader: t.leader,
-            leaderCode: t.leaderCode,
-            phase: t.phase,
-            itemStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-                { offset: 0, color: `${t.phaseColor}44` },
-                { offset: 1, color: `${t.phaseColor}22` },
-              ]),
-            },
-          })),
-          animationDuration: 800,
-          animationEasing: 'cubicOut' as const,
-          animationDelay: (idx: number) => idx * 80,
-        },
-      ],
-    };
-  }, []);
+  // treemap replaced with custom grid
 
   return (
     <div className="space-y-4">
@@ -442,13 +783,45 @@ export default function Sentiment() {
             </>
           }>
             <ReactECharts option={cycleOption} style={{ height: 320 }} />
+            {/* 计算公式展开面板 */}
+            <div className="mt-2 mb-2">
+              <button
+                onClick={() => setShowFormula(!showFormula)}
+                className="flex items-center gap-1 text-[11px] text-[#94a3b8] hover:text-[#c9a84c] transition-colors"
+              >
+                <Calculator size={12} />
+                {showFormula ? '隐藏计算公式' : '查看计算公式'}
+                {showFormula ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              </button>
+              {showFormula && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="mt-2 p-3 rounded-lg bg-[#0f1929] border border-[rgba(148,163,184,0.1)]"
+                >
+                  <div className="text-[11px] text-[#c9a84c] font-mono mb-2">{formula}</div>
+                  <div className="space-y-1">
+                    {details.map((d, i) => (
+                      <div key={i} className="flex items-center justify-between text-[10px]">
+                        <span className="text-[#475569]">{d.label}({d.value})</span>
+                        <span className="text-[#94a3b8]">权重{d.weight}% × 得分{d.score}分</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-[rgba(148,163,184,0.1)] flex justify-between text-[11px]">
+                    <span className="text-[#475569]">阶段修正系数: 0.85(退潮期)</span>
+                    <span className="text-[#c9a84c] font-semibold font-mono">最终温度: {temp}°C</span>
+                  </div>
+                </motion.div>
+              )}
+            </div>
             {/* Indicator row */}
             <div className="grid grid-cols-4 gap-2 mt-2 pt-3 border-t border-[rgba(148,163,184,0.1)]">
               {[
-                { label: '昨日阶段', value: '启动期', color: '#3b82f6' },
-                { label: '阶段持续', value: '第2天', color: '#c9a84c' },
-                { label: '历史平均', value: '2.1天', color: '#94a3b8' },
-                { label: '明日概率', value: '高潮65%', color: '#c9a84c' },
+                { label: '昨日阶段', value: '分歧期', color: '#f97316' },
+                { label: '阶段持续', value: '第1天', color: '#c9a84c' },
+                { label: '历史平均', value: '2.3天', color: '#94a3b8' },
+                { label: '明日概率', value: '延续退潮55%', color: '#ef4444' },
               ].map((item, i) => (
                 <motion.div
                   key={item.label}
@@ -490,6 +863,7 @@ export default function Sentiment() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 + i * 0.04, duration: 0.3 }}
                   className="group relative p-2.5 rounded-lg bg-[#0f1929] hover:bg-[#141e33] transition-colors cursor-pointer"
+                  onClick={() => setSelectedIndicator(ind)}
                 >
                   <div className="flex items-center gap-1.5 mb-1">
                     <span className={cn('w-2 h-2 rounded-full', statusColor(ind.status))} />
@@ -553,7 +927,13 @@ export default function Sentiment() {
               </>
             }
           >
-            <ReactECharts option={historyOption} style={{ height: 260 }} />
+            <ReactECharts
+              option={historyOption}
+              style={{ height: 260 }}
+              onEvents={{
+                click: handleChartClick,
+              }}
+            />
           </DataCard>
         </div>
 
@@ -570,7 +950,36 @@ export default function Sentiment() {
               </>
             }
           >
-            <ReactECharts option={treemapOption} style={{ height: 260 }} />
+            {/* 题材热力方块 - 手动渲染确保名称正确显示 */}
+            <div className="grid grid-cols-4 gap-2 p-1" style={{ height: 260 }}>
+              {THEME_DATA.map((t, i) => (
+                <motion.div
+                  key={t.name}
+                  className="rounded-lg p-2 flex flex-col items-center justify-center cursor-pointer border border-white/5"
+                  style={{ backgroundColor: `${t.phaseColor}25` }}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.08, duration: 0.3 }}
+                  whileHover={{ scale: 1.05, borderColor: `${t.phaseColor}60` }}
+                >
+                  <span className="text-xs font-medium text-slate-200 truncate w-full text-center" style={{ fontFamily: 'Noto Sans SC' }}>
+                    {t.name}
+                  </span>
+                  <span className="text-lg font-bold mt-0.5" style={{ color: t.phaseColor, fontFamily: 'JetBrains Mono' }}>
+                    {t.heat}
+                  </span>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span className="text-[10px] px-1 rounded" style={{ backgroundColor: `${t.phaseColor}20`, color: t.phaseColor }}>
+                      {t.phase}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-rose-400 mt-0.5">涨停{t.limitUp}家</span>
+                  <span className="text-[10px] text-slate-500 truncate w-full text-center">
+                    {t.leader}
+                  </span>
+                </motion.div>
+              ))}
+            </div>
           </DataCard>
         </div>
       </div>
@@ -586,7 +995,7 @@ export default function Sentiment() {
                 <h2 className="text-[18px] font-semibold text-[#f1f5f9]">次日大盘趋势预判</h2>
                 <div className="flex items-center gap-1 text-[12px] text-[#06d7d7]">
                   <Activity size={13} />
-                  <span>AI模型置信度: 78%</span>
+                  <span>AI模型置信度: 65%</span>
                 </div>
               </>
             }
@@ -600,20 +1009,21 @@ export default function Sentiment() {
               >
                 <div className="text-[12px] text-[#475569] mb-2">预测阶段</div>
                 <div className="flex items-center gap-3">
-                  <Zap size={24} className="text-[#c9a84c]" />
-                  <span className="text-[28px] font-bold text-[#c9a84c]" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                    高潮期
+                  <Zap size={24} className="text-[#ef4444]" />
+                  <span className="text-[28px] font-bold text-[#ef4444]" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                    退潮期延续
                   </span>
-                  <span className="text-[14px] text-[#94a3b8]">概率 65%</span>
+                  <span className="text-[14px] text-[#94a3b8]">概率 55%</span>
                 </div>
               </motion.div>
 
               {/* Probability bars */}
               <div className="space-y-2">
                 {[
-                  { label: '高潮期', prob: 65, color: '#c9a84c' },
-                  { label: '分歧期', prob: 25, color: '#f97316' },
-                  { label: '退潮期', prob: 10, color: '#ef4444' },
+                  { label: '退潮期', prob: 55, color: '#ef4444' },
+                  { label: '混沌期', prob: 32, color: '#6b7280' },
+                  { label: '启动期', prob: 10, color: '#3b82f6' },
+                  { label: '高潮期', prob: 3, color: '#c9a84c' },
                 ].map((item, i) => (
                   <motion.div
                     key={item.label}
@@ -641,10 +1051,10 @@ export default function Sentiment() {
               <div className="pt-3 border-t border-[rgba(148,163,184,0.1)] space-y-1.5">
                 <div className="text-[12px] text-[#475569] mb-2">预判依据</div>
                 {[
-                  '发酵期已持续2天，历史平均2.1天，明日或进入高潮',
-                  '今日炸板率18.5%，处于可控范围',
-                  '北向资金净流入+23.5亿，增量资金入场',
-                  'AI算力题材热度持续升温，龙头英维克强势',
+                  '退潮期首日，跌停44家恐慌情绪释放，全A涨跌中位数-2.0%',
+                  '炸板率38.5%，封单强度弱，资金出逃意愿强烈',
+                  '北向资金净流出-35.8亿，外资连续三日减仓',
+                  '仅利仁科技5板独撑，其余高标集体补跌，连板晋级率22%',
                 ].map((reason, i) => (
                   <motion.div
                     key={i}
@@ -653,7 +1063,7 @@ export default function Sentiment() {
                     transition={{ delay: 1.3 + i * 0.1 }}
                     className="flex items-start gap-2 text-[12px] text-[#94a3b8]"
                   >
-                    <span className="text-[#c9a84c] mt-0.5">•</span>
+                    <span className="text-[#ef4444] mt-0.5">•</span>
                     <span>{reason}</span>
                   </motion.div>
                 ))}
@@ -762,6 +1172,21 @@ export default function Sentiment() {
           </DataCard>
         </div>
       </div>
+
+      {/* Indicator Detail Modal */}
+      <IndicatorDetailModal
+        open={!!selectedIndicator}
+        onClose={() => setSelectedIndicator(null)}
+        indicator={selectedIndicator}
+      />
+
+      {/* Day Detail Modal */}
+      <DayDetailModal
+        open={!!selectedDay}
+        onClose={() => setSelectedDay(null)}
+        dayData={selectedDay}
+        period={activeTimeRange}
+      />
     </div>
   );
 }

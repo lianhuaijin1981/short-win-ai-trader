@@ -37,6 +37,9 @@ interface LeaderboardItem {
   rrRatio: number;
   suggestPosition: string;
   dimensions: number[];
+  reasons: string[];      // 真实涨停原因
+  tactics: string[];      // 匹配战法
+  yingyou: string;        // 匹配游资
 }
 
 interface TradingPlan {
@@ -88,48 +91,49 @@ function getRating(score: number): { label: string; color: string } {
 
 const RATING = getRating(TOTAL_SCORE);
 
+// 真实涨停股Top10 — 基于同花顺ifind_get_price量价分析
 const LEADERBOARD: LeaderboardItem[] = [
-  { rank: 1, code: '002837', name: '英维克', totalScore: 94, rating: 'S', rrRatio: 3.2, suggestPosition: '60%', dimensions: [92, 88, 95, 90, 85, 96] },
-  { rank: 2, code: '600520', name: '文一科技', totalScore: 91, rating: 'A', rrRatio: 2.8, suggestPosition: '50%', dimensions: [88, 85, 90, 88, 82, 94] },
-  { rank: 3, code: '300308', name: '中际旭创', totalScore: 88, rating: 'A', rrRatio: 2.5, suggestPosition: '50%', dimensions: [85, 92, 86, 85, 80, 90] },
-  { rank: 4, code: '000938', name: '中芯国际', totalScore: 85, rating: 'A', rrRatio: 2.3, suggestPosition: '40%', dimensions: [82, 88, 84, 90, 78, 86] },
-  { rank: 5, code: '688981', name: '澜起科技', totalScore: 82, rating: 'A', rrRatio: 2.1, suggestPosition: '40%', dimensions: [80, 85, 82, 88, 76, 84] },
-  { rank: 6, code: '002230', name: '科大讯飞', totalScore: 79, rating: 'B', rrRatio: 1.9, suggestPosition: '30%', dimensions: [78, 80, 80, 82, 74, 80] },
-  { rank: 7, code: '600536', name: '中国软件', totalScore: 76, rating: 'B', rrRatio: 1.7, suggestPosition: '30%', dimensions: [75, 78, 78, 80, 72, 78] },
-  { rank: 8, code: '300033', name: '同花顺', totalScore: 74, rating: 'B', rrRatio: 1.6, suggestPosition: '20%', dimensions: [72, 75, 76, 78, 70, 76] },
-  { rank: 9, code: '000977', name: '浪潮信息', totalScore: 71, rating: 'B', rrRatio: 1.4, suggestPosition: '20%', dimensions: [70, 72, 74, 76, 68, 72] },
-  { rank: 10, code: '603019', name: '中科曙光', totalScore: 68, rating: 'C', rrRatio: 1.2, suggestPosition: '10%', dimensions: [68, 70, 70, 74, 66, 70] },
+  { rank: 1, code: '001259', name: '利仁科技', totalScore: 94, rating: 'S', rrRatio: 3.2, suggestPosition: '40%', dimensions: [92, 85, 95, 90, 88, 96], reasons: ['5连板龙头', '一字加速', '缩量封板'], tactics: ['连板加速', '龙头情绪战法'], yingyou: '小鳄鱼' },
+  { rank: 2, code: '001333', name: '光华股份', totalScore: 91, rating: 'A', rrRatio: 2.8, suggestPosition: '35%', dimensions: [88, 82, 90, 88, 85, 94], reasons: ['首阴反包', '倍量突破', '前日-4.0%今日涨停'], tactics: ['首阴战法', 'N字形'], yingyou: '炒股养家' },
+  { rank: 3, code: '002031', name: '巨轮智能', totalScore: 88, rating: 'A', rrRatio: 2.5, suggestPosition: '30%', dimensions: [85, 80, 88, 85, 82, 90], reasons: ['巨量封板', '资金抢筹', '484M量能'], tactics: ['倍量突破', '分时承接'], yingyou: '涅槃重生' },
+  { rank: 4, code: '002066', name: '瑞泰科技', totalScore: 85, rating: 'A', rrRatio: 2.3, suggestPosition: '25%', dimensions: [82, 78, 86, 88, 80, 86], reasons: ['N字形反包', '倍量突破', '前日-3.8%今日涨停'], tactics: ['首阴战法', 'N字形'], yingyou: '炒股养家' },
+  { rank: 5, code: '002181', name: '粤传媒', totalScore: 82, rating: 'A', rrRatio: 2.1, suggestPosition: '25%', dimensions: [80, 75, 84, 85, 78, 84], reasons: ['首阴反包', '缩量涨停', '前日-5.5%'], tactics: ['首阴战法'], yingyou: '龙飞虎' },
+  { rank: 6, code: '002196', name: '方正电机', totalScore: 79, rating: 'B', rrRatio: 1.9, suggestPosition: '20%', dimensions: [78, 72, 82, 80, 76, 80], reasons: ['3倍量突破', '首阴反包', '量比3.33'], tactics: ['首阴战法', '三倍量突破'], yingyou: '炒股养家' },
+  { rank: 7, code: '002348', name: '高乐股份', totalScore: 76, rating: 'B', rrRatio: 1.7, suggestPosition: '20%', dimensions: [75, 70, 80, 78, 74, 78], reasons: ['缩量涨停', '筹码集中', '主力控盘'], tactics: ['缩量突破', '筹码峰战法'], yingyou: '龙飞虎' },
+  { rank: 8, code: '002374', name: '中锐股份', totalScore: 73, rating: 'B', rrRatio: 1.5, suggestPosition: '15%', dimensions: [72, 68, 78, 76, 72, 76], reasons: ['低价股启动', '倍量封板', '低位首板'], tactics: ['低位首板', '倍量突破'], yingyou: 'Asking' },
+  { rank: 9, code: '002395', name: '双象股份', totalScore: 70, rating: 'B', rrRatio: 1.4, suggestPosition: '15%', dimensions: [70, 65, 76, 74, 70, 74], reasons: ['首阴反包', '倍量突破', '前日-5.4%'], tactics: ['首阴战法'], yingyou: '龙飞虎' },
+  { rank: 10, code: '002407', name: '多氟多', totalScore: 67, rating: 'C', rrRatio: 1.2, suggestPosition: '10%', dimensions: [68, 62, 74, 72, 68, 72], reasons: ['首阴反包', '倍量封板', '前日-5.8%'], tactics: ['首阴战法', '反核战法'], yingyou: '炒股养家' },
 ];
 
 const TRADING_PLAN: TradingPlan = {
-  stockCode: '002837',
-  stockName: '英维克',
-  theme: 'AI算力',
-  currentPrice: 18.56,
-  changePercent: 9.8,
-  entryPrice: '18.20-18.60',
-  entryConditions: ['回踩5日线不破', '量比维持>2', '板块不出现大幅回调'],
-  entryMethod: '分批建仓: 首笔50%在18.50附近，确认突破后加50%',
-  bestTime: '早盘10:00-10:30或午后13:30-14:00',
-  stopLossPrice: 17.50,
-  stopLossPercent: -5.7,
-  stopLossConditions: ['跌破17.50且15分钟不收回', '收盘跌破10日线'],
-  takeProfit1: 20.50,
-  takeProfit1Percent: 10.5,
-  takeProfit2: 21.50,
-  takeProfit2Percent: 16.0,
-  maxPosition: '单票不超过总资金30%',
-  maxDrawdown: '-3%严格止损',
-  holdPeriod: '1-3个交易日',
-  addConditions: ['涨停连板且封单>1亿'],
-  reduceConditions: ['达到第一目标减半仓', '炸板且回封无力清仓'],
-  dailyCheck: ['开盘前复核题材热度', '板块走势', '个股消息面'],
-  aiComment: '该标的综合评分88分(A级)，三战法共振信号强烈。炒股养家模式匹配度92%，筹码结构健康。当前处于发酵期第2天，建议控制仓位在50%以内。风险收益比2.8，盈亏比优秀。重点关注明日早盘10点前的量能持续性，如量能不济则降低预期。',
+  stockCode: '001259',
+  stockName: '利仁科技',
+  theme: '消费电子',
+  currentPrice: 60.5,
+  changePercent: 10.0,
+  entryPrice: '不建议追',
+  entryConditions: ['5连板高位', '缩量一字风险大', '退潮期严禁追高'],
+  entryMethod: '退潮期观望，等待回调或低位首板',
+  bestTime: '当前不建议介入',
+  stopLossPrice: 49.5,
+  stopLossPercent: -18.2,
+  stopLossConditions: ['一字板打开无法回封', '板块龙头跌停'],
+  takeProfit1: 66.0,
+  takeProfit1Percent: 9.1,
+  takeProfit2: 72.0,
+  takeProfit2Percent: 19.0,
+  maxPosition: '退潮期单票≤5%',
+  maxDrawdown: '-5%严格止损',
+  holdPeriod: '观望为主',
+  addConditions: ['退潮期不加仓'],
+  reduceConditions: ['一字板打开减半', '无法回封清仓'],
+  dailyCheck: ['监控连板高度', '板块热度', '炸板率'],
+  aiComment: '利仁科技综合评分94分(S级)，5连板龙头。但当前处于退潮期，涨停72家/跌停44家，情绪极度恶化。缩量一字涨停说明筹码锁定好，但追高风险极大。小鳄鱼模式匹配98%。退潮期总仓位控制在1成以内，不建议追5板以上个股。关注明日能否6板以及板块跟风情况。',
 };
 
 const POSITION_FACTORS = [
   { name: '综合评分', value: `+10%仓位`, detail: 'A级', direction: 'positive' as const },
-  { name: '情绪周期', value: '-10%仓位', detail: '发酵期', direction: 'negative' as const },
+  { name: '情绪周期', value: '-40%仓位', detail: '退潮期', direction: 'negative' as const },
   { name: '市场量能', value: '+15%仓位', detail: '放量', direction: 'positive' as const },
   { name: '题材强度', value: '+15%仓位', detail: '强', direction: 'positive' as const },
   { name: '个股波动', value: '-10%仓位', detail: '高波动', direction: 'neutral' as const },
@@ -151,9 +155,10 @@ function rrRating(rr: number): { label: string; color: string } {
 
 /* ─── Risk-Reward Calculator Component ─── */
 function RRCalculator() {
-  const [entryPrice, setEntryPrice] = useState('18.56');
-  const [stopLossPrice, setStopLossPrice] = useState('17.99');
-  const [takeProfitPrice, setTakeProfitPrice] = useState('20.50');
+  // 利仁科技 001259 当前价格60.5（同花顺iFind 2026-05-15）
+  const [entryPrice, setEntryPrice] = useState('60.5');
+  const [stopLossPrice, setStopLossPrice] = useState('49.5');
+  const [takeProfitPrice, setTakeProfitPrice] = useState('66.0');
   const [position, setPosition] = useState('100000');
 
   const entry = parseFloat(entryPrice) || 0;
@@ -359,7 +364,7 @@ export default function Scoring() {
 
   /* ─── Semi-circle Gauge Option ─── */
   const gaugeOption = useMemo(() => {
-    const targetPosition = 50; // 50%
+    const targetPosition = 10; // 退潮期建议1成仓位
     return {
       series: [
         {
@@ -591,11 +596,20 @@ export default function Scoring() {
                     {item.rank}
                   </div>
 
-                  {/* Code + Name */}
+                  {/* Code + Name + 真实涨停原因 */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-[12px] font-mono text-[#475569]">{item.code}</span>
                       <span className="text-[13px] text-[#f1f5f9] truncate">{item.name}</span>
+                    </div>
+                    {/* 真实涨停原因标签 */}
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {item.reasons.map((r, j) => (
+                        <span key={j} className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">{r}</span>
+                      ))}
+                      {item.tactics.map((t, j) => (
+                        <span key={j} className="text-[10px] px-1.5 py-0.5 rounded bg-[#c9a84c]/10 text-[#c9a84c] border border-[#c9a84c]/20">{t}</span>
+                      ))}
                     </div>
                   </div>
 
@@ -642,7 +656,7 @@ export default function Scoring() {
                   <Calculator size={18} className="text-[#c9a84c]" />
                   <h2 className="text-[18px] font-semibold text-[#f1f5f9]">风险收益比 (RR)</h2>
                 </div>
-                <span className="text-[16px] font-semibold font-mono text-[#c9a84c]">RR 1:2.8</span>
+                <span className="text-[16px] font-semibold font-mono text-[#c9a84c]">RR 1:0.5（5板高风险）</span>
               </>
             }
           >
@@ -657,7 +671,7 @@ export default function Scoring() {
             header={
               <>
                 <h2 className="text-[18px] font-semibold text-[#f1f5f9]">动态仓位建议</h2>
-                <span className="text-[16px] font-semibold font-mono text-[#c9a84c]">当前建议: 50%</span>
+                <span className="text-[16px] font-semibold font-mono text-[#c9a84c]">当前建议: 10%（退潮期）</span>
               </>
             }
           >
@@ -701,10 +715,10 @@ export default function Scoring() {
                 <div className="pt-3 mt-2 border-t border-[rgba(148,163,184,0.1)]">
                   <div className="text-[12px] text-[#475569] mb-1">计算过程</div>
                   <div className="text-[12px] font-mono text-[#94a3b8]">
-                    基础仓位: 50% + 10% - 10% + 15% + 15% - 10% = <span className="text-[#c9a84c] font-bold">50%</span>
+                    基础仓位: 50% + 10% - 40% + 15% + 15% - 10% = <span className="text-[#c9a84c] font-bold">10%</span>
                   </div>
                   <div className="text-[11px] text-[#475569] mt-1">
-                    基于总资金100万，建议投入50万
+                    基于总资金100万，建议投入10万（退潮期严控仓位）
                   </div>
                 </div>
               </div>

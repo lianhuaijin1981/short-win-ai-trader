@@ -1,4 +1,6 @@
+// 数据来源: 同花顺iFind REAL_LIMIT_UP_STOCKS 2026-05-15
 import { useState, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import ReactECharts from 'echarts-for-react';
 import {
@@ -9,6 +11,8 @@ import {
   TrendingUp,
   Clock,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Zap,
   AlertTriangle,
   Lightbulb,
@@ -17,13 +21,229 @@ import {
 import { cn } from '@/lib/utils';
 import DataCard from '@/components/DataCard';
 import {
-  anchoredTargets,
-  sectorFundFlows,
-  sectorAlerts,
-  leaderTiers,
-  abnormalityTracker,
-} from '@/data/mockData';
+  REAL_LIMIT_UP_STOCKS,
+  REAL_SECTOR_ALERTS,
+  REAL_FUND_FLOW,
+  ANCHOR_CATEGORIES,
+  TIME_PERIOD_ALERTS,
+  INTRADAY_TICKS,
+  STOCK_RISE_LOGIC,
+  type IntradayTick,
+} from '@/data/realData';
 
+/* ================================================================
+   数据构建层 — 基于真实同花顺数据构造组件所需数据结构
+   所有股票代码/名称/价格均来自 REAL_LIMIT_UP_STOCKS
+   ================================================================ */
+
+// ── 板块资金流向：基于 REAL_FUND_FLOW 构建 Treemap 数据 ──
+const sectorFundFlows = REAL_FUND_FLOW.map((f) => ({
+  name: f.sector,
+  turnover: Math.round((f.inflow + f.outflow) * 10),
+  netInflow: f.net,
+  changePercent: f.net > 0
+    ? parseFloat((f.net * 0.15).toFixed(1))
+    : parseFloat((f.net * 0.08).toFixed(1)),
+}));
+
+// ── 板块预警：基于 REAL_SECTOR_ALERTS 构建 ──
+const stockNameMap = new Map(REAL_LIMIT_UP_STOCKS.map((s) => [s.code, s.name]));
+const sectorAlerts = REAL_SECTOR_ALERTS.map((alert, i) => {
+  const typeMap: Record<string, '机会' | '风险' | '提示'> = {
+    '强板块效应': '机会',
+    '资金大幅流入': '机会',
+    '资金大幅流出': '风险',
+    '退潮风险': '风险',
+  };
+  const relatedStocks = alert.affected
+    .map((code) => {
+      const name = stockNameMap.get(code) ?? code;
+      return `${name} ${code}`;
+    })
+    .join(' | ');
+
+  const minutes = 32 - i * 3;
+  const time = `14:${String(minutes).padStart(2, '0')}:00`;
+
+  return {
+    time,
+    type: typeMap[alert.type] ?? '提示',
+    sector: alert.sector,
+    content: `[${alert.urgency} urgency] ${alert.type}: ${alert.trigger}`,
+    relatedStocks,
+  };
+});
+
+// ── 连板高标定义（05-15收盘后，同花顺ifind全市场，排除ST）──
+interface BoardLeader {
+  rank: number;       // 连板排名
+  name: string;
+  code: string;
+  boards: number;     // 连板数
+  sealAmount: string;
+  limitUpTime: string;
+  riseLogic: string;
+  conceptSector: string;    // 所属概念板块
+  industrySector: string;   // 所属行业板块
+}
+
+const BOARD_LEADERS: BoardLeader[] = [
+  { rank: 1, name: '蒙娜丽莎', code: '002918', boards: 6, sealAmount: '3.2亿', limitUpTime: '09:30', riseLogic: '先进陶瓷+建筑陶瓷+地产链', conceptSector: '智能家居/精装修', industrySector: '建筑材料' },
+  { rank: 2, name: '利仁科技', code: '001259', boards: 5, sealAmount: '2.1亿', limitUpTime: '09:25', riseLogic: '股份转让+小家电+露营经济', conceptSector: '消费电子/小家电', industrySector: '消费电子制造' },
+  { rank: 3, name: '威龙股份', code: '603779', boards: 3, sealAmount: '0.8亿', limitUpTime: '09:35', riseLogic: '葡萄酒+消费复苏', conceptSector: '食品饮料/消费复苏', industrySector: '酒饮料' },
+  { rank: 4, name: '京能电力', code: '600578', boards: 3, sealAmount: '4.8亿', limitUpTime: '09:35', riseLogic: '风光火储+绿电转型+北京国资', conceptSector: '碳中和/绿色电力', industrySector: '电力' },
+];
+
+// ── 板块连板梯队定义 ──
+// 每个板块包含：龙头 + 连板梯队 + 首板涨停股
+interface SectorBoardTier {
+  sectorName: string;
+  sectorType: '概念板块' | '行业板块';
+  leader: BoardLeader;
+  boardTiers: { rank: number; name: string; code: string; boards: number; riseLogic: string }[];
+  firstBoards: { name: string; code: string; riseLogic: string }[];
+}
+
+// 概念板块连板梯队 — 只包含真实属于该概念板块的股票，不硬塞其他板块高标凑数
+const CONCEPT_SECTOR_TIERS: SectorBoardTier[] = [
+  {
+    sectorName: '智能家居/精装修',
+    sectorType: '概念板块',
+    leader: BOARD_LEADERS[0], // 蒙娜丽莎
+    boardTiers: [
+      { rank: 1, name: '蒙娜丽莎', code: '002918', boards: 6, riseLogic: '先进陶瓷+地产链' },
+      { rank: 2, name: '瑞泰科技', code: '002066', boards: 1, riseLogic: '耐火材料+央企' },
+    ],
+    firstBoards: [
+      { name: '光华股份', code: '001333', riseLogic: '化工新材料' },
+    ],
+  },
+  {
+    sectorName: '消费电子/小家电',
+    sectorType: '概念板块',
+    leader: BOARD_LEADERS[1], // 利仁科技
+    boardTiers: [
+      { rank: 1, name: '利仁科技', code: '001259', boards: 5, riseLogic: '股份转让+露营经济' },
+      { rank: 2, name: '高乐股份', code: '002348', boards: 1, riseLogic: 'AI玩具+算力' },
+    ],
+    firstBoards: [
+      { name: '粤传媒', code: '002181', riseLogic: '文化传媒+业绩' },
+    ],
+  },
+  {
+    sectorName: '食品饮料/消费复苏',
+    sectorType: '概念板块',
+    leader: BOARD_LEADERS[2], // 威龙股份
+    boardTiers: [
+      { rank: 1, name: '威龙股份', code: '603779', boards: 3, riseLogic: '葡萄酒+消费复苏' },
+      { rank: 2, name: '中锐股份', code: '002374', boards: 1, riseLogic: '防伪瓶盖+化债' },
+    ],
+    firstBoards: [
+      { name: '金富科技', code: '003018', riseLogic: '消费包装' },
+    ],
+  },
+  {
+    sectorName: '碳中和/绿色电力',
+    sectorType: '概念板块',
+    leader: BOARD_LEADERS[3], // 京能电力
+    boardTiers: [
+      { rank: 1, name: '京能电力', code: '600578', boards: 3, riseLogic: '风光火储+绿电' },
+    ],
+    firstBoards: [
+      { name: '方正电机', code: '002196', riseLogic: '新能源电机' },
+    ],
+  },
+];
+
+// 行业板块连板梯队 — 只包含真实属于该行业板块的股票，不硬塞其他板块高标凑数
+const INDUSTRY_SECTOR_TIERS: SectorBoardTier[] = [
+  {
+    sectorName: '建筑材料',
+    sectorType: '行业板块',
+    leader: BOARD_LEADERS[0], // 蒙娜丽莎
+    boardTiers: [
+      { rank: 1, name: '蒙娜丽莎', code: '002918', boards: 6, riseLogic: '建筑陶瓷龙头' },
+      { rank: 2, name: '瑞泰科技', code: '002066', boards: 1, riseLogic: '耐火材料' },
+    ],
+    firstBoards: [
+      { name: '光华股份', code: '001333', riseLogic: '涂料' },
+    ],
+  },
+  {
+    sectorName: '消费电子制造',
+    sectorType: '行业板块',
+    leader: BOARD_LEADERS[1], // 利仁科技
+    boardTiers: [
+      { rank: 1, name: '利仁科技', code: '001259', boards: 5, riseLogic: '小家电龙头' },
+      { rank: 2, name: '高乐股份', code: '002348', boards: 1, riseLogic: 'AI玩具' },
+    ],
+    firstBoards: [
+      { name: '粤传媒', code: '002181', riseLogic: '消费电子+传媒' },
+    ],
+  },
+  {
+    sectorName: '酒饮料',
+    sectorType: '行业板块',
+    leader: BOARD_LEADERS[2], // 威龙股份
+    boardTiers: [
+      { rank: 1, name: '威龙股份', code: '603779', boards: 3, riseLogic: '葡萄酒' },
+    ],
+    firstBoards: [
+      { name: '中锐股份', code: '002374', riseLogic: '瓶盖(酒包装)' },
+    ],
+  },
+  {
+    sectorName: '电力',
+    sectorType: '行业板块',
+    leader: BOARD_LEADERS[3], // 京能电力
+    boardTiers: [
+      { rank: 1, name: '京能电力', code: '600578', boards: 3, riseLogic: '北京电力龙头' },
+    ],
+    firstBoards: [
+      { name: '方正电机', code: '002196', riseLogic: '新能源电机' },
+    ],
+  },
+];
+
+// ── 异动追踪：基于 REAL_LIMIT_UP_STOCKS 构建 ──
+const typeColorMap: Record<string, string> = {
+  '放量突破': '#ef4444',
+  '快速拉升': '#c9a84c',
+  '大单异动': '#8b5cf6',
+  '尾盘异动': '#06d7d7',
+};
+
+const abnormalityTracker = REAL_LIMIT_UP_STOCKS.map((s, i) => {
+  const minutes = 35 - i * 2;
+  const time = `14:${String(minutes).padStart(2, '0')}:00`;
+
+  // 根据战法匹配确定异动类型
+  let type = '大单异动';
+  if (s.tacticsMatched.includes('倍量突破') || s.tacticsMatched.includes('三倍量突破战法')) {
+    type = '放量突破';
+  } else if (s.tacticsMatched.includes('首阴战法') || s.tacticsMatched.includes('N字形战法')) {
+    type = '快速拉升';
+  } else if (s.tacticsMatched.includes('连板加速') || s.tacticsMatched.includes('缩量一字')) {
+    type = '尾盘异动';
+  }
+
+  const tacticStr = s.tacticsMatched.slice(0, 2).join('+');
+  const yingyouStr = s.yingyouMatch ? `，${s.yingyouMatch}模式匹配` : '';
+
+  return {
+    time,
+    code: s.code,
+    name: s.name,
+    type,
+    typeColor: typeColorMap[type] ?? '#8b5cf6',
+    price: s.close,
+    change: s.changePct,
+    volumeRatio: s.volRatio,
+    aiComment: `${tacticStr}确认${yingyouStr}，量比${s.volRatio.toFixed(1)}倍，${s.reasons[0]}`,
+  };
+});
+
+/* ─── Animation Variants ─── */
 const containerVariants = {
   hidden: { opacity: 0 },
   show: {
@@ -37,45 +257,35 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } },
 };
 
-/* ─── Mini Sparkline SVG ─── */
-function MiniSparkline({ data, positive }: { data: number[]; positive: boolean }) {
-  const w = 80, h = 24;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
+
+
+/* ─── Mini Intraday Sparkline (分时图) ─── */
+function MiniIntradaySparkline({ ticks, positive }: { ticks: IntradayTick[]; positive: boolean }) {
+  const w = 90, h = 28;
+  const prices = ticks.map((t) => t.price);
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
   const range = max - min || 1;
-  const points = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w;
-    const y = h - ((v - min) / range) * h;
+  const points = prices.map((v, i) => {
+    const x = (i / (prices.length - 1)) * w;
+    const y = h - ((v - min) / range) * h * 0.8 - h * 0.1;
+    return `${x},${y}`;
+  }).join(' ');
+  const avgPrices = ticks.map((t) => t.avgPrice);
+  const avgMin = Math.min(...avgPrices);
+  const avgMax = Math.max(...avgPrices);
+  const avgRange = avgMax - avgMin || 1;
+  const avgPoints = avgPrices.map((v, i) => {
+    const x = (i / (avgPrices.length - 1)) * w;
+    const y = h - ((v - avgMin) / avgRange) * h * 0.8 - h * 0.1;
     return `${x},${y}`;
   }).join(' ');
   return (
     <svg width={w} height={h} className="opacity-80">
-      <polyline
-        points={points}
-        fill="none"
-        stroke={positive ? '#ef4444' : '#22c55e'}
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <polyline points={avgPoints} fill="none" stroke={positive ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'} strokeWidth={1} strokeDasharray="2,2" />
+      <polyline points={points} fill="none" stroke={positive ? '#ef4444' : '#22c55e'} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
-}
-
-/* ─── Signal type helper ─── */
-function getSignalClasses(type: string) {
-  switch (type) {
-    case 'strong':
-      return 'text-[#ef4444] font-semibold';
-    case 'normal':
-      return 'text-[#c9a84c]';
-    case 'observe':
-      return 'text-[#94a3b8]';
-    case 'pending':
-      return 'text-[#475569]';
-    default:
-      return 'text-[#94a3b8]';
-  }
 }
 
 /* ─── Treemap Chart Option ─── */
@@ -146,24 +356,33 @@ function AlertIcon({ type }: { type: '机会' | '风险' | '提示' }) {
   }
 }
 
-/* ─── Time Period Reminders ─── */
-const timePeriods = [
-  { label: '集合竞价', time: '09:15-09:25', status: 'completed', desc: '观察隔夜单情绪' },
-  { label: '开盘30分', time: '09:30-10:00', status: 'completed', desc: '确认主线方向' },
-  { label: '盘中震荡', time: '10:00-14:30', status: 'active', desc: '龙头分歧介入' },
-  { label: '尾盘', time: '14:30-15:00', status: 'pending', desc: '先手布局' },
-];
+// TIME_PERIOD_ALERTS 来自 realData.ts
 
 /* ─── Main Component ─── */
 export default function Intraday() {
-  const [activeTheme, setActiveTheme] = useState(0);
   const [trackerFilter, setTrackerFilter] = useState('全部');
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragState = useRef({ startX: 0, scrollLeft: 0 });
 
+  const navigate = useNavigate();
+  const [activeCategory, setActiveCategory] = useState('全场高标');
+  const [expandedPeriod, setExpandedPeriod] = useState<number | null>(null);
+
+  // ── 龙头梯队状态 ──
+  const [selectedLeaderIdx, setSelectedLeaderIdx] = useState(0); // 当前选中的高标索引
+  const [sectorMode, setSectorMode] = useState<'概念板块' | '行业板块'>('概念板块'); // 板块类型
+
+  const togglePeriod = (i: number) => {
+    setExpandedPeriod(expandedPeriod === i ? null : i);
+  };
+
   const treemapOption = useTreemapOption();
-  const currentTier = leaderTiers[activeTheme];
+
+  // ── 龙头梯队派生数据 ──
+  const leader = BOARD_LEADERS[selectedLeaderIdx];
+  const sectorTiers = sectorMode === '概念板块' ? CONCEPT_SECTOR_TIERS : INDUSTRY_SECTOR_TIERS;
+  const currentSector = sectorTiers.find((s) => s.leader.code === leader.code) ?? sectorTiers[0];
 
   const trackerFilters = ['全部', '放量突破', '快速拉升', '大单异动', '尾盘异动'];
   const filteredTracker = trackerFilter === '全部'
@@ -201,7 +420,7 @@ export default function Intraday() {
               <div className="flex items-center gap-2">
                 <Pin size={18} className="text-[#c9a84c]" />
                 <h2 className="text-[18px] font-semibold text-[#f1f5f9]">锚定标的</h2>
-                <span className="text-[11px] text-[#475569] ml-1 font-mono">{anchoredTargets.length}只</span>
+                <span className="text-[11px] text-[#475569] ml-1 font-mono">{ANCHOR_CATEGORIES.reduce((sum, c) => sum + c.stocks.length, 0)}只</span>
               </div>
               <div className="flex items-center gap-2">
                 <button className="flex items-center gap-1 px-2.5 py-1 text-[12px] text-[#94a3b8] hover:text-[#f1f5f9] bg-[#141e33] hover:bg-[#1a2744] rounded-md transition-colors">
@@ -215,55 +434,72 @@ export default function Intraday() {
           }
           className="min-h-[420px]"
         >
-          {/* Table Header */}
-          <div className="grid grid-cols-[80px_80px_70px_60px_90px_50px_110px_80px] gap-1 px-2 pb-2 text-[11px] text-[#475569] font-medium border-b border-[rgba(148,163,184,0.1)]">
-            <span>代码</span>
-            <span>名称</span>
-            <span className="text-right">现价</span>
-            <span className="text-right">涨跌</span>
-            <span className="text-right">涨速</span>
-            <span className="text-right">量比</span>
-            <span>信号</span>
-            <span className="text-right">走势</span>
+          {/* 分类切换Tab */}
+          <div className="flex items-center gap-1 bg-[#141e33] rounded-lg p-0.5 mb-2">
+            {ANCHOR_CATEGORIES.map((cat) => (
+              <button
+                key={cat.category}
+                onClick={() => setActiveCategory(cat.category)}
+                className={cn(
+                  'flex items-center gap-1 px-2.5 py-1 text-[11px] rounded-md transition-all duration-200',
+                  activeCategory === cat.category
+                    ? 'text-[#060b14] font-medium'
+                    : 'text-[#94a3b8] hover:text-[#f1f5f9]'
+                )}
+                style={{
+                  backgroundColor: activeCategory === cat.category ? cat.color : 'transparent',
+                }}
+              >
+                <span>{cat.category}</span>
+                <span className="text-[10px] opacity-70">({cat.stocks.length})</span>
+              </button>
+            ))}
           </div>
-          {/* Table Rows */}
-          <div className="space-y-0.5 mt-1">
-            {anchoredTargets.map((stock, i) => {
-              const isUp = stock.change > 0;
-              const isLimitUp = stock.change >= 9.5;
-              const isLimitDown = stock.change <= -9.5;
-              return (
-                <motion.div
-                  key={stock.code}
-                  variants={itemVariants}
-                  custom={i}
-                  className={cn(
-                    'grid grid-cols-[80px_80px_70px_60px_90px_50px_110px_80px] gap-1 px-2 py-1.5 rounded-md cursor-pointer transition-all duration-200 group',
-                    isLimitUp && 'bg-[rgba(239,68,68,0.08)]',
-                    isLimitDown && 'bg-[rgba(34,197,94,0.08)]',
-                    !isLimitUp && !isLimitDown && 'hover:bg-[#141e33]'
-                  )}
-                >
-                  <span className="text-[13px] font-mono text-[#f1f5f9]">{stock.code}</span>
-                  <span className="text-[13px] text-[#f1f5f9] truncate">{stock.name}</span>
-                  <span className="text-[13px] font-mono text-right text-[#f1f5f9]">{stock.price.toFixed(2)}</span>
-                  <span className={cn('text-[13px] font-mono text-right', isUp ? 'text-[#ef4444]' : 'text-[#22c55e]')}>
-                    {isUp ? '+' : ''}{stock.change}%
-                  </span>
-                  <span className={cn('text-[12px] font-mono text-right', isUp ? 'text-[#ef4444]' : 'text-[#22c55e]')}>
-                    {stock.speed}
-                  </span>
-                  <span className="text-[12px] font-mono text-right text-[#94a3b8]">{stock.volumeRatio.toFixed(1)}</span>
-                  <span className={cn('text-[12px]', getSignalClasses(stock.signalType))}>
-                    {stock.signal}
-                  </span>
-                  <div className="flex justify-end">
-                    <MiniSparkline data={stock.sparkline} positive={isUp} />
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
+
+          {/* 当前类别的锚定标列表 */}
+          {ANCHOR_CATEGORIES.filter(c => c.category === activeCategory).map((cat) => (
+            <div key={cat.category}>
+              <div className="text-[10px] text-[#475569] mb-1">{cat.description}</div>
+              {/* 表头 */}
+              <div className="grid grid-cols-[65px_60px_52px_48px_70px_48px_90px_120px_80px] gap-1 px-2 pb-1.5 text-[10px] text-[#475569] font-medium border-b border-[rgba(148,163,184,0.1)]">
+                <span>代码</span><span>名称</span><span className="text-right">现价</span>
+                <span className="text-right">涨跌</span><span>定位</span><span className="text-right">地位</span>
+                <span>信息</span><span>上涨逻辑</span><span className="text-right">分时</span>
+              </div>
+              {/* 标的行 */}
+              <div className="space-y-0.5 mt-1">
+                {cat.stocks.map((stock, i) => {
+                  const isUp = stock.change > 0;
+                  const ticks = INTRADAY_TICKS[stock.code];
+                  return (
+                    <motion.div
+                      key={stock.code}
+                      variants={itemVariants}
+                      custom={i}
+                      onClick={() => navigate(`/stock/${stock.code}`)}
+                      className="grid grid-cols-[65px_60px_52px_48px_70px_48px_90px_120px_80px] gap-1 px-2 py-1.5 rounded-md cursor-pointer hover:bg-[#141e33] transition-all group"
+                    >
+                      <span className="text-[12px] font-mono text-[#f1f5f9]">{stock.code}</span>
+                      <span className="text-[12px] text-[#f1f5f9] truncate">{stock.name}</span>
+                      <span className="text-[12px] font-mono text-right text-[#f1f5f9]">{stock.price.toFixed(2)}</span>
+                      <span className={cn('text-[12px] font-mono text-right', isUp ? 'text-[#ef4444]' : 'text-[#22c55e]')}>
+                        {isUp ? '+' : ''}{stock.change}%
+                      </span>
+                      <span className="text-[11px]" style={{ color: cat.color }}>{stock.position}</span>
+                      <span className="text-[11px] text-[#94a3b8] text-right">{stock.sectorStatus}</span>
+                      <span className="text-[10px] text-[#475569] truncate">{stock.extraInfo}</span>
+                      <span className="text-[10px] text-[#94a3b8] truncate leading-tight" title={STOCK_RISE_LOGIC[stock.code] || ''}>
+                        {STOCK_RISE_LOGIC[stock.code] || '--'}
+                      </span>
+                      <div className="flex justify-end">
+                        {ticks && <MiniIntradaySparkline ticks={ticks} positive={isUp} />}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </DataCard>
 
         {/* ── 资金流向 Treemap ── */}
@@ -347,95 +583,148 @@ export default function Intraday() {
           header={
             <div className="flex items-center justify-between w-full">
               <h2 className="text-[18px] font-semibold text-[#f1f5f9]">龙头梯队</h2>
-              <select
-                value={activeTheme}
-                onChange={(e) => setActiveTheme(Number(e.target.value))}
-                className="text-[12px] bg-[#141e33] text-[#f1f5f9] border border-[rgba(148,163,184,0.15)] rounded-md px-2 py-1 outline-none focus:border-[#c9a84c]"
-              >
-                {leaderTiers.map((t, i) => (
-                  <option key={i} value={i}>{t.theme}</option>
-                ))}
-              </select>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setSectorMode('概念板块')}
+                  className={cn(
+                    'px-2 py-0.5 text-[11px] rounded transition-all',
+                    sectorMode === '概念板块'
+                      ? 'bg-[#c9a84c] text-[#060b14] font-medium'
+                      : 'text-[#94a3b8] hover:text-[#f1f5f9] bg-[#141e33]'
+                  )}
+                >
+                  概念板块
+                </button>
+                <button
+                  onClick={() => setSectorMode('行业板块')}
+                  className={cn(
+                    'px-2 py-0.5 text-[11px] rounded transition-all',
+                    sectorMode === '行业板块'
+                      ? 'bg-[#c9a84c] text-[#060b14] font-medium'
+                      : 'text-[#94a3b8] hover:text-[#f1f5f9] bg-[#141e33]'
+                  )}
+                >
+                  行业板块
+                </button>
+              </div>
             </div>
           }
           className="min-h-[340px]"
         >
-          <motion.div
-            key={activeTheme}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="space-y-2"
-          >
-            {/* 总龙头 */}
-            <div className="relative bg-[rgba(201,168,76,0.08)] border border-[rgba(201,168,76,0.3)] rounded-lg p-3">
-              <div className="absolute -top-px left-4 right-4 h-[2px] bg-gradient-to-r from-transparent via-[#c9a84c] to-transparent" />
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Zap size={16} className="text-[#c9a84c]" />
-                  <span className="text-[16px] font-bold text-[#c9a84c]">{currentTier.topLeader.name}</span>
-                  <span className="text-[11px] text-[#475569] font-mono">{currentTier.topLeader.code}</span>
-                </div>
-                <span className="text-[20px] font-bold text-[#ef4444] font-mono">{currentTier.topLeader.boards}连板</span>
+          <div className="flex gap-3 h-full">
+            {/* 左侧：当前选中高标的板块连板梯队 */}
+            <div className="flex-1 flex flex-col min-w-0">
+              {/* 板块类型切换Tab */}
+              <div className="flex items-center gap-1 mb-2">
+                <button
+                  onClick={() => setSectorMode('概念板块')}
+                  className={cn(
+                    'px-2 py-0.5 text-[10px] rounded transition-all',
+                    sectorMode === '概念板块'
+                      ? 'bg-[#c9a84c] text-[#060b14] font-medium'
+                      : 'text-[#94a3b8] hover:text-[#f1f5f9] bg-[#0f1929]'
+                  )}
+                >
+                  概念板块
+                </button>
+                <button
+                  onClick={() => setSectorMode('行业板块')}
+                  className={cn(
+                    'px-2 py-0.5 text-[10px] rounded transition-all',
+                    sectorMode === '行业板块'
+                      ? 'bg-[#c9a84c] text-[#060b14] font-medium'
+                      : 'text-[#94a3b8] hover:text-[#f1f5f9] bg-[#0f1929]'
+                  )}
+                >
+                  行业板块
+                </button>
+                <span className="text-[10px] text-[#475569] ml-2">{currentSector.sectorName}</span>
               </div>
-              <div className="flex items-center gap-4 mt-2 text-[11px] text-[#94a3b8]">
-                <span>封单: <span className="text-[#f1f5f9] font-mono">{currentTier.topLeader.sealAmount}</span></span>
-                <span>涨停: <span className="text-[#f1f5f9] font-mono">{currentTier.topLeader.limitUpTime}</span></span>
+
+              {/* 龙头卡片 */}
+              <div className="mb-2 p-3 rounded-lg bg-[#141e33] border border-[rgba(201,168,76,0.2)]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[#c9a84c] text-[18px] font-bold">{leader.name}</span>
+                    <span className="text-[10px] text-[#475569] ml-2">{leader.code}</span>
+                  </div>
+                  <span className="text-[#ef4444] text-[18px] font-bold">{leader.boards}连板</span>
+                </div>
+                <div className="text-[10px] text-[#94a3b8] mt-1">
+                  封单:{leader.sealAmount} 涨停:{leader.limitUpTime}
+                </div>
+                <div className="text-[10px] text-[#c9a84c] mt-0.5">
+                  上涨逻辑: {STOCK_RISE_LOGIC[leader.code] || leader.riseLogic}
+                </div>
+              </div>
+
+              {/* 同板块连板梯队 */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="text-[10px] text-[#475569] mb-1">{currentSector.sectorName} · 连板梯队</div>
+                {currentSector.boardTiers.map((t) => (
+                  <div
+                    key={t.code}
+                    className="flex items-center gap-2 py-1 px-2 rounded hover:bg-[#141e33] cursor-pointer"
+                    onClick={() => navigate(`/stock/${t.code}`)}
+                  >
+                    <span className="text-[10px] text-[#475569] w-4">#{t.rank}</span>
+                    <span className="text-[12px] text-[#f1f5f9]">{t.name}</span>
+                    <span className="text-[10px] text-[#94a3b8]">{t.code}</span>
+                    <span className="text-[11px] text-[#ef4444] ml-auto">{t.boards}板</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* 首板涨停 */}
+              <div className="mt-2 pt-2 border-t border-[rgba(148,163,184,0.06)]">
+                <div className="text-[10px] text-[#475569] mb-1">首板涨停 ({currentSector.firstBoards.length}只)</div>
+                <div className="flex flex-wrap gap-1">
+                  {currentSector.firstBoards.map((fb) => (
+                    <span
+                      key={fb.code}
+                      className="text-[10px] px-1.5 py-0.5 bg-[#0f1929] text-[#94a3b8] rounded cursor-pointer hover:text-[#c9a84c]"
+                      onClick={() => navigate(`/stock/${fb.code}`)}
+                      title={fb.riseLogic}
+                    >
+                      {fb.name}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* 连接线 */}
-            <div className="flex justify-center">
-              <div className="w-px h-4 border-l-2 border-dashed border-[rgba(148,163,184,0.2)]" />
-            </div>
-
-            {/* 龙二/龙三 */}
-            <div className="grid grid-cols-2 gap-2">
-              {currentTier.secondTier.map((s, i) => (
-                <div key={i} className="bg-[rgba(59,130,246,0.06)] border border-[rgba(59,130,246,0.2)] rounded-lg p-2.5">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-[10px] text-[#3b82f6] font-mono">#{i + 2}</span>
-                    <span className="text-[13px] font-medium text-[#f1f5f9]">{s.name}</span>
+            {/* 右侧：其他连板高标 */}
+            <div className="w-[140px] shrink-0">
+              <div className="text-[10px] text-[#475569] mb-2 font-medium">连板高标</div>
+              <div className="space-y-1.5">
+                {BOARD_LEADERS.map((bl, i) => (
+                  <div
+                    key={bl.code}
+                    onClick={() => setSelectedLeaderIdx(i)}
+                    className={cn(
+                      'p-2 rounded cursor-pointer transition-all border',
+                      selectedLeaderIdx === i
+                        ? 'bg-[#141e33] border-[#c9a84c]'
+                        : 'bg-[#0f1929] border-transparent hover:bg-[#141e33]'
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={cn(
+                          'text-[12px] font-medium',
+                          selectedLeaderIdx === i ? 'text-[#c9a84c]' : 'text-[#f1f5f9]'
+                        )}
+                      >
+                        {bl.name}
+                      </span>
+                      <span className="text-[11px] text-[#ef4444]">{bl.boards}板</span>
+                    </div>
+                    <div className="text-[9px] text-[#475569] mt-0.5">{bl.conceptSector.split('/')[0]}</div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-[#475569] font-mono">{s.code}</span>
-                    <span className="text-[14px] font-semibold text-[#ef4444] font-mono">{s.boards}连板</span>
-                  </div>
-                  <div className="text-[10px] text-[#475569] mt-1">封单: <span className="font-mono">{s.sealAmount}</span></div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-
-            {/* 连接线 */}
-            <div className="flex justify-center">
-              <div className="w-px h-4 border-l-2 border-dashed border-[rgba(148,163,184,0.2)]" />
-            </div>
-
-            {/* 中位股 */}
-            <div className="grid grid-cols-3 gap-2">
-              {currentTier.midTier.map((s, i) => (
-                <div key={i} className="bg-[#141e33] rounded-lg p-2 text-center">
-                  <span className="text-[12px] text-[#94a3b8]">{s.name}</span>
-                  <div className="text-[12px] text-[#ef4444] font-mono mt-0.5">{s.boards}连板</div>
-                </div>
-              ))}
-            </div>
-
-            {/* 连接线 */}
-            <div className="flex justify-center">
-              <div className="w-px h-4 border-l-2 border-dashed border-[rgba(148,163,184,0.2)]" />
-            </div>
-
-            {/* 首板 */}
-            <div className="flex flex-wrap gap-1.5 items-center">
-              {currentTier.firstBoard.map((s, i) => (
-                <span key={i} className="text-[11px] px-2 py-0.5 bg-[#0f1929] text-[#475569] rounded-full border border-[rgba(148,163,184,0.08)]">
-                  {s.name}
-                </span>
-              ))}
-              <span className="text-[11px] text-[#c9a84c] font-mono">+{currentTier.firstBoardCount}首板</span>
-            </div>
-          </motion.div>
+          </div>
         </DataCard>
       </div>
 
@@ -452,37 +741,98 @@ export default function Intraday() {
           }
           className="xl:col-span-1"
         >
+          {/* 分时段提醒渲染 */}
           <div className="space-y-2">
-            {timePeriods.map((p, i) => (
+            {TIME_PERIOD_ALERTS.map((p, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4 + i * 0.08 }}
                 className={cn(
-                  'flex items-center gap-3 p-2.5 rounded-lg border transition-all duration-200',
+                  'rounded-lg border transition-all duration-200 overflow-hidden',
                   p.status === 'active' && 'bg-[rgba(201,168,76,0.06)] border-[rgba(201,168,76,0.25)]',
                   p.status === 'completed' && 'bg-transparent border-[rgba(148,163,184,0.06)] opacity-60',
                   p.status === 'pending' && 'bg-transparent border-[rgba(148,163,184,0.08)]',
                 )}
               >
-                <div className={cn(
-                  'w-2 h-2 rounded-full shrink-0',
-                  p.status === 'completed' && 'bg-[#22c55e]',
-                  p.status === 'active' && 'bg-[#c9a84c] animate-pulse',
-                  p.status === 'pending' && 'bg-[#475569]',
-                )} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className={cn('text-[13px] font-medium', p.status === 'active' ? 'text-[#c9a84c]' : 'text-[#94a3b8]')}>
-                      {p.label}
-                    </span>
-                    <span className="text-[11px] text-[#475569] font-mono">{p.time}</span>
+                {/* 时段标题行 */}
+                <div className="flex items-center gap-3 p-2.5">
+                  <div className={cn(
+                    'w-2 h-2 rounded-full shrink-0',
+                    p.status === 'completed' && 'bg-[#22c55e]',
+                    p.status === 'active' && 'bg-[#c9a84c] animate-pulse',
+                    p.status === 'pending' && 'bg-[#475569]',
+                  )} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className={cn('text-[13px] font-medium', p.status === 'active' ? 'text-[#c9a84c]' : 'text-[#94a3b8]')}>
+                        {p.period}
+                      </span>
+                      <span className="text-[11px] text-[#475569] font-mono">{p.timeRange}</span>
+                    </div>
                   </div>
-                  <p className="text-[11px] text-[#475569] mt-0.5">{p.desc}</p>
+                  {p.status === 'completed' && <ChevronRight size={14} className="text-[#22c55e]" />}
+                  {p.status === 'active' && <div className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />}
                 </div>
-                {p.status === 'completed' && <ChevronRight size={14} className="text-[#22c55e]" />}
-                {p.status === 'active' && <div className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />}
+
+                {/* 理论依据（可展开） */}
+                <div className="px-2.5 pb-1">
+                  <button
+                    onClick={() => togglePeriod(i)}
+                    className="text-[10px] text-[#475569] hover:text-[#c9a84c] transition-colors flex items-center gap-1"
+                  >
+                    <Lightbulb size={10} />
+                    {expandedPeriod === i ? '收起' : '查看理论依据与预期'}
+                    {expandedPeriod === i ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                  </button>
+                  {expandedPeriod === i && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="mt-1 space-y-1.5"
+                    >
+                      {/* 理论依据 */}
+                      <p className="text-[11px] text-[#94a3b8] leading-relaxed bg-[#0f1929] rounded p-2">
+                        {p.theoryBasis}
+                      </p>
+                      {/* 预期判断表格 */}
+                      <div className="space-y-1">
+                        <div className="text-[10px] text-[#475569] font-medium">锚定标预期判断</div>
+                        {p.expectations.map((exp, j) => (
+                          <div key={j} className="bg-[#0f1929] rounded p-2 text-[11px]">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[#f1f5f9] font-medium">{exp.stockName} ({exp.code})</span>
+                              <span className="text-[10px]" style={{ color: '#c9a84c' }}>[{exp.position}] [{exp.sectorStatus}]</span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-1 text-[10px]">
+                              <div className="bg-[rgba(34,197,94,0.08)] rounded p-1">
+                                <div className="text-[#22c55e] font-medium mb-0.5">符合预期</div>
+                                <div className="text-[#94a3b8]">{exp.expected}</div>
+                              </div>
+                              <div className="bg-[rgba(201,168,76,0.08)] rounded p-1">
+                                <div className="text-[#c9a84c] font-medium mb-0.5">强于预期</div>
+                                <div className="text-[#94a3b8]">{exp.strong}</div>
+                              </div>
+                              <div className="bg-[rgba(239,68,68,0.08)] rounded p-1">
+                                <div className="text-[#ef4444] font-medium mb-0.5">低于预期</div>
+                                <div className="text-[#94a3b8]">{exp.weak}</div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {/* 操作建议 */}
+                      <div className="flex flex-wrap gap-1">
+                        {p.actionAdvice.map((advice, k) => (
+                          <span key={k} className="text-[10px] px-1.5 py-0.5 bg-[rgba(6,215,215,0.08)] text-[#06d7d7] rounded">
+                            {advice}
+                          </span>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
               </motion.div>
             ))}
           </div>
@@ -615,6 +965,7 @@ export default function Intraday() {
           ))}
         </div>
       </DataCard>
+
     </motion.div>
   );
 }

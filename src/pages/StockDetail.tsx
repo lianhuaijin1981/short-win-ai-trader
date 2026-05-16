@@ -16,11 +16,20 @@ import {
   Zap,
   ShieldAlert,
   ChevronRight,
+  ArrowLeft,
   Activity,
 } from 'lucide-react';
 import DataCard from '@/components/DataCard';
 import ScoreRing from '@/components/ScoreRing';
 import { cn } from '@/lib/utils';
+import {
+  REAL_LIMIT_UP_STOCKS,
+  MARKET_TOP5_GAINERS,
+  MARKET_TOP3_BOARDS,
+  INTRADAY_TICKS,
+  MULTI_PERIOD_KLINES,
+  type RealLimitUpStock,
+} from '@/data/realData';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -230,7 +239,140 @@ function calcMA(data: KLineItem[], period: number): (number | null)[] {
   });
 }
 
+/** 从 realData 查找股票（RealLimitUpStock 才有完整字段） */
+function findRealStock(code: string): RealLimitUpStock | undefined {
+  return REAL_LIMIT_UP_STOCKS.find((s) => s.code === code)
+    || MARKET_TOP5_GAINERS.find((s) => s.code === code)
+    || MARKET_TOP3_BOARDS.find((s) => s.code === code);
+}
+
 function getStockData(code: string): StockDetailData {
+  const realStock = findRealStock(code);
+
+  // 如果找到真实数据，使用真实数据
+  if (realStock) {
+    const name = realStock.name;
+    const price = realStock.close;
+    const changePercent = realStock.changePct;
+    const prevClose = +(price / (1 + changePercent / 100)).toFixed(2);
+
+    // 从真实K线数据转换
+    const kline: KLineItem[] = realStock.kline.map((item: [string, number, number, number, number]) => ({
+      date: `2026-${item[0]}`,
+      open: item[1],
+      close: item[2],
+      low: item[3],
+      high: item[4],
+      volume: Math.round(realStock.volume / realStock.kline.length),
+    }));
+
+    const changeAmount = +(price - prevClose).toFixed(2);
+    const tactics = realStock.tacticsMatched || [];
+    const reasons = realStock.reasons || [];
+    const yingyou = realStock.yingyouMatch || '未匹配';
+    const boards = realStock.consecutiveBoards || 0;
+    const volRatio = realStock.volRatio || 1;
+    const volTo20d = realStock.volTo20d || 1;
+
+    return {
+      code,
+      name,
+      market: code.startsWith('300') || code.startsWith('688') ? '创业板' : code.startsWith('002') ? '深市主板' : '沪市主板',
+      price,
+      prevClose,
+      open: kline.length > 0 ? kline[kline.length - 1].open : prevClose,
+      high: kline.length > 0 ? Math.max(...kline.map((k) => k.high)) : price * 1.05,
+      low: kline.length > 0 ? Math.min(...kline.map((k) => k.low)) : price * 0.95,
+      changePercent,
+      changeAmount,
+      volume: (volTo20d * 10).toFixed(1) + '万手',
+      turnover: (price * volTo20d * 0.01).toFixed(1) + '亿',
+      turnoverRate: (volTo20d * 5).toFixed(1) + '%',
+      volumeRatio: volRatio,
+      score: Math.min(95, Math.floor(65 + volRatio * 5 + boards * 3)),
+      rating: boards >= 3 ? 'S' : boards >= 2 ? 'A' : volRatio > 2 ? 'A' : 'B',
+      kline,
+      signals: [
+        ...(tactics.includes('倍量突破') || tactics.includes('三倍量突破战法') ? [{ name: '倍量突破', icon: 'zap', strength: 92, time: '09:35', desc: `成交量为近期${volRatio.toFixed(1)}倍，站上筹码密集区`, status: 'confirmed' as const, color: '#c9a84c' }] : []),
+        ...(tactics.includes('首阴战法') ? [{ name: '首阴反包', icon: 'trending-up', strength: 88, time: '10:15', desc: '前日回调今日涨停反包确认', status: 'confirmed' as const, color: '#c9a84c' }] : []),
+        ...(tactics.includes('N字形战法') ? [{ name: 'N字形反包', icon: 'trending-up', strength: 85, time: '10:30', desc: 'N字形态确认，第二波拉升启动', status: 'ongoing' as const, color: '#3b82f6' }] : []),
+        ...(tactics.includes('连板加速') || tactics.includes('缩量一字') ? [{ name: '连板加速', icon: 'activity', strength: 90, time: '09:25', desc: `${boards}连板加速，封单坚决`, status: 'confirmed' as const, color: '#c9a84c' }] : []),
+        { name: '游资匹配', icon: 'users', strength: 80, time: '持续', desc: `${yingyou}模式匹配`, status: 'ongoing' as const, color: '#8b5cf6' },
+        { name: '资金流入', icon: 'dollar-sign', strength: 82, time: '持续', desc: `量比${volRatio.toFixed(2)}，资金关注度${volRatio > 2 ? '极高' : volRatio > 1 ? '较高' : '一般'}`, status: 'ongoing' as const, color: '#3b82f6' },
+      ],
+      dimensions: [
+        { name: '资讯', score: Math.floor(70 + volRatio * 3) },
+        { name: '基本面', score: Math.floor(60 + Math.random() * 30) },
+        { name: '技术', score: Math.min(95, Math.floor(70 + volRatio * 5)) },
+        { name: '筹码', score: Math.min(95, Math.floor(65 + volTo20d * 8)) },
+        { name: '情绪', score: Math.min(95, Math.floor(55 + boards * 8 + changePercent)) },
+        { name: '资金', score: Math.min(95, Math.floor(60 + volRatio * 6)) },
+      ],
+      fundFlow: {
+        mainNetInflow: (volRatio > 1.5 ? '+' : '-') + (volRatio * 0.5).toFixed(2) + '亿',
+        mainTrend: `较昨日+${Math.floor(volRatio * 15)}%`,
+        dragonTigerQuality: volRatio > 2 ? '优' : volRatio > 1 ? '良' : '中',
+        sealStrength: Math.min(95, Math.floor(50 + volRatio * 12)) + '%',
+        breakdown: [
+          { type: '超大单', inflow: `+${(volRatio * 0.8).toFixed(1)}亿`, outflow: `-${(volRatio * 0.3).toFixed(1)}亿`, net: `+${(volRatio * 0.5).toFixed(1)}亿` },
+          { type: '大单', inflow: `+${(volRatio * 0.5).toFixed(1)}亿`, outflow: `-${(volRatio * 0.4).toFixed(1)}亿`, net: `+${(volRatio * 0.1).toFixed(1)}亿` },
+          { type: '中单', inflow: `+${(volRatio * 0.2).toFixed(1)}亿`, outflow: `-${(volRatio * 0.3).toFixed(1)}亿`, net: `-${(volRatio * 0.1).toFixed(1)}亿` },
+          { type: '小单', inflow: `+${(volRatio * 0.15).toFixed(1)}亿`, outflow: `-${(volRatio * 0.2).toFixed(1)}亿`, net: `-${(volRatio * 0.05).toFixed(1)}亿` },
+        ],
+        timeline: Array.from({ length: 8 }, (_, i) => ({
+          time: `${9 + Math.floor(i / 2)}:${30 + (i % 2) * 30}`,
+          value: +(volRatio * (Math.random() * 2 - 0.5)).toFixed(2),
+        })),
+      },
+      themes: [
+        {
+          name: reasons[0] || '热点题材',
+          heat: Math.min(95, Math.floor(60 + volRatio * 8)),
+          change: `+${changePercent.toFixed(1)}%`,
+          changeUp: changePercent > 0,
+          position: boards >= 3 ? '板块龙头' : boards >= 2 ? '龙二' : '跟风',
+          related: [name],
+          constituents: [{ code, name, price, changePercent }],
+        },
+      ],
+      tradingPlan: {
+        position: boards >= 3 ? '30%' : boards >= 2 ? '20%' : volRatio > 2 ? '25%' : '10%',
+        entryRange: (price * 0.97).toFixed(2) + '-' + (price * 1.01).toFixed(2),
+        stopLoss: (price * 0.93).toFixed(2),
+        takeProfit: (price * 1.12).toFixed(2),
+        rrRatio: '1:' + (volRatio > 2 ? '2.5' : volRatio > 1 ? '2.0' : '1.5'),
+        action: boards >= 3 ? '持有观察' : volRatio > 2 ? '分批建仓' : '观望等待',
+        suggestion: `${tactics.slice(0, 2).join('+')}确认，${yingyou}模式匹配。建议${boards >= 3 ? '持有' : volRatio > 2 ? '分批介入' : '观望'}，量比${volRatio.toFixed(1)}倍${reasons[0] ? '，' + reasons[0] : ''}。`,
+      },
+      risks: [
+        ...(changePercent > 9 ? ['连续大涨后获利盘抛压风险', '涨停打开后承接力不足风险'] : ['大盘情绪处于退潮期，随时可能转入分歧']),
+        ...(boards >= 3 ? ['高位连板接力风险', '板块后排分化风险'] : []),
+        ...(volRatio > 3 ? ['过度放量可能见短期顶部'] : []),
+        '游资席位出现分歧，买一独大风险',
+      ],
+      emotionPhase: boards >= 3 ? '高潮期' : boards >= 2 ? '发酵期' : '萌芽期',
+      emotionColor: boards >= 3 ? '#ef4444' : boards >= 2 ? '#c9a84c' : '#3b82f6',
+      themePosition: boards >= 3 ? '总龙头' : boards >= 2 ? '分支龙头' : '首板',
+      themeStage: boards >= 3 ? '高潮期' : boards >= 2 ? '发酵期' : '萌芽期',
+      anchorStatus: boards >= 3 ? '龙头' : boards >= 2 ? '先锋' : '首板',
+      matchYingyou: yingyou,
+      matchPercent: Math.floor(75 + volRatio * 5),
+      matchTactics: tactics.slice(0, 3),
+      pe: (20 + Math.random() * 40).toFixed(1),
+      pb: (2 + Math.random() * 6).toFixed(1),
+      totalCap: Math.floor(30 + price * 0.5) + '亿',
+      floatCap: Math.floor(20 + price * 0.3) + '亿',
+      amplitude: (Math.abs(changePercent) * 1.2).toFixed(1) + '%',
+      weiBi: (volRatio > 1.5 ? '+' : '-') + (volRatio * 15).toFixed(1) + '%',
+      matchedYingyouList: [
+        { name: yingyou, matchPercent: Math.floor(85 + volRatio * 3), tag: '最匹配' },
+        { name: '92科比', matchPercent: Math.floor(70 + Math.random() * 15) },
+        { name: '小鳄鱼', matchPercent: Math.floor(65 + Math.random() * 15) },
+      ],
+    };
+  }
+
+  // 未找到真实数据，回退到模拟数据
   const basePrice = 15 + Math.random() * 40;
   const prevClose = basePrice;
   const kline = generateKLine(basePrice, 30);
@@ -299,7 +441,7 @@ function getStockData(code: string): StockDetailData {
         position: '板块龙头',
         related: ['某某智能', '某某芯'],
         constituents: [
-          { code: '000001', name: '某某智能', price: 15.8, changePercent: 5.2 },
+          { code: '000001', name: '某某智能', price: 15.8, changePercent: 10.02 },
           { code: '000002', name: '某某芯', price: 28.3, changePercent: 3.1 },
           { code: '000003', name: '某某科技', price: 12.6, changePercent: -1.2 },
         ],
@@ -368,17 +510,25 @@ function getStockData(code: string): StockDetailData {
 /* ------------------------------------------------------------------ */
 /*  Chart Option Builders                                              */
 /* ------------------------------------------------------------------ */
-function buildKLineOption(kline: KLineItem[]) {
-  const dates = kline.map((d) => d.date);
-  const ma5 = calcMA(kline, 5);
-  const ma10 = calcMA(kline, 10);
-  const ma20 = calcMA(kline, 20);
+function buildKLineOption(klineData: [string, number, number, number, number][], title?: string) {
+  const dates = klineData.map((d) => d[0]);
+  // 将元组转为 KLineItem 格式用于计算MA
+  const klineItems: KLineItem[] = klineData.map(d => ({ date: d[0], open: d[1], close: d[2], low: d[3], high: d[4], volume: 0 }));
+  const ma5 = calcMA(klineItems, 5);
+  const ma10 = calcMA(klineItems, 10);
+  const ma20 = calcMA(klineItems, 20);
 
   return {
     backgroundColor: 'transparent',
     animation: true,
     animationDuration: 1000,
-    grid: { left: 48, right: 16, top: 16, bottom: 72, height: '72%' },
+    title: {
+      text: title || '日K走势图',
+      left: 16,
+      top: 4,
+      textStyle: { color: '#94a3b8', fontSize: 12, fontFamily: 'Noto Sans SC' },
+    },
+    grid: { left: 48, right: 16, top: 28, bottom: 72, height: '68%' },
     tooltip: {
       trigger: 'axis',
       backgroundColor: '#1a2744',
@@ -421,7 +571,7 @@ function buildKLineOption(kline: KLineItem[]) {
       {
         name: 'K线',
         type: 'candlestick',
-        data: kline.map((d) => [d.open, d.close, d.low, d.high]),
+        data: klineData.map((d) => [d[1], d[2], d[3], d[4]]),
         itemStyle: { color: '#ef4444', color0: '#22c55e', borderColor: '#ef4444', borderColor0: '#22c55e', borderWidth: 1 },
         barWidth: '55%',
       },
@@ -429,7 +579,7 @@ function buildKLineOption(kline: KLineItem[]) {
       { name: 'MA10', type: 'line', data: ma10, smooth: true, showSymbol: false, lineStyle: { color: '#f59e0b', width: 1 }, },
       { name: 'MA20', type: 'line', data: ma20, smooth: true, showSymbol: false, lineStyle: { color: '#8b5cf6', width: 1 }, },
     ],
-    legend: { data: ['MA5', 'MA10', 'MA20'], top: 0, right: 16, textStyle: { color: '#94a3b8', fontSize: 11 }, itemWidth: 16, itemHeight: 2 },
+    legend: { data: ['MA5', 'MA10', 'MA20'], top: 4, right: 16, textStyle: { color: '#94a3b8', fontSize: 11 }, itemWidth: 16, itemHeight: 2 },
   };
 }
 
@@ -525,8 +675,33 @@ export default function StockDetail() {
   const navigate = useNavigate();
   const stock = useMemo(() => getStockData(code || '000001'), [code]);
   const [activePeriod, setActivePeriod] = useState('日K');
-  const periods = ['分时', '5日', '日K', '周K', '月K'];
+  const periods = [
+    { label: '分时', value: '分时' },
+    { label: '5日', value: '5日' },
+    { label: '日K', value: '日K' },
+    { label: '周K', value: '周K' },
+    { label: '月K', value: '月K' },
+  ];
   const priceUp = isUp(stock.changePercent);
+
+  // 根据周期获取对应的K线数据
+  const getKlineForPeriod = (period: string): [string, number, number, number, number][] => {
+    const multiData = MULTI_PERIOD_KLINES[stock.code];
+    if (!multiData) return stock.kline.map(k => [k.date, k.open, k.close, k.low, k.high]);
+
+    switch (period) {
+      case '5日':
+        return multiData.daily.slice(-5);
+      case '日K':
+        return multiData.daily;
+      case '周K':
+        return multiData.weekly;
+      case '月K':
+        return multiData.monthly;
+      default:
+        return multiData.daily;
+    }
+  };
 
   /* Animated counter for price */
   const [displayPrice, setDisplayPrice] = useState(stock.prevClose);
@@ -561,6 +736,17 @@ export default function StockDetail() {
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
         className="rounded-[10px] border border-[rgba(148,163,184,0.1)] bg-[#0d1526] p-4 lg:p-5"
       >
+        {/* 返回上级页面按钮 */}
+        <div className="flex items-center gap-2 mb-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] text-[#94a3b8] hover:text-[#f1f5f9] bg-[#141e33] hover:bg-[#1a2744] rounded-md border border-[rgba(148,163,184,0.1)] transition-all"
+          >
+            <ArrowLeft size={14} />
+            <span>返回上级页面</span>
+          </button>
+        </div>
+
         <div className="flex flex-wrap items-center gap-4 lg:gap-8">
           {/* Col 1: Code + Name */}
           <div className="flex flex-col min-w-[140px]">
@@ -739,26 +925,54 @@ export default function StockDetail() {
           <DataCard delay={400} noPadding
             header={
               <div className="flex items-center justify-between w-full px-4 pt-4 pb-2">
-                <span className="text-[16px] font-semibold text-[#f1f5f9]">日K走势</span>
+                <span className="text-[16px] font-semibold text-[#f1f5f9]">
+                  {activePeriod === '分时' ? '分时走势' : activePeriod === '5日' ? '5日K线' : activePeriod === '日K' ? '日K走势' : activePeriod === '周K' ? '周K走势' : '月K走势'}
+                </span>
                 <div className="flex items-center gap-1">
                   {periods.map((p) => (
                     <button
-                      key={p}
-                      onClick={() => setActivePeriod(p)}
+                      key={p.value}
+                      onClick={() => setActivePeriod(p.value)}
                       className={cn(
                         'px-2.5 py-1 rounded text-[11px] font-medium transition-all',
-                        activePeriod === p ? 'bg-[#c9a84c] text-[#060b14]' : 'text-[#94a3b8] hover:text-[#f1f5f9]'
+                        activePeriod === p.value ? 'bg-[#c9a84c] text-[#060b14]' : 'text-[#94a3b8] hover:text-[#f1f5f9]'
                       )}
                     >
-                      {p}
+                      {p.label}
                     </button>
                   ))}
                 </div>
               </div>
             }
           >
-            <div className="h-[420px] px-2 pb-2">
-              <ReactECharts option={buildKLineOption(stock.kline)} style={{ height: '100%', width: '100%' }} />
+            <div className="h-[420px] px-2 pb-2 flex flex-col min-h-0">
+              {activePeriod === '分时' && (
+                <IntradayChart code={stock.code} currentPrice={stock.price} />
+              )}
+              {activePeriod === '5日' && (
+                <ReactECharts
+                  option={buildKLineOption(getKlineForPeriod('5日'), '5日K线')}
+                  style={{ height: '100%', minHeight: 0 }}
+                />
+              )}
+              {activePeriod === '日K' && (
+                <ReactECharts
+                  option={buildKLineOption(getKlineForPeriod('日K'), '日K线')}
+                  style={{ height: '100%', minHeight: 0 }}
+                />
+              )}
+              {activePeriod === '周K' && (
+                <ReactECharts
+                  option={buildKLineOption(getKlineForPeriod('周K'), '周K线')}
+                  style={{ height: '100%', minHeight: 0 }}
+                />
+              )}
+              {activePeriod === '月K' && (
+                <ReactECharts
+                  option={buildKLineOption(getKlineForPeriod('月K'), '月K线')}
+                  style={{ height: '100%', minHeight: 0 }}
+                />
+              )}
             </div>
           </DataCard>
         </div>
@@ -1202,6 +1416,154 @@ export default function StockDetail() {
         </div>
         <div className="text-center text-[11px] text-[#475569] mt-1">风险指数: {Math.max(20, 100 - stock.score)}%</div>
       </motion.div>
+    </div>
+  );
+}
+
+// ── 分时图组件 ──
+function IntradayChart({ code, currentPrice }: { code: string; currentPrice: number }) {
+  const ticks = INTRADAY_TICKS[code] || [];
+
+  if (ticks.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full text-[#475569] text-[14px]">
+        暂无分时数据
+      </div>
+    );
+  }
+
+  const times = ticks.map(t => t.time);
+  const prices = ticks.map(t => t.price);
+  const avgPrices = ticks.map(t => t.avgPrice);
+  const volumes = ticks.map(t => t.volume);
+
+  // 涨跌停价
+  const prevClose = currentPrice > 0 ? parseFloat((currentPrice / (1 + 0.1)).toFixed(2)) : currentPrice;
+  const limitUp = parseFloat((prevClose * 1.1).toFixed(2));
+  const limitDown = parseFloat((prevClose * 0.9).toFixed(2));
+
+  const mainOption = {
+    animation: false,
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: '#0d1526',
+      borderColor: '#2a3441',
+      textStyle: { color: '#e1e7ef', fontSize: 11 },
+      axisPointer: { type: 'cross', lineStyle: { color: '#2a3441' } },
+      formatter: (params: any[]) => {
+        if (!params?.length) return '';
+        const time = params[0].axisValue;
+        const price = params.find(p => p.seriesName === '价格')?.value;
+        const avgPrice = params.find(p => p.seriesName === '均价')?.value;
+        return `<div style="font-size:11px">
+          <div style="color:#94a3b8">${time}</div>
+          <div style="color:#fff">价格: ${price?.toFixed(2) || '--'}</div>
+          <div style="color:#eab308">均价: ${avgPrice?.toFixed(2) || '--'}</div>
+        </div>`;
+      },
+    },
+    grid: { left: 55, right: 50, top: 20, bottom: 25 },
+    xAxis: {
+      type: 'category',
+      data: times,
+      boundaryGap: false,
+      axisLine: { lineStyle: { color: '#2a3441' } },
+      axisLabel: {
+        color: '#5a6a7f',
+        fontSize: 10,
+        interval: Math.floor(times.length / 6),
+        formatter: (v: string) => v,
+      },
+      splitLine: { show: false },
+    },
+    yAxis: {
+      type: 'value',
+      scale: true,
+      axisLine: { show: false },
+      axisLabel: { color: '#5a6a7f', fontSize: 10, formatter: (v: number) => v.toFixed(2) },
+      splitLine: { lineStyle: { color: '#1a2332' } },
+    },
+    series: [
+      {
+        name: '价格',
+        type: 'line',
+        data: prices,
+        showSymbol: false,
+        lineStyle: { color: '#e1e7ef', width: 1 },
+        areaStyle: {
+          color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [{ offset: 0, color: 'rgba(225,231,239,0.08)' }, { offset: 1, color: 'rgba(225,231,239,0)' }],
+          },
+        },
+      },
+      {
+        name: '均价',
+        type: 'line',
+        data: avgPrices,
+        showSymbol: false,
+        lineStyle: { color: '#eab308', width: 1, type: 'dashed' },
+      },
+    ],
+    markLine: {
+      silent: true,
+      data: [
+        { yAxis: limitUp, lineStyle: { color: '#ef4444', type: 'dashed', width: 1 }, label: { show: true, formatter: '涨停', color: '#ef4444', fontSize: 10, position: 'insideEndTop' as const } },
+        { yAxis: prevClose, lineStyle: { color: '#5a6a7f', type: 'dashed', width: 1 }, label: { show: true, formatter: '昨收', color: '#5a6a7f', fontSize: 10, position: 'insideStartTop' as const } },
+        { yAxis: limitDown, lineStyle: { color: '#22c55e', type: 'dashed', width: 1 }, label: { show: true, formatter: '跌停', color: '#22c55e', fontSize: 10, position: 'insideEndBottom' as const } },
+      ],
+    },
+  };
+
+  // 成交量副图
+  const volumeOption = {
+    animation: false,
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: '#0d1526',
+      borderColor: '#2a3441',
+      textStyle: { color: '#e1e7ef', fontSize: 11 },
+      formatter: (params: any[]) => {
+        const vol = params[0]?.value;
+        return `<div style="font-size:11px;color:#94a3b8">成交量: ${vol ? (vol / 10000).toFixed(0) + '万' : '--'}</div>`;
+      },
+    },
+    grid: { left: 55, right: 50, top: 10, bottom: 20 },
+    xAxis: {
+      type: 'category',
+      data: times,
+      axisLine: { lineStyle: { color: '#2a3441' } },
+      axisLabel: { show: false },
+      splitLine: { show: false },
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      axisLabel: { color: '#5a6a7f', fontSize: 10, formatter: (v: number) => (v / 10000).toFixed(0) + '万' },
+      splitLine: { show: false },
+    },
+    series: [{
+      type: 'bar',
+      data: volumes,
+      itemStyle: {
+        color: (p: any) => {
+          const idx = p.dataIndex;
+          if (idx === 0) return prices[idx] >= prevClose ? '#ef4444' : '#22c55e';
+          return prices[idx] >= prices[idx - 1] ? '#ef4444' : '#22c55e';
+        },
+      },
+    }],
+  };
+
+  return (
+    <div className="flex flex-col h-full min-h-0">
+      {/* 分时主图 */}
+      <div className="flex-[3] min-h-0">
+        <ReactECharts option={mainOption} style={{ height: '100%', width: '100%' }} />
+      </div>
+      {/* 副图指标 */}
+      <div className="flex-1 min-h-[80px] border-t border-[rgba(148,163,184,0.06)]">
+        <ReactECharts option={volumeOption} style={{ height: '100%', width: '100%' }} />
+      </div>
     </div>
   );
 }
