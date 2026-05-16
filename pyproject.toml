@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "short-win-ai-trader"
+version = "1.0.0"
+description = "短线致胜 AI 交易智能体 — A股超短线AI决策系统"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "lianhuaijin"}
+]
+keywords = ["A股", "短线", "AI", "交易", "智能体", "同花顺"]
+
+[project.scripts]
+swat = "short_win_ai_trader.cli.main:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["short_win_ai_trader"]
