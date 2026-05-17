@@ -1064,3 +1064,83 @@ def get_tactics_summary_stats() -> Dict[str, Any]:
         "tactic_codes": [t.code for t in ALL_TACTICS],
         "tactic_names": [t.name for t in ALL_TACTICS],
     }
+
+
+# ──────────────────────────────────────────────────────────
+# 资金流战法大类集成
+# ──────────────────────────────────────────────────────────
+
+# 导入资金流战法库（延迟导入避免循环依赖）
+def _get_capital_flow_module():
+    """延迟导入资金流战法模块"""
+    from . import capital_flow_library
+    return capital_flow_library
+
+
+# 战法大类分类
+TACTIC_CATEGORIES: Dict[str, Dict[str, Any]] = {
+    "量化战法": {
+        "description": "基于技术指标和量化规则的短线战法，包含硬性条件和形态评分",
+        "tactic_count": len(ALL_TACTICS),
+        "tactics": ALL_TACTICS,
+        "class": "TacticRuleSet",
+    },
+    "资金流战法": {
+        "description": "基于主力资金行为学的战法体系，包含主播战法释义、操作要点和风控纪律",
+        "tactic_count": 6,
+        "class": "CapitalFlowTactic",
+        "module": "capital_flow_library",
+    },
+}
+
+
+def get_all_tactics_with_categories() -> Dict[str, Any]:
+    """获取所有战法（量化战法+资金流战法）的完整分类信息
+
+    Returns:
+        包含所有战法大类的分类字典
+    """
+    cfl = _get_capital_flow_module()
+    capital_flow_tactics = cfl.ALL_CAPITAL_FLOW_TACTICS
+
+    return {
+        "categories": {
+            "量化战法": {
+                "description": "基于技术指标和量化规则的短线战法",
+                "count": len(ALL_TACTICS),
+                "tactics": [
+                    {"name": t.name, "code": t.code, "risk_level": t.risk_level}
+                    for t in ALL_TACTICS
+                ],
+            },
+            "资金流战法": {
+                "description": "基于主力资金行为学的战法体系",
+                "count": len(capital_flow_tactics),
+                "tactics": [
+                    {"name": t.name, "code": t.code, "streamer_name": t.streamer_name}
+                    for t in capital_flow_tactics
+                ],
+            },
+        },
+        "total_quantitative": len(ALL_TACTICS),
+        "total_capital_flow": len(capital_flow_tactics),
+        "grand_total": len(ALL_TACTICS) + len(capital_flow_tactics),
+    }
+
+
+def get_tactics_by_category(category: str) -> List[Any]:
+    """按战法大类获取战法列表
+
+    Args:
+        category: 战法大类名称（"量化战法" 或 "资金流战法"）
+
+    Returns:
+        战法列表
+    """
+    if category == "资金流战法":
+        cfl = _get_capital_flow_module()
+        return cfl.ALL_CAPITAL_FLOW_TACTICS
+    elif category == "量化战法":
+        return ALL_TACTICS
+    else:
+        return []

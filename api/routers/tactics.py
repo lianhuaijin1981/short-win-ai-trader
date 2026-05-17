@@ -709,6 +709,154 @@ def _build_market_env(emotion_cycle: str) -> Dict[str, Any]:
 
 
 # ──────────────────────────────────────────────────────────
+# GET /tactics/capital-flow — 资金流战法列表
+# ──────────────────────────────────────────────────────────
+
+@router.get("/tactics/capital-flow/list", response_model=DataResponse)
+async def list_capital_flow_tactics(
+    streamer: Optional[str] = Query(None, description="按主播名称筛选"),
+    risk_level: Optional[str] = Query(None, description="按风险等级筛选（low/medium/high/extreme）"),
+    tag: Optional[str] = Query(None, description="按标签筛选"),
+):
+    """获取资金流战法列表
+
+    返回6大资金流主播战法体系的概览信息，支持按主播、风险等级和标签筛选。
+
+    Args:
+        streamer: 主播名称筛选（可选，如 "财金贝儿"）
+        risk_level: 风险等级筛选（可选）
+        tag: 标签筛选（可选，如 "北向资金"）
+
+    Returns:
+        资金流战法列表及统计信息
+    """
+    from short_win_ai_trader.modules.m05_tactic_screening.capital_flow_library import (
+        ALL_CAPITAL_FLOW_TACTICS,
+        CAPITAL_FLOW_BY_RISK,
+        CAPITAL_FLOW_BY_STREAMER,
+        CAPITAL_FLOW_BY_TAG,
+        get_capital_flow_summary_stats,
+        capital_flow_tactic_to_dict,
+    )
+
+    tactics = ALL_CAPITAL_FLOW_TACTICS
+
+    # 按主播筛选
+    if streamer:
+        streamer_tactic = CAPITAL_FLOW_BY_STREAMER.get(streamer)
+        tactics = [streamer_tactic] if streamer_tactic else []
+
+    # 按风险等级筛选
+    if risk_level:
+        risk_tactics = CAPITAL_FLOW_BY_RISK.get(risk_level, [])
+        if risk_tactics:
+            allowed_names = {t.name for t in risk_tactics}
+            tactics = [t for t in tactics if t.name in allowed_names]
+
+    # 按标签筛选
+    if tag:
+        tag_tactics = CAPITAL_FLOW_BY_TAG.get(tag, [])
+        if tag_tactics:
+            allowed_names = {t.name for t in tag_tactics}
+            tactics = [t for t in tactics if t.name in allowed_names]
+
+    stats = get_capital_flow_summary_stats()
+
+    return DataResponse(
+        data={
+            "total": len(ALL_CAPITAL_FLOW_TACTICS),
+            "filtered_count": len(tactics),
+            "timestamp": datetime.now().isoformat(),
+            "stats": stats,
+            "tactics": [capital_flow_tactic_to_dict(t) for t in tactics],
+        }
+    )
+
+
+# ──────────────────────────────────────────────────────────
+# GET /tactics/capital-flow/{name} — 资金流战法详情
+# ──────────────────────────────────────────────────────────
+
+@router.get("/tactics/capital-flow/{name}", response_model=DataResponse)
+async def get_capital_flow_tactic_detail(name: str):
+    """获取资金流战法详情
+
+    返回指定资金流战法的完整信息，包括:
+    - 主播名称与核心交易哲学
+    - 战法释义（核心逻辑详解）
+    - 操作要点（具体执行规则）
+    - 风控纪律（止损止盈纪律）
+
+    Args:
+        name: 战法名称（如 "三维资金共振法"）或编码（如 "CAPITAL_3D_RESONANCE"）
+            或主播名称（如 "财金贝儿"）
+
+    Returns:
+        资金流战法完整详情
+    """
+    from short_win_ai_trader.modules.m05_tactic_screening.capital_flow_library import (
+        get_capital_flow_tactic_by_code,
+        get_capital_flow_tactic_by_name,
+        CAPITAL_FLOW_BY_STREAMER,
+        capital_flow_tactic_to_dict,
+    )
+
+    # 先按战法名称查找
+    tactic = get_capital_flow_tactic_by_name(name)
+
+    # 再按编码查找
+    if tactic is None:
+        tactic = get_capital_flow_tactic_by_code(name)
+
+    # 最后按主播名称查找
+    if tactic is None:
+        tactic = CAPITAL_FLOW_BY_STREAMER.get(name)
+
+    if tactic is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"资金流战法 '{name}' 未找到，请检查战法名称、编码或主播名称",
+        )
+
+    return DataResponse(
+        data=capital_flow_tactic_to_dict(tactic)
+    )
+
+
+# ──────────────────────────────────────────────────────────
+# GET /tactics/capital-flow/categories — 战法大类分类
+# ──────────────────────────────────────────────────────────
+
+@router.get("/tactics/categories", response_model=DataResponse)
+async def get_tactic_categories():
+    """获取战法大类分类信息
+
+    返回所有战法大类的分类信息，包括量化战法和资金流战法:
+    - 量化战法：15套基于技术指标的短线战法
+    - 资金流战法：6套基于主力资金行为学的战法体系
+
+    Returns:
+        战法大类分类信息
+    """
+    from short_win_ai_trader.modules.m05_tactic_screening.tactics_library import (
+        get_all_tactics_with_categories,
+    )
+
+    categories = get_all_tactics_with_categories()
+
+    return DataResponse(
+        data={
+            "categories": categories,
+            "summary": {
+                "量化战法": categories["total_quantitative"],
+                "资金流战法": categories["total_capital_flow"],
+                "总计": categories["grand_total"],
+            },
+        }
+    )
+
+
+# ──────────────────────────────────────────────────────────
 # GET /tactics/{name} — 战法详情（必须放在所有固定路径之后）
 # ──────────────────────────────────────────────────────────
 

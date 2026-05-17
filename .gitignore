@@ -10,3 +10,6 @@ build/
 node_modules/
 cache/
 logs/
+
+# Session memory (contains sensitive info)
+session-memory.md
