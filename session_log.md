@@ -74,3 +74,32 @@ tests/test_m05_capital_flow.py::TestStatsAndConversion::test_get_tactics_by_cate
 
 ### 下次继续
 - 无未完成任务，本次需求已完整交付
+
+
+### 演示环境部署
+
+**演示页面**: https://xvpbm3w72hcgq.ok.kimi.link
+
+**功能验证**:
+- ✅ 统计栏：6主播战法 / 18核心子战法 / 90+操作要点 / 30+风控纪律
+- ✅ 筛选功能：按风险等级筛选（低/中/高）
+- ✅ 展开详情：点击卡片展开显示完整战法内容
+- ✅ 6张战法卡片全部正确渲染
+- ✅ API接口文档展示
+
+**API端点验证**:
+```
+GET /api/v1/tactics/capital-flow/list     → 200 OK, 6个战法数据
+GET /api/v1/tactics/capital-flow/{name}   → 200 OK, 完整战法详情
+GET /api/v1/tactics/categories            → 200 OK, 量化(15)+资金流(6)分类
+```
+
+### Git提交记录
+```
+55ec548 feat: 新增资金流战法大类 — 6大主播战法体系
+```
+
+### 会话结论
+本次需求已完整交付。资金流战法大类已集成到SWAT AI Trader项目中，
+包含完整的6个主播战法体系、20个通过测试的测试用例、3个API端点、
+以及在线演示环境。

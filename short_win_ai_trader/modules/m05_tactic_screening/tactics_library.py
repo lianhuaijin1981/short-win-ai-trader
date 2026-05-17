@@ -66,6 +66,9 @@ class TacticRuleSet:
     # 不适用的情绪周期
     forbidden_cycles: List[str] = field(default_factory=list)
 
+    # 战法大类（新增分类维度）
+    category: str = ""  # 技术形态/情绪/筹码峰/资金流/量价/分时/尾部
+
 
 # ──────────────────────────────────────────────────────────
 # 辅助函数：条件构造器
@@ -168,6 +171,7 @@ CHIP_PEAK_TACTIC = TacticRuleSet(
 
     applicable_cycles=["启动期", "发酵期"],
     forbidden_cycles=["退潮期", "高潮期"],
+    category="筹码峰",
 )
 
 
@@ -222,6 +226,7 @@ TRIPLE_VOLUME_BREAKOUT_TACTIC = TacticRuleSet(
 
     applicable_cycles=["发酵期", "高潮期", "启动期"],
     forbidden_cycles=["退潮期", "混沌期"],
+    category="量价",
 )
 
 
@@ -276,6 +281,7 @@ SHRINK_VOLUME_BREAKOUT_TACTIC = TacticRuleSet(
 
     applicable_cycles=["启动期", "发酵期"],
     forbidden_cycles=["退潮期"],
+    category="量价",
 )
 
 
@@ -330,6 +336,7 @@ LEFT_PEAK_BREAK_TACTIC = TacticRuleSet(
 
     applicable_cycles=["发酵期", "启动期"],
     forbidden_cycles=["退潮期", "高潮期"],
+    category="筹码峰",
 )
 
 
@@ -384,6 +391,7 @@ FIRST_YIN_TACTIC = TacticRuleSet(
 
     applicable_cycles=["发酵期", "分歧期"],
     forbidden_cycles=["退潮期", "混沌期"],
+    category="情绪",
 )
 
 
@@ -438,6 +446,7 @@ N_SHAPE_TACTIC = TacticRuleSet(
 
     applicable_cycles=["发酵期", "启动期"],
     forbidden_cycles=["退潮期"],
+    category="技术形态",
 )
 
 
@@ -492,6 +501,7 @@ MAGPIE_PLUM_TACTIC = TacticRuleSet(
 
     applicable_cycles=["混沌期", "启动期"],
     forbidden_cycles=["高潮期", "退潮期"],
+    category="技术形态",
 )
 
 
@@ -546,6 +556,7 @@ PLATFORM_BREAKOUT_TACTIC = TacticRuleSet(
 
     applicable_cycles=["启动期", "发酵期"],
     forbidden_cycles=["退潮期", "混沌期"],
+    category="技术形态",
 )
 
 
@@ -600,6 +611,7 @@ BOARD_1TO2_TACTIC = TacticRuleSet(
 
     applicable_cycles=["发酵期"],
     forbidden_cycles=["退潮期", "分歧期", "混沌期"],
+    category="情绪",
 )
 
 
@@ -654,6 +666,7 @@ DRAGON_EMOTION_TACTIC = TacticRuleSet(
 
     applicable_cycles=["启动期", "发酵期", "分歧期"],
     forbidden_cycles=["退潮期"],
+    category="情绪",
 )
 
 
@@ -709,6 +722,7 @@ BOLLINGER_TACTIC = TacticRuleSet(
 
     applicable_cycles=["启动期", "发酵期"],
     forbidden_cycles=["退潮期", "混沌期"],
+    category="技术形态",
 )
 
 
@@ -763,6 +777,7 @@ INTRADAY_SUPPORT_TACTIC = TacticRuleSet(
 
     applicable_cycles=["发酵期", "高潮期", "启动期"],
     forbidden_cycles=["退潮期"],
+    category="分时",
 )
 
 
@@ -817,6 +832,7 @@ TRIPLE_BOTTOM_TACTIC = TacticRuleSet(
 
     applicable_cycles=["混沌期", "启动期"],
     forbidden_cycles=["高潮期", "退潮期"],
+    category="技术形态",
 )
 
 
@@ -872,6 +888,7 @@ ANTI_NUCLEAR_TACTIC = TacticRuleSet(
 
     applicable_cycles=["分歧期", "启动期"],
     forbidden_cycles=["退潮期", "混沌期"],
+    category="情绪",
 )
 
 
@@ -927,6 +944,357 @@ SHRINK_TAIL_PREEMPT_TACTIC = TacticRuleSet(
 
     applicable_cycles=["分歧期", "混沌期"],
     forbidden_cycles=["退潮期"],
+    category="尾部",
+)
+
+
+# ═══════════════════════════════════════════════════════
+# 16. 三维资金共振法
+# ═══════════════════════════════════════════════════════
+CAPITAL_3D_RESONANCE_TACTIC = TacticRuleSet(
+    name="三维资金共振法",
+    code="CAPITAL_3D_RESONANCE",
+    core_logic="从宏观(北向资金)、中观(板块资金)、微观(个股主力资金)三个维度分析资金流向，三维共振时介入",
+    description=(
+        "【主播：财金贝儿】三维资金共振法核心哲学：资金是股价上涨的第一推动力，只有宏观、中观、微观三个维度资金同时流入，"
+        "才能形成最强的上涨合力。战法释义：①宏观维度——北向资金连续3天净流入，外资看好A股整体；"
+        "②中观维度——板块资金排名前5且持续流入，主力资金聚集该方向；③微观维度——个股主力资金净流入，有真实买盘推动。"
+        "操作要点：三维度共振当日或次日开盘介入，选择最强势的个股；若两维度共振可轻仓试错，单维度不操作。"
+        "风控纪律：任一维度出现资金流出信号，立即减仓；两个维度同时流出，清仓离场。"
+    ),
+    risk_level="medium",
+    hold_period="2-5天",
+
+    hard_conditions=[
+        _cond("北向资金连续净流入", "northbound_net_inflow_days", "ge", 3,
+              description="北向资金连续3天净流入，外资看好整体市场"),
+        _cond("板块资金排名", "sector_capital_rank", "le", 5,
+              description="所属板块资金排名前5且持续流入"),
+        _cond("个股主力资金净流入", "main_force_net_inflow", "eq", True,
+              description="个股主力资金当日净流入，有真实买盘"),
+        _cond("成交量量比", "volume_ratio", "ge", 1.2,
+              description="成交量量比>1.2，成交活跃"),
+        _cond("换手率区间", "turnover_rate", "between", (5.0, 15.0),
+              description="换手率5%-15%，有资金关注但不过度狂热"),
+    ],
+
+    shape_conditions=[
+        _cond("股价沿5日均线上行", "price_above_ma5", "eq", True, weight=0.3,
+              description="股价沿5日均线上行，短期趋势向上"),
+        _cond("板块有涨停龙头", "sector_has_leader_board", "eq", True, weight=0.4,
+              description="所属板块有涨停龙头股，板块效应强"),
+        _cond("资金流向与股价正相关", "capital_price_correlation", "ge", 0.7, weight=0.3,
+              description="资金流向与股价走势正相关系数>=0.7"),
+    ],
+
+    best_env=_env(
+        min_limit_up=35, min_up_down_ratio=1.0,
+        volume_trend="increase", theme_requirement="strong",
+        description="市场情绪发酵期或加速期，资金活跃，主线明确"
+    ),
+
+    risk_boundary=_risk(
+        max_position_pct=30.0, stop_loss_pct=-5.0, max_hold_days=5,
+        avoid_conditions=["北向资金转流出", "板块资金排名跌出前10", "个股主力连续流出2天"],
+        description="任一维度资金流出即减仓，两维度流出清仓，严格按资金信号执行"
+    ),
+
+    applicable_cycles=["发酵期", "加速期"],
+    forbidden_cycles=["退潮期", "混沌期"],
+    category="资金流",
+)
+
+
+# ═══════════════════════════════════════════════════════
+# 17. 龙虎榜资金流战法
+# ═══════════════════════════════════════════════════════
+CAPITAL_DRAGON_TIGER_TACTIC = TacticRuleSet(
+    name="龙虎榜资金流战法",
+    code="CAPITAL_DRAGON_TIGER",
+    core_logic="龙虎榜买卖席位组合分析，识别主力真实意图，跟随主力资金操作",
+    description=(
+        "【主播：阿宝龙哥】龙虎榜资金流战法核心哲学：龙虎榜是观察主力资金动向的最佳窗口，"
+        "通过分析买卖席位组合，可以识别主力是真实进攻还是拉高出货。"
+        "战法释义：①三日榜连续净流入——主力资金持续流入，非一日游；②买入席位金额远大于卖出席位——买方力量占优；"
+        "③单一席位买入不过半——筹码分布均匀，非单一庄家控盘；④封单量占流通盘比例高——市场认可度高。"
+        "操作要点：选择有机构+游资合力买入的个股，知名游资席位参与为佳；次日高开不追太高，等分时回踩介入。"
+        "风控纪律：龙虎榜一出即评估席位质量，出现东财/散户大本营大量买入要警惕；次日低开超预期立即止损。"
+    ),
+    risk_level="high",
+    hold_period="1-2天",
+
+    hard_conditions=[
+        _cond("三日榜连续净流入", "dragon_tiger_3day_net_inflow", "eq", True,
+              description="三日榜主力资金连续净流入，非一日游行情"),
+        _cond("买卖比", "dragon_tiger_buy_sell_ratio", "ge", 2.0,
+              description="买入席位总金额 >= 卖出席位总金额的2倍"),
+        _cond("单一席位占比", "single_seat_buy_pct", "le", 50.0,
+              description="单一席位买入金额占比<50%，筹码分散"),
+        _cond("封单流通比", "seal_amount_float_ratio", "ge", 1.0,
+              description="涨停封单量/流通盘 > 1%，封板力度强"),
+        _cond("开板次数", "open_board_count", "le", 2,
+              description="当日开板次数<=2，涨停板质量高"),
+    ],
+
+    shape_conditions=[
+        _cond("机构游资合力", "institution_yingyou_together", "eq", True, weight=0.4,
+              description="龙虎榜显示机构投资者与游资合力买入，非单一力量"),
+        _cond("知名游资参与", "famous_yingyou_present", "eq", True, weight=0.3,
+              description="知名游资席位参与买入，市场关注度高"),
+        _cond("涨停板质量高", "limit_up_quality_score", "ge", 80, weight=0.3,
+              description="涨停板质量评分>=80分（封板时间早、封单足、开板少）"),
+    ],
+
+    best_env=_env(
+        min_limit_up=40, min_up_down_ratio=1.2,
+        volume_trend="increase", theme_requirement="strong",
+        description="市场情绪发酵期或加速期，连板氛围好，龙虎榜效应强"
+    ),
+
+    risk_boundary=_risk(
+        max_position_pct=20.0, stop_loss_pct=-4.0, max_hold_days=2,
+        avoid_conditions=["散户大本营大量买入", "次日低开>5%", "龙虎榜显示主力净卖出"],
+        description="高风险操作，仓位控制在2成以内，次日不板即走"
+    ),
+
+    applicable_cycles=["发酵期", "加速期"],
+    forbidden_cycles=["退潮期", "混沌期"],
+    category="资金流",
+)
+
+
+# ═══════════════════════════════════════════════════════
+# 18. 资金情绪四阶段模型
+# ═══════════════════════════════════════════════════════
+CAPITAL_EMOTION_4PHASE_TACTIC = TacticRuleSet(
+    name="资金情绪四阶段模型",
+    code="CAPITAL_EMOTION_4PHASE",
+    core_logic="资金是情绪周期的量化体现，启动/发酵/加速/退潮四阶段的资金特征各不相同，据此精准操作",
+    description=(
+        "【主播：作手逍遥风】资金情绪四阶段模型核心哲学：资金是情绪的唯一量化指标，情绪周期的每个阶段都有独特的资金特征。"
+        "战法释义：①启动期——资金试探性流入，成交量温和放大，是建仓时机；②发酵期——资金加速流入，成交量明显放大，是加仓时机；"
+        "③加速期——资金爆发式流入，成交量天量，是持有或减仓时机；④退潮期——资金流出，成交量萎缩，是空仓时机。"
+        "操作要点：严格按照资金阶段信号操作，启动期建底仓，发酵期加仓，加速期持有，退潮期清仓。做T操作仅在发酵期和加速期进行，"
+        "单次做T亏损不超过3%。风控纪律：退潮期资金一流出立即空仓，绝不逆势操作；周期判断错误时立即止损切换。"
+    ),
+    risk_level="medium",
+    hold_period="1-5天(分阶段)",
+
+    hard_conditions=[
+        _cond("启动期资金试探流入", "capital_inflow_startup", "eq", True,
+              description="启动期资金试探性流入，成交量温和放大"),
+        _cond("发酵期资金加速流入", "capital_inflow_ferment", "eq", True,
+              description="发酵期资金加速流入，成交量明显放大"),
+        _cond("加速期资金爆发流入", "capital_inflow_accelerate", "eq", True,
+              description="加速期资金爆发式流入，成交量天量水平"),
+        _cond("退潮期资金流出空仓", "capital_outflow_exit", "eq", True,
+              description="退潮期资金流出，立即空仓等待"),
+        _cond("做T亏损控制", "t_trade_max_loss_pct", "ge", -3.0,
+              description="做T操作单次亏损控制在3%以内"),
+    ],
+
+    shape_conditions=[
+        _cond("底部筹码峰未松动", "bottom_chip_peak_stable", "eq", True, weight=0.4,
+              description="底部筹码峰未松动，主力未出货"),
+        _cond("板块联动效应", "sector_linkage_effect", "eq", True, weight=0.3,
+              description="所属板块出现联动效应，非个股独舞"),
+        _cond("资金净流入大于流出", "net_inflow_vs_outflow", "eq", True, weight=0.3,
+              description="个股资金净流入持续大于流出"),
+    ],
+
+    best_env=_env(
+        min_limit_up=35, min_up_down_ratio=1.0,
+        volume_trend="increase", theme_requirement="moderate",
+        description="市场情绪处于启动期、发酵期或加速期，资金活跃"
+    ),
+
+    risk_boundary=_risk(
+        max_position_pct=25.0, stop_loss_pct=-5.0, max_hold_days=5,
+        avoid_conditions=["退潮期资金流出", "筹码峰高位松动", "板块批量跌停"],
+        description="按资金阶段严格操作，退潮期立即空仓，不逆势持股"
+    ),
+
+    applicable_cycles=["启动期", "发酵期", "加速期"],
+    forbidden_cycles=["退潮期"],
+    category="资金流",
+)
+
+
+# ═══════════════════════════════════════════════════════
+# 19. 资金流四步法
+# ═══════════════════════════════════════════════════════
+CAPITAL_4STEP_METHOD_TACTIC = TacticRuleSet(
+    name="资金流四步法",
+    code="CAPITAL_4STEP_METHOD",
+    core_logic="完整识别建仓→洗盘→拉升→出货的资金流全过程，在不同阶段采取不同策略",
+    description=(
+        "【主播：浪哥财经】资金流四步法核心哲学：主力操作的每个阶段都有独特的资金特征，"
+        "通过识别资金流四步法的不同阶段，可以精准跟随主力节奏。"
+        "战法释义：①建仓期——资金温和流入，成交量有节奏放大，股价缓慢上涨，是跟随建仓时机；"
+        "②洗盘期——资金小幅流出，股价回调但不跌破主力成本区，是持股或低吸时机；"
+        "③拉升期——资金大幅流入，成交量明显放大，股价快速上涨，是持有或加仓时机；"
+        "④出货期——资金流出，筹码松动，是清仓时机。"
+        "操作要点：建仓期跟随买入，洗盘期持股不动，拉升期持有享受主升，出货期第一时间离场。"
+        "风控纪律：成本集中度<10%才确认主力控盘；出货期资金一流出立即离场，不可犹豫。"
+    ),
+    risk_level="medium",
+    hold_period="5-10天",
+
+    hard_conditions=[
+        _cond("建仓期资金温和流入", "capital_building_inflow", "eq", True,
+              description="建仓期资金温和流入，成交量有节奏放大"),
+        _cond("洗盘期资金小幅流出", "capital_washout_mild_outflow", "eq", True,
+              description="洗盘期资金小幅流出，股价不破主力成本区"),
+        _cond("拉升期资金大幅流入", "capital_pull_inflow", "eq", True,
+              description="拉升期资金大幅流入，成交量明显放大"),
+        _cond("出货期资金流出离场", "capital_distribute_exit", "eq", True,
+              description="出货期资金流出立即离场"),
+        _cond("成本集中度", "cost_concentration_pct", "le", 10.0,
+              description="主力成本集中度<10%，控盘度高"),
+    ],
+
+    shape_conditions=[
+        _cond("建仓期成交量有节奏放大", "building_volume_rhythm", "eq", True, weight=0.3,
+              description="建仓期成交量呈规律性放大，非脉冲式"),
+        _cond("拉升期放量突破", "pull_volume_breakout", "eq", True, weight=0.4,
+              description="拉升期放量突破关键压力位"),
+        _cond("出货期筹码松动", "distribute_chip_loose", "eq", True, weight=0.3,
+              description="出货期筹码峰开始松动，高位筹码增加"),
+    ],
+
+    best_env=_env(
+        min_limit_up=30, min_up_down_ratio=1.0,
+        volume_trend="increase", theme_requirement="moderate",
+        description="市场情绪处于启动期、发酵期或加速期，适合中长线资金流跟踪"
+    ),
+
+    risk_boundary=_risk(
+        max_position_pct=30.0, stop_loss_pct=-5.0, max_hold_days=10,
+        avoid_conditions=["洗盘跌破主力成本区", "出货期筹码松动", "资金连续流出3天"],
+        description="主力成本区为最后防线，跌破即止损；出货期信号一出立即清仓"
+    ),
+
+    applicable_cycles=["启动期", "发酵期", "加速期"],
+    forbidden_cycles=["退潮期", "混沌期"],
+    category="资金流",
+)
+
+
+# ═══════════════════════════════════════════════════════
+# 20. 资金流量化指标体系
+# ═══════════════════════════════════════════════════════
+CAPITAL_QUANT_INDEX_TACTIC = TacticRuleSet(
+    name="资金流量化指标体系",
+    code="CAPITAL_QUANT_INDEX",
+    core_logic="资金流数据可量化验证，构建客观交易模型，用数据说话",
+    description=(
+        "【主播：芝士财经】资金流量化指标体系核心哲学：资金流数据完全可量化，通过构建客观指标体系，"
+        "排除主观情绪干扰，实现数据驱动的交易决策。"
+        "战法释义：①主力净流入率>5%且连续3天——主力资金强势流入；②北向持仓占比>2%且在加仓——外资认可；"
+        "③机构持仓占比>10%——机构资金聚集；④资金流与股价相关系数>0.8——资金推动型上涨，非无量空涨；"
+        "⑤背离度计算使用5天数据——识别资金与价格的背离信号。"
+        "操作要点：所有指标同时满足时满仓操作，4项满足时8成仓，3项满足时5成仓，低于3项不操作。"
+        "风控纪律：任何指标恶化立即降仓；背离度>0.5时视为强背离，减仓应对。"
+    ),
+    risk_level="low",
+    hold_period="3-7天",
+
+    hard_conditions=[
+        _cond("主力净流入率", "main_force_inflow_rate_pct", "ge", 5.0,
+              description="主力净流入率>5%且连续3天达标"),
+        _cond("北向持仓占比", "northbound_hold_pct", "ge", 2.0,
+              description="北向持仓占比>2%且处于加仓状态"),
+        _cond("机构持仓占比", "institution_hold_pct", "ge", 10.0,
+              description="机构持仓占比>10%，机构资金聚集"),
+        _cond("资金流股价相关性", "capital_price_correlation", "ge", 0.8,
+              description="资金流与股价相关系数>0.8，资金推动型上涨"),
+        _cond("背离度监测", "divergence_5day_calc", "eq", True,
+              description="使用5天数据计算资金流与价格背离度"),
+    ],
+
+    shape_conditions=[
+        _cond("资金流强度评分", "capital_flow_score", "ge", 80, weight=0.4,
+              description="资金流强度评分>=80分，多维度综合评估优秀"),
+        _cond("背离度阈值", "divergence_strength", "ge", 0.5, weight=0.3,
+              description="背离度>0.5为强背离信号，需警惕"),
+        _cond("多指标共振", "multi_index_resonance", "eq", True, weight=0.3,
+              description="多个量化指标同时发出同向信号，共振效应强"),
+    ],
+
+    best_env=_env(
+        min_limit_up=20, min_up_down_ratio=0.8,
+        volume_trend="any", theme_requirement="any",
+        description="适用于所有市场情绪周期，量化模型不受情绪影响"
+    ),
+
+    risk_boundary=_risk(
+        max_position_pct=35.0, stop_loss_pct=-5.0, max_hold_days=7,
+        avoid_conditions=["主力净流入率转负", "北向资金连续3天减仓", "背离度突破0.5"],
+        description="低风险量化模型，但指标恶化时仍需严格执行降仓纪律"
+    ),
+
+    applicable_cycles=["启动期", "发酵期", "加速期", "分歧期", "混沌期"],
+    forbidden_cycles=["退潮期"],
+    category="资金流",
+)
+
+
+# ═══════════════════════════════════════════════════════
+# 21. 资金筹码共振战法
+# ═══════════════════════════════════════════════════════
+CAPITAL_CHIP_RESONANCE_TACTIC = TacticRuleSet(
+    name="资金筹码共振战法",
+    code="CAPITAL_CHIP_RESONANCE",
+    core_logic="资金流决定股价方向，筹码峰决定上涨空间，两者共振时捕捉最佳买点",
+    description=(
+        "【主播：股海老司机】资金筹码共振战法核心哲学：资金流决定方向（往哪走），筹码峰决定空间（能走多远），"
+        "两者共振时才是最安全的买点。"
+        "战法释义：①底部筹码峰密集+资金流入=主力建仓信号——底部筹码集中说明主力在收集筹码，配合资金流入确认建仓；"
+        "②筹码峰锁定+资金加速=拉升信号——筹码峰不动说明主力锁仓，配合资金加速流入确认拉升；"
+        "③筹码峰松动+资金流出=出货信号——高位筹码分散说明主力出货，配合资金流出确认顶部。"
+        "操作要点：建仓信号出现时建底仓，拉升信号出现时加仓，出货信号出现时清仓。"
+        "风控纪律：套牢盘<10%才操作；跌破筹码峰下沿3%立即止损。"
+    ),
+    risk_level="medium",
+    hold_period="3-7天",
+
+    hard_conditions=[
+        _cond("底部筹码峰密集资金流入", "bottom_chip_dense_capital_in", "eq", True,
+              description="底部筹码峰密集且资金流入，主力建仓信号"),
+        _cond("筹码峰锁定资金加速", "chip_locked_capital_accel", "eq", True,
+              description="筹码峰锁定不动且资金加速流入，拉升信号"),
+        _cond("筹码峰松动资金流出", "chip_loose_capital_out", "eq", True,
+              description="筹码峰松动且资金流出，出货信号立即离场"),
+        _cond("套牢盘比例", "trapped_chip_ratio", "le", 10.0,
+              description="上方套牢盘<10%，拉升阻力小"),
+        _cond("筹码峰止损", "chip_peak_stop_loss_pct", "ge", -3.0,
+              description="跌破筹码峰下沿3%立即止损"),
+    ],
+
+    shape_conditions=[
+        _cond("筹码峰厚实紧凑", "chip_peak_compact", "eq", True, weight=0.4,
+              description="底部筹码峰厚实紧凑，主力控盘度高"),
+        _cond("资金流入配合筹码峰上移", "capital_chip_peak_move_up", "eq", True, weight=0.3,
+              description="资金流入配合筹码峰上移，健康上涨"),
+        _cond("上方无套牢盘", "no_trapped_chip_above", "eq", True, weight=0.3,
+              description="上方无密集套牢盘，上涨空间大"),
+    ],
+
+    best_env=_env(
+        min_limit_up=30, min_up_down_ratio=1.0,
+        volume_trend="increase", theme_requirement="moderate",
+        description="市场情绪启动期或发酵期，主力资金积极建仓"
+    ),
+
+    risk_boundary=_risk(
+        max_position_pct=30.0, stop_loss_pct=-5.0, max_hold_days=7,
+        avoid_conditions=["筹码峰高位松动", "跌破筹码峰下沿3%", "资金连续流出2天"],
+        description="筹码峰为操作核心参照，跌破筹码峰下沿3%是最后止损线"
+    ),
+
+    applicable_cycles=["启动期", "发酵期"],
+    forbidden_cycles=["退潮期", "高潮期"],
+    category="资金流",
 )
 
 
@@ -948,8 +1316,14 @@ ALL_TACTICS: List[TacticRuleSet] = [
     BOLLINGER_TACTIC,               # 11. 布林带战法
     INTRADAY_SUPPORT_TACTIC,        # 12. 分时承接战法
     TRIPLE_BOTTOM_TACTIC,           # 13. 三星探底战法
-    ANTI_NUCLEAR_TACTIC,            # 14. 反核战法
-    SHRINK_TAIL_PREEMPT_TACTIC,     # 15. 缩量尾盘先手战法
+    ANTI_NUCLEAR_TACTIC,                    # 14. 反核战法
+    SHRINK_TAIL_PREEMPT_TACTIC,             # 15. 缩量尾盘先手战法
+    CAPITAL_3D_RESONANCE_TACTIC,            # 16. 三维资金共振法
+    CAPITAL_DRAGON_TIGER_TACTIC,            # 17. 龙虎榜资金流战法
+    CAPITAL_EMOTION_4PHASE_TACTIC,          # 18. 资金情绪四阶段模型
+    CAPITAL_4STEP_METHOD_TACTIC,            # 19. 资金流四步法
+    CAPITAL_QUANT_INDEX_TACTIC,             # 20. 资金流量化指标体系
+    CAPITAL_CHIP_RESONANCE_TACTIC,          # 21. 资金筹码共振战法
 ]
 
 # 按风险等级分类
@@ -1067,80 +1441,60 @@ def get_tactics_summary_stats() -> Dict[str, Any]:
 
 
 # ──────────────────────────────────────────────────────────
-# 资金流战法大类集成
+# 按战法大类分类索引（新增）
 # ──────────────────────────────────────────────────────────
 
-# 导入资金流战法库（延迟导入避免循环依赖）
-def _get_capital_flow_module():
-    """延迟导入资金流战法模块"""
-    from . import capital_flow_library
-    return capital_flow_library
+TACTICS_BY_CATEGORY: Dict[str, List[TacticRuleSet]] = {}
+for t in ALL_TACTICS:
+    cat = t.category
+    if not cat:
+        cat = "未分类"
+    if cat not in TACTICS_BY_CATEGORY:
+        TACTICS_BY_CATEGORY[cat] = []
+    TACTICS_BY_CATEGORY[cat].append(t)
 
 
-# 战法大类分类
-TACTIC_CATEGORIES: Dict[str, Dict[str, Any]] = {
-    "量化战法": {
-        "description": "基于技术指标和量化规则的短线战法，包含硬性条件和形态评分",
-        "tactic_count": len(ALL_TACTICS),
-        "tactics": ALL_TACTICS,
-        "class": "TacticRuleSet",
-    },
-    "资金流战法": {
-        "description": "基于主力资金行为学的战法体系，包含主播战法释义、操作要点和风控纪律",
-        "tactic_count": 6,
-        "class": "CapitalFlowTactic",
-        "module": "capital_flow_library",
-    },
-}
-
-
-def get_all_tactics_with_categories() -> Dict[str, Any]:
-    """获取所有战法（量化战法+资金流战法）的完整分类信息
-
-    Returns:
-        包含所有战法大类的分类字典
-    """
-    cfl = _get_capital_flow_module()
-    capital_flow_tactics = cfl.ALL_CAPITAL_FLOW_TACTICS
-
-    return {
-        "categories": {
-            "量化战法": {
-                "description": "基于技术指标和量化规则的短线战法",
-                "count": len(ALL_TACTICS),
-                "tactics": [
-                    {"name": t.name, "code": t.code, "risk_level": t.risk_level}
-                    for t in ALL_TACTICS
-                ],
-            },
-            "资金流战法": {
-                "description": "基于主力资金行为学的战法体系",
-                "count": len(capital_flow_tactics),
-                "tactics": [
-                    {"name": t.name, "code": t.code, "streamer_name": t.streamer_name}
-                    for t in capital_flow_tactics
-                ],
-            },
-        },
-        "total_quantitative": len(ALL_TACTICS),
-        "total_capital_flow": len(capital_flow_tactics),
-        "grand_total": len(ALL_TACTICS) + len(capital_flow_tactics),
-    }
-
-
-def get_tactics_by_category(category: str) -> List[Any]:
+def get_tactics_by_category(category: str) -> List[TacticRuleSet]:
     """按战法大类获取战法列表
 
     Args:
-        category: 战法大类名称（"量化战法" 或 "资金流战法"）
+        category: 战法大类名称（如 "资金流" / "技术形态" / "情绪" / "筹码峰" 等）
 
     Returns:
         战法列表
     """
-    if category == "资金流战法":
-        cfl = _get_capital_flow_module()
-        return cfl.ALL_CAPITAL_FLOW_TACTICS
-    elif category == "量化战法":
-        return ALL_TACTICS
-    else:
-        return []
+    return TACTICS_BY_CATEGORY.get(category, [])
+
+
+def get_all_categories() -> Dict[str, Any]:
+    """获取所有战法大类及统计信息
+
+    Returns:
+        战法大类字典
+    """
+    return {
+        "categories": {
+            cat: {
+                "description": _category_descriptions.get(cat, ""),
+                "count": len(tactics),
+                "tactics": [
+                    {"name": t.name, "code": t.code, "risk_level": t.risk_level}
+                    for t in tactics
+                ],
+            }
+            for cat, tactics in TACTICS_BY_CATEGORY.items()
+        },
+        "total_tactics": len(ALL_TACTICS),
+    }
+
+
+# 大类描述
+_category_descriptions: Dict[str, str] = {
+    "技术形态": "基于K线形态、价格走势的经典技术分析战法",
+    "情绪": "基于市场情绪、连板接力、龙头博弈的情绪战法",
+    "筹码峰": "基于筹码分布、支撑压力的资金沉淀战法",
+    "资金流": "基于主力资金流向、北向资金、龙虎榜的资金行为战法",
+    "量价": "基于成交量与价格配合关系的量能战法",
+    "分时": "基于日内分时走势的短线战法",
+    "尾部": "基于尾盘信号的先手布局战法",
+}
