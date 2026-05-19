@@ -1,132 +1,72 @@
-短线致胜 AI 交易智能体 (Short-Win AI Trader) — 开发进度记录
-================================================================================
-开发日期: 2026-05-16
-版本: v1.0.0
-仓库: https://github.com/lianhuaijin1981/short-win-ai-trader
+short-win-ai-trader 项目近两日更新进度总结
+统计周期：2026-05-18 至 2026-05-19
+提交记录：2次提交（9336636..ac00753）
 
-一、项目统计
-================================================================================
-Python源代码文件: 42个
-总代码行数: ~8,200+ 行
-测试用例: 20个（全部通过）
-Git分支: 6个（master + 5个feature分支）
+1. 新增功能模块
 
-二、架构概览
-================================================================================
-项目采用模块化插件架构:
-- core/ — 核心框架（配置、日志、异常、数据管理、统一决策引擎）
-- data_platform/ — 数据中台（iFind封装、缓存管理、数据模型）
-- modules/ — 七大核心业务模块
-- cli/ — 命令行界面（click + rich美化）
-- tests/ — 测试套件（pytest）
+1.1 交易日志模块（m08_trade_journal）
+- 新增 journal_manager.py：交易日志核心管理器
+- 新增 models.py：交易日志数据模型定义
+- 新增 note_engine.py：交易笔记引擎
+- 新增 scoring_integration.py：与评分系统集成
+- 新增 voice_processor.py：语音处理功能
 
-三、七大模块开发详情
-================================================================================
-[已完成] 模块一: 全域资讯智能采集（m01_news_collector/）
-  - 文件: models.py(182行), collector.py(791行), scorer.py(471行), risk_detector.py(370行)
-  - 功能: 6大类资讯采集、回测驱动5维打分(S/A/B/C分级)、18条风险规则、避雷清单
-  - 状态: 已实现，支持mock数据+可扩展真实API
+1.2 用户系统模块（m09_user_system）
+- 新增 auth_engine.py：认证引擎
+- 新增 permission_manager.py：权限管理
+- 新增 membership_manager.py：会员管理
+- 新增 order_manager.py：订单管理
+- 新增 security.py：安全模块
+- 新增 audit_logger.py：审计日志
 
-[已完成] 模块二: 全维度智能复盘 + 情绪周期研判（m02_market_replay/）
-  - 文件: emotion_engine.py(663行), replay.py(599行), theme_analyzer.py(531行), market_predictor.py(467行)
-  - 功能: 14项情绪指标量化、6段周期判定、情绪-仓位自动匹配、题材生命周期、次日趋势预判
-  - 状态: 已实现，完整复盘报告生成
+1.3 AI智能体模块（前序提交完成）
+- m01_news_collector：新闻采集器，含多源抓取、回测引擎、推荐引擎
+- m02_market_replay：市场复盘，含情绪引擎、主题分析、市场预测
+- m03_intraday_watch：盘中监控，含信号检测、目标锁定、策略生成
+- m04_yingyou_diagnosis：应优诊断模块，指纹识别大幅扩展
+- m05_tactic_screening：策略筛选，策略库扩充
+- m06_scoring_decision：评分决策，多维度评分器
 
-[已完成] 模块三: 盘中看盘-主升龙头真经逻辑（m03_intraday_watch/）
-  - 文件: anchor_selector.py, fund_tracker.py, expectation_evaluator.py, ecology_monitor.py, session_alerts.py
-  - 功能: 4类锚定标的智能锁定、资金轨迹追踪、板块效应3秒预警、预期分级研判、龙头生态梯队监测、4时段智能提醒
-  - 状态: 已实现，其他Agent完成
+2. 代码结构优化
 
-[已完成] 模块四: 淘股吧游资模式诊断（m04_yingyou_diagnosis/）
-  - 文件: fingerprints.py(819行), diagnosis.py(1159行), recommender.py(1062行), consensus.py(634行), portfolio.py(650行)
-  - 功能: 8大游资完整数字指纹、盘面4维诊断、匹配度计算、共识/分歧分析、3类组合策略
-  - 游资覆盖: 炒股养家、退学炒股、涅槃重生、92科比、小鳄鱼、龙飞虎、职业炒手、Asking
-  - 状态: 已实现，其他Agent完成
+- API路由层重构：新增独立路由模块（admin/auth/membership/order/trade_journal/user）
+- 路由注册机制优化：api/routers/__init__.py 统一路由入口
+- api/main.py 主入口更新，集成新增路由
+- 数据模型层扩展：data_platform/data_models.py 新增数据模型定义
 
-[已完成] 模块五: 抖音主流短线战法筛选研判（m05_tactic_screening/）
-  - 文件: tactics_library.py(580行), screener.py(1260行), resonance.py(430行), environment_filter.py(560行)
-  - 功能: 15+战法规则库、4步筛选研判、多战法共振选股、36种环境错配过滤
-  - 战法覆盖: 筹码峰/三倍量突破/缩量突破/过左峰/首阴/N字形/喜鹊闹梅/平台突破/一进二/龙头情绪/布林带/分时承接/三星探底/反核/缩量尾盘先手
-  - 状态: 已实现，其他Agent完成
+3. 接口与数据源对接进展
 
-[已完成] 模块六: 综合评分+风险收益+智能仓位+交易决策（m06_scoring_decision/）
-  - 文件: scorer.py(302行), risk_reward.py(147行), position_manager.py(106行), trade_planner.py(131行)
-  - 功能: 6维100分制评分、RR=收益/风险计算、仓位=基础×评分×胜率×风险、完整交易计划(3类入场+3层止损+3层止盈)
-  - 状态: 已实现，20个测试通过
+- 新增认证接口（auth.py，265行）
+- 新增管理后台接口（admin.py，523行）
+- 新增会员接口（membership.py，185行）
+- 新增订单接口（order.py，287行）
+- 新增交易日志接口（trade_journal.py，761行）
+- 新增用户接口（user.py，218行）
+- 新闻接口大幅重构（news.py，665行变更）
+- 策略接口优化（tactics.py，68行变更）
 
-[已完成] 模块七: 交割单诊断+交易风格定位+进化赋能（m07_trade_diagnosis/）
-  - 文件: importer.py(269行), attribution.py(150行), profiler.py(205行), error_library.py(109行), custom_analyzer.py(126行)
-  - 功能: Excel/CSV导入、盈利5维归因、亏损7类溯源、风格画像、错题预警库、自定义标的研判
-  - 状态: 已实现，20个测试通过
+4. 部署&演示环境搭建进度
 
-[已完成] CLI界面（cli/）
-  - 文件: main.py(153行), commands.py(380行), formatters.py(251行)
-  - 命令: pre-market, intraday, post-market, analyze, score, diagnose, yingyou, tactics, evaluate, cache-clear, version
-  - 特点: rich美化输出、彩色表格、风险等级颜色区分
+- 新增前端页面：
+  - login.html：登录页
+  - register.html：注册页
+  - profile.html：用户中心
+  - admin.html：管理后台
+  - pricing.html：定价页
+  - market-dashboard.html：市场仪表盘
+- Docker配置文件已就绪（Dockerfile、docker-compose.yml）
 
-[已完成] 统一决策引擎（core/engine.py）
-  - UnifiedDecisionEngine: pre_market_analysis, intraday_analysis, post_market_analysis, analyze_stock, evaluate_stock
+5. 当前遗留问题
 
-四、数据对接
-================================================================================
-数据源: 同花顺iFind金融数据平台
-对接API:
-  - ifind_get_price — 历史行情数据
-  - ifind_get_stock_info — 个股信息
-  - ifind_get_financial_statements — 财务报表
-  - ifind_get_stock_financial_index — 财务指标(6维度)
-  - ifind_get_related_stock — 智能选股
-  - ifind_get_stock_announcement — 个股公告
-  - ifind_get_holder_info — 股东信息
-  - ifind_get_dragon_bonds — 龙虎榜数据
-缓存策略: 内存+文件两级缓存，行情300秒/财务86400秒
+- 用户系统与交易日志模块尚未见对应单元测试文件
+- 新增模块缺少集成测试覆盖
+- 前端页面与API接口的联调状态待验证
+- 语音处理模块（voice_processor.py）依赖项及运行时环境未明确
 
-五、测试覆盖
-================================================================================
-tests/test_m06_scorer.py (10个测试)
-  - ComprehensiveScorer: 评分计算、评级等级
-  - RiskRewardCalculator: RR计算、评级RR、低RR
-  - PositionManager: 仓位计算、退潮期低仓位
-  - TradePlanner: 计划生成、快速计划
+6. 下一阶段开发计划
 
-tests/test_m07_diagnosis.py (10个测试)
-  - TradeImporter: 手动录入、模式识别
-  - TradeAttribution: 盈利归因、亏损溯源、诊断
-  - TradeProfiler: 画像生成、风格判定
-  - ErrorLibrary: 添加查找、相似预警
-  - CustomAnalyzer: 全维度研判
-
-六、Git提交记录
-================================================================================
-b03e333 — feat: init project skeleton with core framework, data platform, and SPEC
-46c2669 — feat: 实现模块一资讯采集和模块二智能复盘+情绪周期研判
-(feature/m03) — feat: 实现模块三盘中看盘，含主升龙头真经全套逻辑
-(feature/m04) — feat: 实现模块四游资模式诊断，含8大游资数字指纹库和诊断引擎
-(feature/m05) — feat: 实现模块五战法筛选研判，含15+战法规则库和共振选股
-806883d — feat: 实现模块六综合评分决策、模块七交割单诊断、统一决策引擎和CLI界面
-8518181 — Merge: 合并所有feature分支到master
-
-七、本次更新 (2026-05-17)
-================================================================================
-[已完成] 资金流战法大类新增到战法选股模块
-  - 新增文件: capital_flow_library.py(432行)
-  - 新增测试: test_m05_capital_flow.py(280行)
-  - 修改文件: tactics_library.py(添加资金流大类集成)
-  - 修改文件: api/routers/tactics.py(添加3个资金流API端点)
-  - 战法覆盖: 6大资金流主播战法体系
-    1. 财金贝儿 — 三维资金共振法（宏观/中观/微观三维共振）
-    2. 阿宝龙哥 — 龙虎榜资金流战法体系（席位分析+三日榜确认）
-    3. 作手逍遥风 — 资金情绪四阶段模型（爆点低吸+情绪周期）
-    4. 浪哥财经 — 资金流四步法（建仓→洗盘→拉升→出货）
-    5. 芝士财经 — 资金流量化指标体系（量化选股+强度评分）
-    6. 股海老司机 — 资金筹码共振战法（资金流+筹码峰双剑合璧）
-  - 测试: 20个测试用例全部通过
-
-八、后续优化方向
-================================================================================
-1. [高优先级] 接入真实iFind API（替换mock数据）
-2. [高优先级] 添加模块三、四、五的测试用例
-3. [中优先级] 实时行情WebSocket推送
-4. [中优先级] 数据库存储层（SQLite/PostgreSQL）
-5. [低优先级] Web UI界面（Streamlit/Gradio）
-6. [低优先级] Docker容器化部署
+- 补充 m08_trade_journal、m09_user_system 单元测试
+- 完成前后端接口联调测试
+- 验证Docker容器化部署流程
+- 完善API文档及模块说明文档
+- 推进 m07 后续模块开发（如有规划）
