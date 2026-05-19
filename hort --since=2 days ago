@@ -1,0 +1,40 @@
+[33mcommit 93366364708a2f43ee35f4451cabdb1a5631e3d4[m
+Author: lianhuaijin1981 <lianhuaijin1981@github.com>
+Date:   Tue May 19 12:18:18 2026 +0800
+
+    feat: 完成交易AI智能体模块开发
+
+ api/routers/news.py                                |  665 [32m+++++[m[31m--[m
+ api/routers/tactics.py                             |   68 [32m+[m[31m-[m
+ short_win_ai_trader/data_platform/data_models.py   |   36 [32m+[m
+ .../modules/m01_news_collector/__init__.py         |   56 [32m+[m
+ .../modules/m01_news_collector/backtest_engine.py  |  762 [32m++++++++[m
+ .../m01_news_collector/multi_source_fetcher.py     |  866 [32m+++++++++[m
+ .../m01_news_collector/recommendation_engine.py    |  672 [32m+++++++[m
+ .../modules/m02_market_replay/__init__.py          |    6 [32m+[m
+ .../modules/m02_market_replay/emotion_engine.py    |  361 [32m++++[m
+ .../modules/m02_market_replay/market_predictor.py  |  296 [32m+++[m
+ .../modules/m02_market_replay/replay.py            |  194 [32m++[m
+ .../modules/m02_market_replay/theme_analyzer.py    |  252 [32m+++[m
+ .../modules/m03_intraday_watch/__init__.py         |   68 [32m+[m[31m-[m
+ .../modules/m03_intraday_watch/signal_detector.py  |  740 [32m++++++++[m
+ .../m03_intraday_watch/strategy_generator.py       |  765 [32m++++++++[m
+ .../modules/m03_intraday_watch/target_locker.py    |  760 [32m++++++++[m
+ .../modules/m03_intraday_watch/watch_engine.py     |  842 [32m+++++++++[m
+ .../modules/m04_yingyou_diagnosis/fingerprints.py  | 1937 [32m+++++++++++++++++++[m[31m-[m
+ .../m05_tactic_screening/tactics_library.py        |  239 [32m++[m[31m-[m
+ .../modules/m06_scoring_decision/__init__.py       |   85 [32m+[m
+ .../m06_scoring_decision/dimension_scorers.py      |  798 [32m++++++++[m
+ .../modules/m06_scoring_decision/scoring_engine.py |  813 [32m++++++++[m
+ .../modules/m07_trade_diagnosis/__init__.py        |   73 [32m+[m
+ .../modules/m07_trade_diagnosis/chart_annotator.py |  498 [32m+++++[m
+ .../m07_trade_diagnosis/diagnosis_engine.py        |  320 [32m++++[m
+ .../m07_trade_diagnosis/error_attribution.py       |  454 [32m+++++[m
+ .../modules/m07_trade_diagnosis/importer.py        |  586 [32m+++[m[31m---[m
+ .../m07_trade_diagnosis/improvement_advisor.py     |  476 [32m+++++[m
+ .../modules/m07_trade_diagnosis/profiler.py        |  612 [32m+++++[m[31m--[m
+ .../modules/m07_trade_diagnosis/trade_diagnoser.py |  421 [32m+++++[m
+ .../m07_trade_diagnosis/training_planner.py        |  543 [32m++++++[m
+ src/services/api.ts                                |  192 [32m++[m
+ tests/test_m04_yingyou.py                          |  665 [32m+++++++[m
+ 33 files changed, 15438 insertions(+), 683 deletions(-)

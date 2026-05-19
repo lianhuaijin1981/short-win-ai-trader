@@ -51,13 +51,19 @@ function clearCache(): void {
 // ── 错误类 ──────────────────────────────────────────────
 
 export class APIError extends Error {
+  status: number;
+  statusText: string;
+  detail?: string;
   constructor(
-    public status: number,
-    public statusText: string,
-    public detail?: string,
+    status: number,
+    statusText: string,
+    detail?: string,
   ) {
     super(`API Error ${status}: ${statusText}`);
     this.name = "APIError";
+    this.status = status;
+    this.statusText = statusText;
+    this.detail = detail;
   }
 }
 
@@ -388,101 +394,6 @@ export interface PreMarketData {
   trading_strategy: string;
 }
 
-// ── 新版资讯采集数据类型 ─────────────────────────────────
-
-export interface NewsSource {
-  name: string;
-  url: string;
-  source_type: string;
-  credibility: number;
-}
-
-export interface CollectedNewsItem {
-  id: string;
-  title: string;
-  content: string;
-  category: string;
-  source: NewsSource;
-  publish_time: string;
-  trade_date: string;
-  related_tickers: string[];
-  related_themes: string[];
-  keywords: string[];
-}
-
-export interface ScoredNewsItem {
-  id: string;
-  title: string;
-  content: string;
-  category: string;
-  source: string;
-  score: number;
-  grade: string;
-  score_details: Record<string, number>;
-  backtest_evidence: Record<string, any>;
-  recommendation: string;
-  related_tickers: string[];
-  related_themes: string[];
-  publish_time: string;
-}
-
-export interface EntryRecommendation {
-  news_title: string;
-  news_source: string;
-  message_type: string;
-  impact_score: number;
-  related_tickers: string[];
-  related_themes: string[];
-  action: string;
-  urgency: string;
-  entry_timing: string;
-  position_pct: number;
-  hold_days: number;
-  target_profit_pct: number;
-  stop_loss_pct: number;
-  win_rate: number;
-  expected_return: number;
-  risk_warning: string;
-  confidence: string;
-}
-
-export interface RiskAlert {
-  news_title: string;
-  news_source: string;
-  message_type: string;
-  impact_score: number;
-  severity: string;
-  related_tickers: string[];
-  related_themes: string[];
-  risk_type: string;
-  risk_description: string;
-  expected_loss: number;
-  worst_case_loss: number;
-  action: string;
-  action_urgency: string;
-}
-
-export interface MessageProfile {
-  message_type: string;
-  direction: string;
-  impact_score: number;
-  expected_return_1d: number;
-  win_rate: number;
-  recommended_action: string;
-  risk_warning: string;
-  keywords: string[];
-  best_strategy: string;
-  optimal_hold_days: number;
-}
-
-export interface SourceStatus {
-  enabled: boolean;
-  use_mock: boolean;
-  last_fetch: string;
-  credibility: number;
-  categories: string[];
-}
-
 // ── API 方法 ────────────────────────────────────────────
 
 export const swatAPI = {
@@ -599,7 +510,6 @@ export const swatAPI = {
 
   // ── 资讯 ─────────────────────────────────────────
   news: {
-    // 旧版兼容
     latest: (params?: {
       category?: string;
       impact?: string;
@@ -619,102 +529,6 @@ export const swatAPI = {
       request<APIResponse<{ data: PreMarketData }>>("/news/pre-market", {
         cacheTtl: 600,
       }),
-
-    // 新版资讯采集系统
-    collect: (params?: {
-      trade_date?: string;
-      sources?: string;
-      use_mock?: boolean;
-    }) =>
-      request<APIResponse<{
-        data: {
-          trade_date: string;
-          total_count: number;
-          source_statistics: Record<string, number>;
-          category_statistics: Record<string, number>;
-          news: CollectedNewsItem[];
-        };
-      }>>("/news/collect", { params, cacheTtl: 60, useCache: false }),
-
-    scored: (params?: {
-      trade_date?: string;
-      min_score?: number;
-      grade?: string;
-      category?: string;
-      use_mock?: boolean;
-    }) =>
-      request<APIResponse<{
-        data: {
-          trade_date: string;
-          total_scored: number;
-          filtered_count: number;
-          grade_statistics: Record<string, number>;
-          scored_news: ScoredNewsItem[];
-        };
-      }>>("/news/scored", { params, cacheTtl: 60, useCache: false }),
-
-    recommendations: (params?: {
-      trade_date?: string;
-      min_score?: number;
-      urgency?: string;
-      use_mock?: boolean;
-    }) =>
-      request<APIResponse<{
-        data: {
-          trade_date: string;
-          summary: string;
-          total_recommendations: number;
-          statistics: Record<string, any>;
-          recommendations: EntryRecommendation[];
-        };
-      }>>("/news/recommendations", { params, cacheTtl: 60, useCache: false }),
-
-    riskAlerts: (params?: {
-      trade_date?: string;
-      severity?: string;
-      use_mock?: boolean;
-    }) =>
-      request<APIResponse<{
-        data: {
-          trade_date: string;
-          summary: string;
-          total_alerts: number;
-          statistics: Record<string, any>;
-          risk_alerts: RiskAlert[];
-        };
-      }>>("/news/risk-alerts", { params, cacheTtl: 60, useCache: false }),
-
-    analysis: (params?: { trade_date?: string; use_mock?: boolean }) =>
-      request<APIResponse<{
-        data: {
-          trade_date: string;
-          summary: string;
-          total_news: number;
-          grade_statistics: Record<string, number>;
-          entry_recommendations: EntryRecommendation[];
-          risk_alerts: RiskAlert[];
-          statistics: Record<string, any>;
-        };
-      }>>("/news/analysis", { params, cacheTtl: 60, useCache: false }),
-
-    backtestProfiles: (params?: { direction?: string }) =>
-      request<APIResponse<{
-        data: {
-          total_types: number;
-          bullish_count: number;
-          bearish_count: number;
-          neutral_count: number;
-          profiles: Record<string, MessageProfile>;
-        };
-      }>>("/news/backtest/profiles", { params, cacheTtl: 3600 }),
-
-    sourcesStatus: () =>
-      request<APIResponse<{
-        data: {
-          total_sources: number;
-          sources: Record<string, SourceStatus>;
-        };
-      }>>("/news/sources/status", { cacheTtl: 300 }),
   },
 
   // ── 盘中 ─────────────────────────────────────────

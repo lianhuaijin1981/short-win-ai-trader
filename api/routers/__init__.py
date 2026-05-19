@@ -8,6 +8,7 @@ from api.routers.diagnosis import router as diagnosis_router
 from api.routers.stock import router as stock_router
 from api.routers.news import router as news_router
 from api.routers.trade_journal import router as journal_router
+from api.routers.strategy import router as strategy_router
 
 # 用户账号体系路由
 from api.routers.auth import router as auth_router

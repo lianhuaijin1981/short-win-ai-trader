@@ -322,7 +322,7 @@ class UserPermission(BaseModel):
 class UsageQuota(BaseModel):
     """使用配额"""
     user_id: str
-    date: date = Field(default_factory=date.today)
+    quota_date: date = Field(default_factory=date.today, alias="date")
     ai_parse_count: int = 0
     ai_parse_limit: int = 10
     image_export_count: int = 0
@@ -331,6 +331,9 @@ class UsageQuota(BaseModel):
     excel_export_limit: int = 0
     voice_journal_count: int = 0
     voice_journal_limit: int = 5
+
+    class Config:
+        populate_by_name = True
 
 
 # ═══════════════════════════════════════════════════════

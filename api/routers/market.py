@@ -5,6 +5,11 @@
 - /market/indices — 三大指数详情
 - /market/limit-up — 涨停股列表
 - /market/heat-map — 板块热力图
+
+数据源优先级:
+1. 数据同步服务缓存（实时同步）
+2. iFind API 直接调用
+3. Mock 数据（开发/测试）
 """
 
 import asyncio
@@ -18,6 +23,7 @@ from api.core.config import APIConfig
 from api.core.logger import get_logger
 from api.models.responses import IndexData, MarketOverview
 from api.services.ifind_service import ifind_service
+from api.services.data_sync import data_sync_service
 
 logger = get_logger("swat.router.market")
 config = APIConfig()
@@ -131,33 +137,51 @@ def _generate_market_overview(indices: List[IndexData]) -> MarketOverview:
 
 
 @router.get("/overview", response_model=Dict)
-async def get_market_overview():
+async def get_market_overview(
+    refresh: bool = Query(False, description="强制刷新数据"),
+):
     """获取市场概览
 
     返回当日市场整体数据，包括三大指数、涨跌统计、涨停跌停数量等。
+    优先使用数据同步服务的缓存数据，确保实时性。
     """
-    logger.info("GET /market/overview")
+    logger.info(f"GET /market/overview (refresh={refresh})")
 
     try:
-        if config.ifind_enabled:
-            indices = await ifind_service.get_market_indices()
-            if indices:
-                indices_data = [IndexData(**idx) for idx in indices]
-            else:
-                indices_data = _generate_mock_indices()
-        else:
-            indices_data = _generate_mock_indices()
+        # 1. 尝试从缓存获取
+        if not refresh:
+            cached = data_sync_service.cache.get("market_overview", ttl=60)
+            if cached:
+                logger.debug("Returning cached market overview")
+                return {
+                    "code": 200,
+                    "message": "success",
+                    "data": cached,
+                    "source": "cache",
+                    "timestamp": datetime.now().isoformat(),
+                }
 
-        overview = _generate_market_overview(indices_data)
+        # 2. 触发同步并返回新数据
+        data = await data_sync_service.sync_market_overview()
         return {
             "code": 200,
             "message": "success",
-            "data": overview.model_dump(),
+            "data": data,
+            "source": "sync",
             "timestamp": datetime.now().isoformat(),
         }
     except Exception as e:
         logger.error(f"Market overview failed: {e}")
-        raise HTTPException(status_code=500, detail=f"获取市场概览失败: {str(e)}")
+        # Fallback to mock
+        indices_data = _generate_mock_indices()
+        overview = _generate_market_overview(indices_data)
+        return {
+            "code": 200,
+            "message": "success (fallback)",
+            "data": overview.model_dump(),
+            "source": "mock",
+            "timestamp": datetime.now().isoformat(),
+        }
 
 
 @router.get("/indices", response_model=Dict)
@@ -204,25 +228,36 @@ async def get_limit_up_stocks(
     date_str: Optional[str] = Query(None, description="查询日期 (YYYY-MM-DD)，默认今日"),
     sort_by: str = Query("boards", description="排序字段: boards/amount/change_pct"),
     limit: int = Query(50, ge=1, le=200, description="返回数量"),
+    refresh: bool = Query(False, description="强制刷新数据"),
 ):
     """获取涨停股列表
 
     返回当日涨停股票列表，可按涨停连板数、成交额排序。
+    优先使用数据同步服务的缓存数据。
     """
     query_date = date_str or date.today().isoformat()
     logger.info(f"GET /market/limit-up date={query_date} sort={sort_by} limit={limit}")
 
     try:
-        stocks = _generate_mock_limit_up()
+        # 1. 尝试从缓存获取
+        if not refresh:
+            cached = data_sync_service.cache.get("limit_up", ttl=120)
+            if cached:
+                stocks = cached
+                logger.debug("Returning cached limit-up stocks")
+            else:
+                stocks = await data_sync_service.sync_limit_up_stocks()
+        else:
+            stocks = await data_sync_service.sync_limit_up_stocks()
 
         # 排序
         reverse = True
         if sort_by == "boards":
-            stocks.sort(key=lambda x: x["boards"], reverse=reverse)
+            stocks.sort(key=lambda x: x.get("boards", 0), reverse=reverse)
         elif sort_by == "amount":
-            stocks.sort(key=lambda x: x["amount"], reverse=reverse)
+            stocks.sort(key=lambda x: x.get("amount", 0), reverse=reverse)
         elif sort_by == "change_pct":
-            stocks.sort(key=lambda x: x["change_pct"], reverse=reverse)
+            stocks.sort(key=lambda x: x.get("change_pct", 0), reverse=reverse)
 
         stocks = stocks[:limit]
 
@@ -234,15 +269,42 @@ async def get_limit_up_stocks(
                 "total_limit_up": len(stocks),
                 "stocks": stocks,
                 "summary": {
+                    "max_boards": max(s.get("boards", 0) for s in stocks) if stocks else 0,
+                    "avg_boards": round(sum(s.get("boards", 0) for s in stocks) / len(stocks), 1) if stocks else 0,
+                    "total_amount": round(sum(s.get("amount", 0) for s in stocks), 2),
+                },
+            },
+            "source": "cache" if not refresh else "sync",
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as e:
+        logger.error(f"Limit-up query failed: {e}")
+        # Fallback to mock
+        stocks = _generate_mock_limit_up()
+        reverse = True
+        if sort_by == "boards":
+            stocks.sort(key=lambda x: x["boards"], reverse=reverse)
+        elif sort_by == "amount":
+            stocks.sort(key=lambda x: x["amount"], reverse=reverse)
+        elif sort_by == "change_pct":
+            stocks.sort(key=lambda x: x["change_pct"], reverse=reverse)
+        stocks = stocks[:limit]
+        return {
+            "code": 200,
+            "message": "success (fallback)",
+            "data": {
+                "date": query_date,
+                "total_limit_up": len(stocks),
+                "stocks": stocks,
+                "summary": {
                     "max_boards": max(s["boards"] for s in stocks) if stocks else 0,
                     "avg_boards": round(sum(s["boards"] for s in stocks) / len(stocks), 1) if stocks else 0,
                     "total_amount": round(sum(s["amount"] for s in stocks), 2),
                 },
             },
+            "source": "mock",
+            "timestamp": datetime.now().isoformat(),
         }
-    except Exception as e:
-        logger.error(f"Limit-up query failed: {e}")
-        raise HTTPException(status_code=500, detail=f"获取涨停股列表失败: {str(e)}")
 
 
 @router.get("/heat-map", response_model=Dict)

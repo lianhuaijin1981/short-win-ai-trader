@@ -70,3 +70,45 @@ short-win-ai-trader 项目近两日更新进度总结
 - 验证Docker容器化部署流程
 - 完善API文档及模块说明文档
 - 推进 m07 后续模块开发（如有规划）
+
+═══════════════════════════════════════════════════════
+2026-05-19 追加优化完成记录
+═══════════════════════════════════════════════════════
+
+A. 依赖库统一整理
+- requirements.txt 新增：fastapi、uvicorn、python-multipart、bcrypt、PyJWT、cryptography、httpx、python-dotenv
+- setup.py 同步更新 install_requires 和 extras_require
+- 依赖按功能分类：核心框架、异步网络、数据处理、配置序列化、日志、CLI终端、安全加密、测试、开发工具
+
+B. 本地演示环境一键启动脚本
+- scripts/start_demo.bat：Windows CMD版本，含Python版本检查、虚拟环境创建、依赖安装、目录初始化、服务启动
+- scripts/start_demo.sh：Linux/Mac Bash版本，功能同上
+- 环境变量配置：SWAT_API_HOST、SWAT_API_PORT、SWAT_API_DEBUG、SWAT_API_IFIND_ENABLED
+- 默认使用mock数据模式（IFIND_ENABLED=false）
+
+C. AI交易策略逻辑与行情数据联动
+- 新增 api/services/strategy_engine.py：策略引擎核心
+  - StrategySignal：交易信号数据模型（buy/sell/hold/watch）
+  - MarketContext：市场环境上下文（情绪评分、涨跌统计、热点板块）
+  - StrategyEngine：策略引擎类，含情绪计算、信号生成、个股分析、仓位建议
+- 新增 api/routers/strategy.py：策略API路由
+  - GET /strategy/signals：获取交易信号
+  - GET /strategy/summary：获取策略摘要
+  - GET /strategy/context：获取市场环境
+  - POST /strategy/analyze：分析指定股票
+- 策略引擎与iFind行情数据服务联动，支持缓存机制
+
+D. 前端页面联动接口调试
+- 新增 api/services/static_proxy.py：静态文件服务
+  - setup_static_files：挂载/src目录为/static
+  - GET /pages/{page_name}：提供HTML页面服务
+  - GET /dashboard：重定向到市场看板
+  - GET /login：重定向到登录页
+  - GET /pages：列出所有可用页面
+- api/main.py 集成静态文件路由
+- 前端market-dashboard.html已对接API接口：
+  - /api/v1/market/overview：市场概览
+  - /api/v1/sentiment/diagnosis：情绪诊断
+  - /api/v1/market/heat-map：板块热力图
+  - /api/v1/market/limit-up：涨停股列表
+- 前端含完整mock数据降级方案，API不可用时自动切换
