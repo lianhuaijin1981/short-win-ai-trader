@@ -1,114 +1,99 @@
-short-win-ai-trader 项目近两日更新进度总结
-统计周期：2026-05-18 至 2026-05-19
-提交记录：2次提交（9336636..ac00753）
+================================================================================
+A股短线AI交易智能体 - 迭代开发记录
+GitHub: https://github.com/lianhuaijin1981/short-win-ai-trader
+================================================================================
 
-1. 新增功能模块
+【2026-05-17 第5轮迭代】战法选股全面重构
+================================================================================
+修改文件:
+  - src/data/realData.ts    (重组战法分类+新增国外战法+补充K线数据)
+  - src/pages/Tactics.tsx   (5项重构全部完成)
 
-1.1 交易日志模块（m08_trade_journal）
-- 新增 journal_manager.py：交易日志核心管理器
-- 新增 models.py：交易日志数据模型定义
-- 新增 note_engine.py：交易笔记引擎
-- 新增 scoring_integration.py：与评分系统集成
-- 新增 voice_processor.py：语音处理功能
+问题1: 页面右侧大片空白，布局不统一
+  解决: 底部统计改为横向flex-wrap紧凑布局，选股结果区新增内联统计条
 
-1.2 用户系统模块（m09_user_system）
-- 新增 auth_engine.py：认证引擎
-- 新增 permission_manager.py：权限管理
-- 新增 membership_manager.py：会员管理
-- 新增 order_manager.py：订单管理
-- 新增 security.py：安全模块
-- 新增 audit_logger.py：审计日志
+问题2: Hover K线图不加载
+  解决: getMiniKlineOption增加双重fallback
+        优先MULTI_PERIOD_KLINES →  fallback到REAL_LIMIT_UP_STOCKS.kline → 空图表兜底
+        补充9只股票(001333/002066/002196/002181/002407/002031/002348/002374/002395)的MULTI_PERIOD_KLINES数据
 
-1.3 AI智能体模块（前序提交完成）
-- m01_news_collector：新闻采集器，含多源抓取、回测引擎、推荐引擎
-- m02_market_replay：市场复盘，含情绪引擎、主题分析、市场预测
-- m03_intraday_watch：盘中监控，含信号检测、目标锁定、策略生成
-- m04_yingyou_diagnosis：应优诊断模块，指纹识别大幅扩展
-- m05_tactic_screening：策略筛选，策略库扩充
-- m06_scoring_decision：评分决策，多维度评分器
+问题3: 战法文字颜色按成功率分档
+  实现: ≥80%红#ef4444 / 70-80%橙#f97316 / 60-70%蓝#3b82f6 / 50-60%青#06d7d7 / <50%灰#6b7280
+  应用: 战法列表标题色、成功率数字色、详情页标题色
 
-2. 代码结构优化
+问题4: 战法分类重组
+  情绪: 连板加速/龙头情绪/分时承接/低位首板/一进二/反核/龙头低吸(7个)
+  量能: 倍量突破/三倍量突破/缩量突破/缩量尾盘先手(4个)
+  形态: 首阴战法/N字形战法/平台突破(3个)
+  筹码: 筹码峰战法(1个)
+  技术分析: 布林带战法(1个)
 
-- API路由层重构：新增独立路由模块（admin/auth/membership/order/trade_journal/user）
-- 路由注册机制优化：api/routers/__init__.py 统一路由入口
-- api/main.py 主入口更新，集成新增路由
-- 数据模型层扩展：data_platform/data_models.py 新增数据模型定义
+问题5: 新增国外大家战法(6个)
+  + 龙头低吸战法          情绪战法    成功率58%
+  + 欧奈尔CANSLIM模型     技术分析战法  成功率72%
+  + 利弗莫尔关键点位       技术分析战法  成功率68%
+  + 达瓦斯箱体理论        技术分析战法  成功率65%
+  + 威科夫量价分析        技术分析战法  成功率63%
+  + 米内尔维尼趋势模板     技术分析战法  成功率70%
+  战法总数: 15 → 21
 
-3. 接口与数据源对接进展
+================================================================================
+【2026-05-16 第4轮迭代】游资诊断系统重构
+================================================================================
+修改文件:
+  - src/pages/Yingyou.tsx
 
-- 新增认证接口（auth.py，265行）
-- 新增管理后台接口（admin.py，523行）
-- 新增会员接口（membership.py，185行）
-- 新增订单接口（order.py，287行）
-- 新增交易日志接口（trade_journal.py，761行）
-- 新增用户接口（user.py，218行）
-- 新闻接口大幅重构（news.py，665行变更）
-- 策略接口优化（tactics.py，68行变更）
+新增:
+  - 8位游资深度解析(炒股养家/退学炒股/小鳄鱼/赵老哥/作手新一/龙飞虎/Asking/涅槃重生)
+  - 支持手动添加新游资
+  - 游资选股风格标签
+  - 历史战绩与席位信息
 
-4. 部署&演示环境搭建进度
+================================================================================
+【2026-05-16 第3轮迭代】龙头梯队板块切换+多周期K线
+================================================================================
+修改文件:
+  - src/pages/Intraday.tsx
+  - src/pages/StockDetail.tsx
+  - src/data/realData.ts
 
-- 新增前端页面：
-  - login.html：登录页
-  - register.html：注册页
-  - profile.html：用户中心
-  - admin.html：管理后台
-  - pricing.html：定价页
-  - market-dashboard.html：市场仪表盘
-- Docker配置文件已就绪（Dockerfile、docker-compose.yml）
+新增:
+  - 龙头梯队概念/行业双维度切换
+  - 分时/5日/日K/周K/月K多周期切换
+  - 8只重点股票多周期K线数据
+  - 240分钟分时数据生成算法
 
-5. 当前遗留问题
+修复:
+  - 连板高度计算(5板→6板，蒙娜丽莎)
+  - 龙头梯队去凑数(删除硬塞的跨板块高标)
 
-- 用户系统与交易日志模块尚未见对应单元测试文件
-- 新增模块缺少集成测试覆盖
-- 前端页面与API接口的联调状态待验证
-- 语音处理模块（voice_processor.py）依赖项及运行时环境未明确
+================================================================================
+【2026-05-16 第2轮迭代】数据真实性修复
+================================================================================
+修改文件:
+  - src/data/realData.ts (新增)
+  - src/pages/Home.tsx
+  - src/pages/Sentiment.tsx
 
-6. 下一阶段开发计划
+修复:
+  - Dashboard全部改用同花顺iFind真实数据
+  - 分时数据时间逻辑bug(240个点09:30-11:29+13:00-14:59)
+  - 情绪周期温度模型修正
+  - A股颜色语义(红=涨好/绿=跌差)
+  - 昨连板时间逻辑(05-14日连板→05-15表现)
 
-- 补充 m08_trade_journal、m09_user_system 单元测试
-- 完成前后端接口联调测试
-- 验证Docker容器化部署流程
-- 完善API文档及模块说明文档
-- 推进 m07 后续模块开发（如有规划）
+================================================================================
+【2026-05-15 第1轮迭代】基础版本
+================================================================================
+技术栈: Python + FastAPI + React 19 + TypeScript + Tailwind CSS + shadcn/ui + ECharts
 
-═══════════════════════════════════════════════════════
-2026-05-19 追加优化完成记录
-═══════════════════════════════════════════════════════
+完成模块:
+  - 资讯采集: 涨停原因自动推断
+  - 情绪复盘: 14项指标+30日历史+情绪周期6阶段模型
+  - 盘中看盘: 锚定标的+分时段提醒
+  - 游资诊断: 游资匹配+选股风格
+  - 战法选股: 15种战法+战法-股票匹配矩阵
+  - 评分决策: 雷达图+综合评分+仓位建议
+  - 交割单诊断: 交易记录分析+盈亏归因
 
-A. 依赖库统一整理
-- requirements.txt 新增：fastapi、uvicorn、python-multipart、bcrypt、PyJWT、cryptography、httpx、python-dotenv
-- setup.py 同步更新 install_requires 和 extras_require
-- 依赖按功能分类：核心框架、异步网络、数据处理、配置序列化、日志、CLI终端、安全加密、测试、开发工具
-
-B. 本地演示环境一键启动脚本
-- scripts/start_demo.bat：Windows CMD版本，含Python版本检查、虚拟环境创建、依赖安装、目录初始化、服务启动
-- scripts/start_demo.sh：Linux/Mac Bash版本，功能同上
-- 环境变量配置：SWAT_API_HOST、SWAT_API_PORT、SWAT_API_DEBUG、SWAT_API_IFIND_ENABLED
-- 默认使用mock数据模式（IFIND_ENABLED=false）
-
-C. AI交易策略逻辑与行情数据联动
-- 新增 api/services/strategy_engine.py：策略引擎核心
-  - StrategySignal：交易信号数据模型（buy/sell/hold/watch）
-  - MarketContext：市场环境上下文（情绪评分、涨跌统计、热点板块）
-  - StrategyEngine：策略引擎类，含情绪计算、信号生成、个股分析、仓位建议
-- 新增 api/routers/strategy.py：策略API路由
-  - GET /strategy/signals：获取交易信号
-  - GET /strategy/summary：获取策略摘要
-  - GET /strategy/context：获取市场环境
-  - POST /strategy/analyze：分析指定股票
-- 策略引擎与iFind行情数据服务联动，支持缓存机制
-
-D. 前端页面联动接口调试
-- 新增 api/services/static_proxy.py：静态文件服务
-  - setup_static_files：挂载/src目录为/static
-  - GET /pages/{page_name}：提供HTML页面服务
-  - GET /dashboard：重定向到市场看板
-  - GET /login：重定向到登录页
-  - GET /pages：列出所有可用页面
-- api/main.py 集成静态文件路由
-- 前端market-dashboard.html已对接API接口：
-  - /api/v1/market/overview：市场概览
-  - /api/v1/sentiment/diagnosis：情绪诊断
-  - /api/v1/market/heat-map：板块热力图
-  - /api/v1/market/limit-up：涨停股列表
-- 前端含完整mock数据降级方案，API不可用时自动切换
+页面: 首页/情绪复盘/锚定标的/游资诊断/战法选股/评分决策/交割单诊断/个股详情
