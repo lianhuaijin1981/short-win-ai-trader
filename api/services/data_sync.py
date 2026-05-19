@@ -173,18 +173,39 @@ class DataSyncService:
     
     @property
     def data_source(self) -> str:
-        """当前使用的数据源"""
-        if self._akshare_available:
-            return "akshare"
+        """当前使用的数据源 — 优先使用 iFind"""
         if self._ifind_available:
             return "ifind"
+        if self._akshare_available:
+            return "akshare"
         return "mock"
     
     async def sync_market_overview(self):
-        """同步市场总览数据 — 使用akshare获取真实数据"""
+        """同步市场总览数据 — 优先使用iFind获取真实数据"""
         key = "market_overview"
         logger.debug(f"Syncing {key} (source={self.data_source})...")
         
+        # 优先使用 iFind
+        if self._ifind_available:
+            try:
+                from api.services.ifind_service import ifind_service
+                indices = await ifind_service.get_market_indices()
+                if indices:
+                    stats = await self._get_market_stats()
+                    data = {
+                        "date": date.today().isoformat(),
+                        "timestamp": datetime.now().isoformat(),
+                        "indices": indices,
+                        "stats": stats,
+                        "source": "ifind",
+                    }
+                    self.cache.set(key, data, ttl=self.intervals[key])
+                    logger.info(f"Market overview synced from iFind: {len(indices)} indices")
+                    return data
+            except Exception as e:
+                logger.warning(f"iFind market overview failed: {e}")
+        
+        # Fallback: akshare
         if self._akshare_available:
             try:
                 from api.services.akshare_service import akshare_service
@@ -212,7 +233,18 @@ class DataSyncService:
         return data
     
     async def _get_indices(self) -> List[Dict]:
-        """获取三大指数数据 — 优先使用akshare"""
+        """获取三大指数数据 — 优先使用iFind"""
+        # 优先使用 iFind
+        if self._ifind_available:
+            try:
+                from api.services.ifind_service import ifind_service
+                indices = await ifind_service.get_market_indices()
+                if indices:
+                    return indices
+            except Exception as e:
+                logger.warning(f"iFind indices failed: {e}")
+        
+        # Fallback: akshare
         if self._akshare_available:
             try:
                 from api.services.akshare_service import akshare_service
