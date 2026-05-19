@@ -1,0 +1,1880 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交易笔记 - 短线致胜AI交易智能体</title>
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1a2332;
+            --bg-input: #1e293b;
+            --border-color: #2d3a4f;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --accent-orange: #f97316;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .header-title span {
+            color: var(--accent-cyan);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-success {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-warning {
+            background: var(--accent-yellow);
+            color: #1a1a2e;
+        }
+
+        .btn-danger {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 24px;
+        }
+
+        .nav-tab {
+            padding: 12px 20px;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .nav-tab:hover {
+            color: var(--text-secondary);
+        }
+
+        .nav-tab.active {
+            color: var(--accent-cyan);
+            border-bottom-color: var(--accent-cyan);
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 24px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title .icon {
+            font-size: 18px;
+        }
+
+        /* Form Elements */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-select {
+            cursor: pointer;
+        }
+
+        /* Position Table */
+        .position-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        .position-table th,
+        .position-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 13px;
+        }
+
+        .position-table th {
+            background: var(--bg-input);
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .position-table tr:hover {
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .position-table .input-cell input,
+        .position-table .input-cell select {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 6px 8px;
+            color: var(--text-primary);
+            font-size: 13px;
+            width: 100%;
+        }
+
+        /* Tags */
+        .tag {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .tag-green {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+        }
+
+        .tag-red {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+        }
+
+        .tag-yellow {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-yellow);
+        }
+
+        .tag-blue {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent-blue);
+        }
+
+        .tag-purple {
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--accent-purple);
+        }
+
+        /* Score Display */
+        .score-display {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .score-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .score-high {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--accent-green);
+            border: 2px solid var(--accent-green);
+        }
+
+        .score-medium {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent-yellow);
+            border: 2px solid var(--accent-yellow);
+        }
+
+        .score-low {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-red);
+            border: 2px solid var(--accent-red);
+        }
+
+        /* Watch Stock List */
+        .watch-stock-item {
+            display: grid;
+            grid-template-columns: 40px 1fr 100px 80px 60px;
+            gap: 12px;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: var(--bg-input);
+        }
+
+        .watch-stock-item .priority {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .priority-1 {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .priority-2 {
+            background: var(--accent-orange);
+            color: white;
+        }
+
+        .priority-3 {
+            background: var(--accent-yellow);
+            color: #1a1a2e;
+        }
+
+        /* Voice Input */
+        .voice-container {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .voice-button {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none;
+            color: white;
+            font-size: 48px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .voice-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 30px rgba(59, 130, 246, 0.5);
+        }
+
+        .voice-button.recording {
+            animation: pulse 1.5s infinite;
+            background: linear-gradient(135deg, var(--accent-red), var(--accent-orange));
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .voice-status {
+            margin-top: 20px;
+            font-size: 16px;
+            color: var(--text-secondary);
+        }
+
+        .voice-transcript {
+            margin-top: 20px;
+            padding: 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            text-align: left;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Notes List */
+        .notes-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .note-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .note-item:hover {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .note-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .note-date {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .note-summary {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .note-tags {
+            display: flex;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .note-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .note-actions .btn {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* Performance Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .stat-positive {
+            color: var(--accent-green);
+        }
+
+        .stat-negative {
+            color: var(--accent-red);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        /* Scoring Result */
+        .scoring-result {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 20px;
+            padding: 16px;
+            background: var(--bg-input);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .dimension-bar {
+            height: 8px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .dimension-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 16px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-tabs {
+                overflow-x: auto;
+                padding: 0 12px;
+            }
+
+            .nav-tab {
+                padding: 10px 14px;
+                font-size: 13px;
+                white-space: nowrap;
+            }
+
+            .watch-stock-item {
+                grid-template-columns: 32px 1fr 60px;
+            }
+
+            .watch-stock-item .watch-reason,
+            .watch-stock-item .watch-price {
+                display: none;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            animation: slideIn 0.3s ease;
+            min-width: 250px;
+        }
+
+        .toast-success {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .toast-error {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .toast-info {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-title">📝 <span>交易笔记</span> - 复盘与计划</div>
+        <div class="header-actions">
+            <button class="btn btn-outline" onclick="window.location.href='market-dashboard.html'">
+                ← 返回看板
+            </button>
+            <button class="btn btn-primary" onclick="openNewNoteModal()">
+                ✏️ 新建笔记
+            </button>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+        <div class="nav-tab active" data-tab="notes" onclick="switchTab('notes')">📋 笔记列表</div>
+        <div class="nav-tab" data-tab="review" onclick="switchTab('review')">📊 当日复盘</div>
+        <div class="nav-tab" data-tab="plan" onclick="switchTab('plan')">📅 次日计划</div>
+        <div class="nav-tab" data-tab="voice" onclick="switchTab('voice')">🎤 语音输入</div>
+        <div class="nav-tab" data-tab="scoring" onclick="switchTab('scoring')">⭐ 标的评分</div>
+        <div class="nav-tab" data-tab="performance" onclick="switchTab('performance')">📈 绩效统计</div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Tab: Notes List -->
+        <div class="tab-content active" id="tab-notes">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon">📋</span> 交易笔记列表
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <select class="form-select" id="filter-source" onchange="loadNotes()" style="width: 120px;">
+                            <option value="">全部来源</option>
+                            <option value="manual">手动</option>
+                            <option value="voice">语音</option>
+                        </select>
+                        <input type="date" class="form-input" id="filter-date" onchange="loadNotes()" style="width: 150px;">
+                    </div>
+                </div>
+                <div class="notes-list" id="notes-list">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Review -->
+        <div class="tab-content" id="tab-review">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon">📊</span> 当日交易复盘
+                    </div>
+                    <button class="btn btn-success" onclick="saveReview()">💾 保存复盘</button>
+                </div>
+
+                <!-- Positions -->
+                <div style="margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <h3 style="font-size: 15px; color: var(--text-secondary);">持仓交易记录</h3>
+                        <button class="btn btn-outline" onclick="addPositionRow()" style="font-size: 12px;">+ 添加交易</button>
+                    </div>
+                    <table class="position-table" id="position-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 100px;">股票代码</th>
+                                <th style="width: 100px;">股票名称</th>
+                                <th style="width: 80px;">操作</th>
+                                <th style="width: 80px;">入场价</th>
+                                <th style="width: 80px;">出场价</th>
+                                <th style="width: 80px;">盈亏%</th>
+                                <th style="width: 120px;">入场逻辑</th>
+                                <th style="width: 80px;">战法</th>
+                                <th style="width: 60px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="position-tbody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mindset & Summary -->
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">心态评级</label>
+                        <select class="form-select" id="mindset-level">
+                            <option value="优秀">优秀</option>
+                            <option value="良好">良好</option>
+                            <option value="一般" selected>一般</option>
+                            <option value="较差">较差</option>
+                            <option value="极差">极差</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">自我评分 (0-100)</label>
+                        <input type="number" class="form-input" id="self-score" min="0" max="100" value="60">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">心态总结</label>
+                        <textarea class="form-textarea" id="mindset-summary" placeholder="今天的心态如何？有哪些心态上的问题或亮点？"></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">节奏总结</label>
+                        <textarea class="form-textarea" id="rhythm-summary" placeholder="今天的交易节奏如何？买卖点把握是否准确？"></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">纪律总结</label>
+                        <textarea class="form-textarea" id="discipline-summary" placeholder="是否严格执行了交易纪律？有哪些违反纪律的行为？"></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">经验教训</label>
+                        <textarea class="form-textarea" id="lessons-learned" placeholder="今天学到了什么？有哪些经验教训？"></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">改进方向</label>
+                        <textarea class="form-textarea" id="improvements" placeholder="明天需要改进哪些方面？"></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">整体总结</label>
+                        <textarea class="form-textarea" id="overall-summary" placeholder="对今天交易的整体评价和总结"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Plan -->
+        <div class="tab-content" id="tab-plan">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon">📅</span> 次日交易计划
+                    </div>
+                    <button class="btn btn-success" onclick="savePlan()">💾 保存计划</button>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">大盘判断</label>
+                        <select class="form-select" id="market-outlook">
+                            <option value="强势看多">强势看多</option>
+                            <option value="震荡偏多">震荡偏多</option>
+                            <option value="震荡中性" selected>震荡中性</option>
+                            <option value="震荡偏空">震荡偏空</option>
+                            <option value="弱势看空">弱势看空</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">总仓位上限 (%)</label>
+                        <input type="number" class="form-input" id="total-position-limit" value="50" min="0" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">单票仓位上限 (%)</label>
+                        <input type="number" class="form-input" id="single-stock-limit" value="20" min="0" max="50">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">最大交易笔数</label>
+                        <input type="number" class="form-input" id="max-trades" value="3" min="1" max="10">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">单日最大亏损 (%)</label>
+                        <input type="number" class="form-input" id="max-daily-loss" value="3" min="0" max="10" step="0.5">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">大盘判断思路</label>
+                        <textarea class="form-textarea" id="market-reasoning" placeholder="对明天大盘走势的判断依据"></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">关键价位</label>
+                        <input type="text" class="form-input" id="key-levels" placeholder="如：上证支撑3250，压力3320">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">重点关注板块</label>
+                        <input type="text" class="form-input" id="preferred-sectors" placeholder="如：AI、CPO、半导体（逗号分隔）">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">规避板块</label>
+                        <input type="text" class="form-input" id="avoid-sectors" placeholder="如：高位连板、退市风险（逗号分隔）">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">首选战法</label>
+                        <input type="text" class="form-input" id="preferred-tactics" placeholder="如：打板、低吸、半路（逗号分隔）">
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">止损纪律</label>
+                        <textarea class="form-textarea" id="stop-loss-rule" placeholder="固定止损-5%，逻辑止损无条件卖出"></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">止盈纪律</label>
+                        <textarea class="form-textarea" id="take-profit-rule" placeholder="涨停持有，次日不连板止盈"></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">风控规则</label>
+                        <textarea class="form-textarea" id="risk-rules" placeholder="如：不追高、不满仓、不隔夜等"></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label class="form-label">备注</label>
+                        <textarea class="form-textarea" id="plan-notes" placeholder="其他需要记录的内容"></textarea>
+                    </div>
+                </div>
+
+                <!-- Watch Stocks -->
+                <div style="margin-top: 24px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <h3 style="font-size: 15px; color: var(--text-secondary);">观察标的</h3>
+                        <button class="btn btn-outline" onclick="addWatchStock()" style="font-size: 12px;">+ 添加标的</button>
+                    </div>
+                    <div id="watch-stocks-list">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Voice Input -->
+        <div class="tab-content" id="tab-voice">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon">🎤</span> 语音输入复盘/计划
+                    </div>
+                </div>
+
+                <div class="voice-container">
+                    <button class="voice-button" id="voice-btn" onclick="toggleVoiceRecording()">
+                        🎤
+                    </button>
+                    <div class="voice-status" id="voice-status">点击按钮开始录音</div>
+                    <div class="voice-transcript" id="voice-transcript" style="display: none;"></div>
+
+                    <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: center;">
+                        <button class="btn btn-primary" onclick="processVoiceText()" id="process-voice-btn" style="display: none;">
+                            📝 解析语音
+                        </button>
+                        <button class="btn btn-success" onclick="convertVoiceToNote()" id="convert-voice-btn" style="display: none;">
+                            💾 保存为笔记
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Text Input Alternative -->
+                <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                    <h3 style="font-size: 15px; color: var(--text-secondary); margin-bottom: 12px;">或直接输入文字</h3>
+                    <textarea class="form-textarea" id="text-input" rows="6"
+                        placeholder="在这里输入复盘或计划内容，系统会自动识别内容类型并结构化解析...&#10;&#10;例如：今天打板了中际旭创，盈利3个点，心态还可以。明天大盘看震荡偏多，重点关注AI板块，仓位控制在50%以内。"></textarea>
+                    <div style="margin-top: 12px; display: flex; gap: 12px;">
+                        <button class="btn btn-primary" onclick="processTextInput()">📝 解析文字</button>
+                    </div>
+                    <div id="text-parse-result" style="margin-top: 16px; display: none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Scoring -->
+        <div class="tab-content" id="tab-scoring">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon">⭐</span> 标的评分决策
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">股票代码</label>
+                        <input type="text" class="form-input" id="score-ticker" placeholder="如：300308">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">股票名称</label>
+                        <input type="text" class="form-input" id="score-name" placeholder="如：中际旭创">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">当前价格</label>
+                        <input type="number" class="form-input" id="score-price" placeholder="0.00" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">当前仓位 (0-1)</label>
+                        <input type="number" class="form-input" id="score-position" value="0" min="0" max="1" step="0.1">
+                    </div>
+                    <div class="form-group full-width" style="margin-top: 12px;">
+                        <button class="btn btn-primary" onclick="evaluateStock()">🔍 开始评分</button>
+                    </div>
+                </div>
+
+                <div id="scoring-result" style="margin-top: 24px; display: none;">
+                </div>
+            </div>
+
+            <!-- Score History -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon">📊</span> 评分统计
+                    </div>
+                    <button class="btn btn-outline" onclick="loadScoreStatistics()" style="font-size: 12px;">🔄 刷新</button>
+                </div>
+                <div id="score-statistics">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Performance -->
+        <div class="tab-content" id="tab-performance">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon">📈</span> 交易绩效统计
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <select class="form-select" id="perf-days" onchange="loadPerformance()" style="width: 100px;">
+                            <option value="7">近7天</option>
+                            <option value="30" selected>近30天</option>
+                            <option value="90">近90天</option>
+                            <option value="365">近1年</option>
+                        </select>
+                        <button class="btn btn-outline" onclick="loadPerformance()" style="font-size: 12px;">🔄 刷新</button>
+                    </div>
+                </div>
+                <div id="performance-stats">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Note Modal -->
+    <div class="modal-overlay" id="new-note-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">✏️ 新建交易笔记</div>
+                <button class="modal-close" onclick="closeModal('new-note-modal')">&times;</button>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">笔记日期</label>
+                    <input type="date" class="form-input" id="note-date">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">来源</label>
+                    <select class="form-select" id="note-source">
+                        <option value="manual">手动创建</option>
+                        <option value="voice">语音输入</option>
+                    </select>
+                </div>
+                <div class="form-group full-width">
+                    <label class="form-label">标签（逗号分隔）</label>
+                    <input type="text" class="form-input" id="note-tags" placeholder="如：打板,低吸,AI板块">
+                </div>
+            </div>
+            <div style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="btn btn-outline" onclick="closeModal('new-note-modal')">取消</button>
+                <button class="btn btn-primary" onclick="createNote()">创建</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Note Detail Modal -->
+    <div class="modal-overlay" id="note-detail-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title" id="note-detail-title">笔记详情</div>
+                <button class="modal-close" onclick="closeModal('note-detail-modal')">&times;</button>
+            </div>
+            <div id="note-detail-content">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        // API Base URL
+        const API_BASE = 'http://localhost:8000/api/v1';
+
+        // State
+        let currentVoiceNoteId = null;
+        let isRecording = false;
+        let positionCount = 0;
+        let watchStockCount = 0;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadNotes();
+            loadPerformance();
+            loadScoreStatistics();
+
+            // Set default date
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('note-date').value = today;
+            document.getElementById('filter-date').value = today;
+        });
+
+        // Tab Switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            document.querySelector(`.nav-tab[data-tab="${tabName}"]`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
+
+        // Toast Notifications
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Modal
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function openNewNoteModal() {
+            openModal('new-note-modal');
+        }
+
+        // Load Notes
+        async function loadNotes() {
+            const listEl = document.getElementById('notes-list');
+            listEl.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+            try {
+                const source = document.getElementById('filter-source').value;
+                const date = document.getElementById('filter-date').value;
+
+                let url = `${API_BASE}/journal/notes?limit=50`;
+                if (source) url += `&source=${source}`;
+                if (date) url += `&start_date=${date}&end_date=${date}`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.code === 200 && data.data.notes.length > 0) {
+                    listEl.innerHTML = data.data.notes.map(note => `
+                        <div class="note-item" onclick="viewNote('${note.id}')">
+                            <div class="note-info">
+                                <div class="note-date">${note.date || '未设置日期'}</div>
+                                <div class="note-summary">
+                                    ${note.review ? `交易${note.review.total_trades}笔 | 胜率${(note.review.win_rate * 100).toFixed(0)}% | 盈亏${note.review.total_pnl_pct?.toFixed(2) || 0}%` : '无复盘'}
+                                    ${note.next_day_plan ? ` | 大盘${note.next_day_plan.market_outlook}` : ''}
+                                </div>
+                                <div class="note-tags">
+                                    <span class="tag tag-blue">${note.source === 'voice' ? '🎤 语音' : '✏️ 手动'}</span>
+                                    ${note.tags?.map(t => `<span class="tag tag-purple">${t}</span>`).join('') || ''}
+                                </div>
+                            </div>
+                            <div class="note-actions">
+                                <button class="btn btn-outline" onclick="event.stopPropagation(); viewNote('${note.id}')">查看</button>
+                                <button class="btn btn-danger" onclick="event.stopPropagation(); deleteNote('${note.id}')">删除</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    listEl.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">暂无笔记，点击上方"新建笔记"开始记录</div>';
+                }
+            } catch (error) {
+                listEl.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--accent-red);">加载失败: ${error.message}</div>`;
+            }
+        }
+
+        // View Note
+        async function viewNote(noteId) {
+            openModal('note-detail-modal');
+            const contentEl = document.getElementById('note-detail-content');
+            contentEl.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/journal/notes/${noteId}`);
+                const data = await response.json();
+
+                if (data.code === 200) {
+                    const note = data.data;
+                    document.getElementById('note-detail-title').textContent = `笔记详情 - ${note.date || '未设置日期'}`;
+
+                    let html = '';
+
+                    // Review Section
+                    if (note.review) {
+                        html += `
+                            <div class="card" style="margin-bottom: 16px;">
+                                <h3 style="font-size: 15px; color: var(--accent-cyan); margin-bottom: 12px;">📊 当日复盘</h3>
+                                <div class="stats-grid" style="margin-bottom: 16px;">
+                                    <div class="stat-card">
+                                        <div class="stat-value">${note.review.total_trades || 0}</div>
+                                        <div class="stat-label">交易笔数</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-value">${(note.review.win_rate * 100 || 0).toFixed(0)}%</div>
+                                        <div class="stat-label">胜率</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-value ${note.review.total_pnl_pct >= 0 ? 'stat-positive' : 'stat-negative'}">${note.review.total_pnl_pct?.toFixed(2) || 0}%</div>
+                                        <div class="stat-label">总盈亏</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-value">${note.review.self_score || 0}</div>
+                                        <div class="stat-label">自我评分</div>
+                                    </div>
+                                </div>
+                                ${note.review.mindset_level ? `<p><strong>心态评级:</strong> ${note.review.mindset_level}</p>` : ''}
+                                ${note.review.mindset_summary ? `<p><strong>心态总结:</strong> ${note.review.mindset_summary}</p>` : ''}
+                                ${note.review.rhythm_summary ? `<p><strong>节奏总结:</strong> ${note.review.rhythm_summary}</p>` : ''}
+                                ${note.review.discipline_summary ? `<p><strong>纪律总结:</strong> ${note.review.discipline_summary}</p>` : ''}
+                                ${note.review.overall_summary ? `<p><strong>整体总结:</strong> ${note.review.overall_summary}</p>` : ''}
+                            </div>
+                        `;
+                    }
+
+                    // Plan Section
+                    if (note.next_day_plan) {
+                        html += `
+                            <div class="card">
+                                <h3 style="font-size: 15px; color: var(--accent-green); margin-bottom: 12px;">📅 次日计划</h3>
+                                <div class="stats-grid" style="margin-bottom: 16px;">
+                                    <div class="stat-card">
+                                        <div class="stat-value">${note.next_day_plan.market_outlook || '未设置'}</div>
+                                        <div class="stat-label">大盘判断</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-value">${note.next_day_plan.total_position_limit || 0}%</div>
+                                        <div class="stat-label">总仓位上限</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-value">${note.next_day_plan.max_trades || 0}</div>
+                                        <div class="stat-label">最大交易笔数</div>
+                                    </div>
+                                </div>
+                                ${note.next_day_plan.key_levels ? `<p><strong>关键价位:</strong> ${note.next_day_plan.key_levels}</p>` : ''}
+                                ${note.next_day_plan.preferred_sectors?.length ? `<p><strong>关注板块:</strong> ${note.next_day_plan.preferred_sectors.join(', ')}</p>` : ''}
+                                ${note.next_day_plan.avoid_sectors?.length ? `<p><strong>规避板块:</strong> ${note.next_day_plan.avoid_sectors.join(', ')}</p>` : ''}
+                                ${note.next_day_plan.preferred_tactics?.length ? `<p><strong>首选战法:</strong> ${note.next_day_plan.preferred_tactics.join(', ')}</p>` : ''}
+                            </div>
+                        `;
+                    }
+
+                    if (!html) {
+                        html = '<div style="text-align: center; padding: 20px; color: var(--text-muted);">暂无内容</div>';
+                    }
+
+                    contentEl.innerHTML = html;
+                } else {
+                    contentEl.innerHTML = `<div style="color: var(--accent-red);">加载失败</div>`;
+                }
+            } catch (error) {
+                contentEl.innerHTML = `<div style="color: var(--accent-red);">加载失败: ${error.message}</div>`;
+            }
+        }
+
+        // Delete Note
+        async function deleteNote(noteId) {
+            if (!confirm('确定要删除这条笔记吗？')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/journal/notes/${noteId}`, {
+                    method: 'DELETE',
+                });
+                const data = await response.json();
+
+                if (data.code === 200) {
+                    showToast('笔记删除成功', 'success');
+                    loadNotes();
+                } else {
+                    showToast('删除失败', 'error');
+                }
+            } catch (error) {
+                showToast(`删除失败: ${error.message}`, 'error');
+            }
+        }
+
+        // Create Note
+        async function createNote() {
+            const date = document.getElementById('note-date').value;
+            const source = document.getElementById('note-source').value;
+            const tagsStr = document.getElementById('note-tags').value;
+            const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : [];
+
+            try {
+                const response = await fetch(`${API_BASE}/journal/notes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        source,
+                        tags,
+                        note_date: date || null,
+                    }),
+                });
+                const data = await response.json();
+
+                if (data.code === 200) {
+                    showToast('笔记创建成功', 'success');
+                    closeModal('new-note-modal');
+                    loadNotes();
+                } else {
+                    showToast('创建失败', 'error');
+                }
+            } catch (error) {
+                showToast(`创建失败: ${error.message}`, 'error');
+            }
+        }
+
+        // Position Rows
+        function addPositionRow() {
+            positionCount++;
+            const tbody = document.getElementById('position-tbody');
+            const row = document.createElement('tr');
+            row.id = `position-${positionCount}`;
+            row.innerHTML = `
+                <td class="input-cell"><input type="text" placeholder="300308" data-field="ticker"></td>
+                <td class="input-cell"><input type="text" placeholder="中际旭创" data-field="stock_name"></td>
+                <td class="input-cell">
+                    <select data-field="entry_method">
+                        <option value="打板">打板</option>
+                        <option value="低吸">低吸</option>
+                        <option value="半路">半路</option>
+                        <option value="买入">买入</option>
+                        <option value="卖出">卖出</option>
+                    </select>
+                </td>
+                <td class="input-cell"><input type="number" placeholder="0.00" step="0.01" data-field="entry_price"></td>
+                <td class="input-cell"><input type="number" placeholder="0.00" step="0.01" data-field="exit_price"></td>
+                <td class="input-cell"><input type="number" placeholder="0.00" step="0.01" data-field="profit_loss_pct"></td>
+                <td class="input-cell"><input type="text" placeholder="入场逻辑" data-field="entry_reason"></td>
+                <td class="input-cell"><input type="text" placeholder="战法" data-field="tactic_used"></td>
+                <td><button class="btn btn-danger" onclick="removePositionRow(${positionCount})" style="padding: 4px 8px; font-size: 12px;">×</button></td>
+            `;
+            tbody.appendChild(row);
+        }
+
+        function removePositionRow(id) {
+            const row = document.getElementById(`position-${id}`);
+            if (row) row.remove();
+        }
+
+        // Save Review
+        async function saveReview() {
+            const positions = [];
+            document.querySelectorAll('#position-tbody tr').forEach(row => {
+                const pos = {};
+                row.querySelectorAll('[data-field]').forEach(input => {
+                    pos[input.dataset.field] = input.value;
+                });
+                if (pos.ticker || pos.stock_name) {
+                    pos.entry_price = parseFloat(pos.entry_price) || 0;
+                    pos.exit_price = parseFloat(pos.exit_price) || 0;
+                    pos.profit_loss_pct = parseFloat(pos.profit_loss_pct) || 0;
+                    positions.push(pos);
+                }
+            });
+
+            const reviewData = {
+                positions,
+                mindset_level: document.getElementById('mindset-level').value,
+                mindset_summary: document.getElementById('mindset-summary').value,
+                rhythm_summary: document.getElementById('rhythm-summary').value,
+                discipline_summary: document.getElementById('discipline-summary').value,
+                lessons_learned: document.getElementById('lessons-learned').value.split('\n').filter(s => s.trim()),
+                improvements: document.getElementById('improvements').value.split('\n').filter(s => s.trim()),
+                overall_summary: document.getElementById('overall-summary').value,
+                self_score: parseFloat(document.getElementById('self-score').value) || 0,
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/journal/notes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        review: reviewData,
+                        source: 'manual',
+                        note_date: new Date().toISOString().split('T')[0],
+                    }),
+                });
+                const data = await response.json();
+
+                if (data.code === 200) {
+                    showToast('复盘保存成功', 'success');
+                    loadNotes();
+                } else {
+                    showToast('保存失败', 'error');
+                }
+            } catch (error) {
+                showToast(`保存失败: ${error.message}`, 'error');
+            }
+        }
+
+        // Watch Stocks
+        function addWatchStock() {
+            watchStockCount++;
+            const container = document.getElementById('watch-stocks-list');
+            const item = document.createElement('div');
+            item.className = 'watch-stock-item';
+            item.id = `watch-${watchStockCount}`;
+            item.innerHTML = `
+                <div class="priority priority-${Math.min(watchStockCount, 3)}">${watchStockCount}</div>
+                <div>
+                    <input type="text" class="form-input" placeholder="股票名称" data-field="stock_name" style="width: 100%; margin-bottom: 4px;">
+                    <input type="text" class="form-input" placeholder="观察原因" data-field="watch_reason" style="width: 100%; font-size: 12px;">
+                </div>
+                <input type="text" class="form-input" placeholder="代码" data-field="ticker" style="width: 100%;">
+                <input type="number" class="form-input" placeholder="关键价" data-field="key_price" step="0.01" style="width: 100%;">
+                <button class="btn btn-danger" onclick="removeWatchStock(${watchStockCount})" style="padding: 4px 8px; font-size: 12px;">×</button>
+            `;
+            container.appendChild(item);
+        }
+
+        function removeWatchStock(id) {
+            const item = document.getElementById(`watch-${id}`);
+            if (item) item.remove();
+        }
+
+        // Save Plan
+        async function savePlan() {
+            const watchStocks = [];
+            document.querySelectorAll('#watch-stocks-list .watch-stock-item').forEach((item, idx) => {
+                const stock = {};
+                item.querySelectorAll('[data-field]').forEach(input => {
+                    stock[input.dataset.field] = input.value;
+                });
+                if (stock.stock_name || stock.ticker) {
+                    stock.priority = idx + 1;
+                    stock.key_price = parseFloat(stock.key_price) || 0;
+                    watchStocks.push(stock);
+                }
+            });
+
+            const planData = {
+                market_outlook: document.getElementById('market-outlook').value,
+                market_reasoning: document.getElementById('market-reasoning').value,
+                key_levels: document.getElementById('key-levels').value,
+                watch_stocks: watchStocks,
+                total_position_limit: parseFloat(document.getElementById('total-position-limit').value) || 50,
+                single_stock_limit: parseFloat(document.getElementById('single-stock-limit').value) || 20,
+                max_trades: parseInt(document.getElementById('max-trades').value) || 3,
+                stop_loss_rule: document.getElementById('stop-loss-rule').value,
+                take_profit_rule: document.getElementById('take-profit-rule').value,
+                max_daily_loss: parseFloat(document.getElementById('max-daily-loss').value) || 3,
+                risk_rules: document.getElementById('risk-rules').value.split('\n').filter(s => s.trim()),
+                avoid_sectors: document.getElementById('avoid-sectors').value.split(',').map(s => s.trim()).filter(s => s),
+                preferred_sectors: document.getElementById('preferred-sectors').value.split(',').map(s => s.trim()).filter(s => s),
+                preferred_tactics: document.getElementById('preferred-tactics').value.split(',').map(s => s.trim()).filter(s => s),
+                notes: document.getElementById('plan-notes').value,
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/journal/notes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        plan: planData,
+                        source: 'manual',
+                        note_date: new Date().toISOString().split('T')[0],
+                    }),
+                });
+                const data = await response.json();
+
+                if (data.code === 200) {
+                    showToast('计划保存成功', 'success');
+                    loadNotes();
+                } else {
+                    showToast('保存失败', 'error');
+                }
+            } catch (error) {
+                showToast(`保存失败: ${error.message}`, 'error');
+            }
+        }
+
+        // Voice Input
+        function toggleVoiceRecording() {
+            const btn = document.getElementById('voice-btn');
+            const status = document.getElementById('voice-status');
+
+            if (!isRecording) {
+                isRecording = true;
+                btn.classList.add('recording');
+                status.textContent = '正在录音... 点击停止';
+
+                // Simulate recording (in real app, use MediaRecorder API)
+                setTimeout(() => {
+                    if (isRecording) {
+                        toggleVoiceRecording();
+                    }
+                }, 10000);
+            } else {
+                isRecording = false;
+                btn.classList.remove('recording');
+                status.textContent = '录音完成，正在处理...';
+
+                // Simulate voice processing
+                setTimeout(() => {
+                    const transcript = '今天打板了中际旭创，盈利3个点，心态还可以。明天大盘看震荡偏多，重点关注AI板块，仓位控制在50%以内。';
+                    document.getElementById('voice-transcript').style.display = 'block';
+                    document.getElementById('voice-transcript').textContent = transcript;
+                    document.getElementById('process-voice-btn').style.display = 'inline-flex';
+                    status.textContent = '语音转文字完成';
+                }, 1500);
+            }
+        }
+
+        async function processVoiceText() {
+            const transcript = document.getElementById('voice-transcript').textContent;
+            if (!transcript) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/journal/voice/text`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: transcript,
+                        note_date: new Date().toISOString().split('T')[0],
+                    }),
+                });
+                const data = await response.json();
+
+                if (data.code === 200) {
+                    showToast('语音解析成功', 'success');
+                    document.getElementById('convert-voice-btn').style.display = 'inline-flex';
+
+                    // Show parsed result
+                    const result = data.data;
+                    let html = `<div class="card" style="margin-top: 16px;">
+                        <h4 style="color: var(--accent-cyan); margin-bottom: 8px;">解析结果</h4>
+                        <p>内容类型: <span class="tag tag-blue">${result.parsed_type}</span></p>`;
+
+                    if (result.parsed_data?.review) {
+                        html += `<p>识别到复盘内容: ${result.parsed_data.review.positions?.length || 0}笔交易</p>`;
+                    }
+                    if (result.parsed_data?.plan) {
+                        html += `<p>识别到计划内容: 大盘${result.parsed_data.plan.market_outlook}</p>`;
+                    }
+                    html += '</div>';
+
+                    document.getElementById('voice-transcript').insertAdjacentHTML('afterend', html);
+                } else {
+                    showToast('解析失败', 'error');
+                }
+            } catch (error) {
+                showToast(`解析失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function processTextInput() {
+            const text = document.getElementById('text-input').value;
+            if (!text.trim()) {
+                showToast('请输入内容', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/journal/voice/text`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        note_date: new Date().toISOString().split('T')[0],
+                    }),
+                });
+                const data = await response.json();
+
+                if (data.code === 200) {
+                    const result = data.data;
+                    const resultEl = document.getElementById('text-parse-result');
+                    resultEl.style.display = 'block';
+
+                    let html = `<div class="card">
+                        <h4 style="color: var(--accent-cyan); margin-bottom: 8px;">解析结果</h4>
+                        <p>内容类型: <span class="tag tag-blue">${result.parsed_type}</span></p>`;
+
+                    if (result.parsed_data?.review) {
+                        html += `<div style="margin-top: 8px;"><strong>复盘内容:</strong>`;
+                        html += `<p>交易笔数: ${result.parsed_data.review.positions?.length || 0}</p>`;
+                        html += `<p>心态评级: ${result.parsed_data.review.mindset_level}</p>`;
+                        html += `</div>`;
+                    }
+                    if (result.parsed_data?.plan) {
+                        html += `<div style="margin-top: 8px;"><strong>计划内容:</strong>`;
+                        html += `<p>大盘判断: ${result.parsed_data.plan.market_outlook}</p>`;
+                        html += `<p>仓位上限: ${result.parsed_data.plan.total_position_limit}%</p>`;
+                        html += `</div>`;
+                    }
+
+                    html += `<div style="margin-top: 12px;">
+                        <button class="btn btn-success" onclick="saveParsedAsNote()">💾 保存为笔记</button>
+                    </div></div>`;
+
+                    resultEl.innerHTML = html;
+                    showToast('解析成功', 'success');
+                } else {
+                    showToast('解析失败', 'error');
+                }
+            } catch (error) {
+                showToast(`解析失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function saveParsedAsNote() {
+            const text = document.getElementById('text-input').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/journal/voice/text`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        note_date: new Date().toISOString().split('T')[0],
+                    }),
+                });
+                const data = await response.json();
+
+                if (data.code === 200 && data.data.parsed_data) {
+                    const noteResponse = await fetch(`${API_BASE}/journal/notes`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            review: data.data.parsed_data.review || null,
+                            plan: data.data.parsed_data.plan || null,
+                            source: 'voice',
+                            note_date: new Date().toISOString().split('T')[0],
+                        }),
+                    });
+                    const noteData = await noteResponse.json();
+
+                    if (noteData.code === 200) {
+                        showToast('笔记保存成功', 'success');
+                        loadNotes();
+                        switchTab('notes');
+                    }
+                }
+            } catch (error) {
+                showToast(`保存失败: ${error.message}`, 'error');
+            }
+        }
+
+        // Scoring
+        async function evaluateStock() {
+            const ticker = document.getElementById('score-ticker').value;
+            const name = document.getElementById('score-name').value;
+            const price = parseFloat(document.getElementById('score-price').value) || 0;
+            const position = parseFloat(document.getElementById('score-position').value) || 0;
+
+            if (!ticker) {
+                showToast('请输入股票代码', 'error');
+                return;
+            }
+
+            const resultEl = document.getElementById('scoring-result');
+            resultEl.style.display = 'block';
+            resultEl.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/journal/scoring/evaluate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ticker,
+                        stock_name: name,
+                        current_price: price,
+                        current_position: position,
+                    }),
+                });
+                const data = await response.json();
+
+                if (data.code === 200) {
+                    const result = data.data;
+                    const scoreClass = result.total_score >= 75 ? 'score-high' :
+                                      result.total_score >= 55 ? 'score-medium' : 'score-low';
+
+                    let html = `
+                        <div class="scoring-result">
+                            <div class="score-circle ${scoreClass}">${result.total_score}</div>
+                            <div>
+                                <h3 style="margin-bottom: 4px;">${result.stock_name || ticker} (${result.ticker})</h3>
+                                <p style="color: var(--text-muted); font-size: 13px;">
+                                    评级: <span class="tag tag-${result.rating === 'A' ? 'green' : result.rating === 'B' ? 'blue' : result.rating === 'C' ? 'yellow' : 'red'}">${result.rating}</span>
+                                    风险: <span class="tag tag-${result.risk_level === '低' ? 'green' : result.risk_level === '中' ? 'yellow' : 'red'}">${result.risk_level}</span>
+                                    操作: <span class="tag tag-blue">${result.action || '观望'}</span>
+                                </p>
+                                <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">
+                                    ${result.summary || ''}
+                                </p>
+                            </div>
+                        </div>
+                    `;
+
+                    // Dimension scores
+                    if (result.dimension_scores?.length) {
+                        html += '<div class="card" style="margin-top: 12px;"><h4 style="margin-bottom: 12px; font-size: 14px;">维度评分</h4>';
+                        result.dimension_scores.forEach(ds => {
+                            const pct = (ds.score / 100 * 100).toFixed(0);
+                            const color = ds.score >= 75 ? 'var(--accent-green)' :
+                                         ds.score >= 55 ? 'var(--accent-yellow)' : 'var(--accent-red)';
+                            html += `
+                                <div style="margin-bottom: 8px;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                                        <span>${ds.dimension}</span>
+                                        <span style="color: ${color};">${ds.score}分 (权重${(ds.weight * 100).toFixed(0)}%)</span>
+                                    </div>
+                                    <div class="dimension-bar">
+                                        <div class="dimension-fill" style="width: ${pct}%; background: ${color};"></div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                    }
+
+                    // Risk/Reward
+                    if (result.risk_reward_ratio > 0) {
+                        html += `
+                            <div class="card" style="margin-top: 12px;">
+                                <h4 style="margin-bottom: 12px; font-size: 14px;">风险收益分析</h4>
+                                <div class="stats-grid">
+                                    <div class="stat-card">
+                                        <div class="stat-value">${result.risk_reward_ratio.toFixed(2)}</div>
+                                        <div class="stat-label">风险收益比</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-value">${result.entry_price?.toFixed(2) || '-'}</div>
+                                        <div class="stat-label">建议入场价</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-value stat-negative">${result.stop_loss?.toFixed(2) || '-'}</div>
+                                        <div class="stat-label">止损价</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-value stat-positive">${result.take_profit?.toFixed(2) || '-'}</div>
+                                        <div class="stat-label">止盈价</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    resultEl.innerHTML = html;
+                } else {
+                    resultEl.innerHTML = `<div style="color: var(--accent-red);">评分失败</div>`;
+                }
+            } catch (error) {
+                resultEl.innerHTML = `<div style="color: var(--accent-red);">评分失败: ${error.message}</div>`;
+            }
+        }
+
+        // Score Statistics
+        async function loadScoreStatistics() {
+            const statsEl = document.getElementById('score-statistics');
+
+            try {
+                const response = await fetch(`${API_BASE}/journal/scoring/statistics`);
+                const data = await response.json();
+
+                if (data.code === 200) {
+                    const stats = data.data;
+                    statsEl.innerHTML = `
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value">${stats.total_stocks || 0}</div>
+                                <div class="stat-label">评分标的数</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${stats.total_scores || 0}</div>
+                                <div class="stat-label">总评分次数</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${stats.avg_score?.toFixed(1) || 0}</div>
+                                <div class="stat-label">平均评分</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    statsEl.innerHTML = '<div style="color: var(--text-muted);">暂无统计数据</div>';
+                }
+            } catch (error) {
+                statsEl.innerHTML = `<div style="color: var(--accent-red);">加载失败: ${error.message}</div>`;
+            }
+        }
+
+        // Performance
+        async function loadPerformance() {
+            const days = document.getElementById('perf-days').value;
+            const perfEl = document.getElementById('performance-stats');
+
+            try {
+                const response = await fetch(`${API_BASE}/journal/performance?days=${days}`);
+                const data = await response.json();
+
+                if (data.code === 200) {
+                    const perf = data.data;
+                    perfEl.innerHTML = `
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value">${perf.total_trades || 0}</div>
+                                <div class="stat-label">总交易笔数</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${(perf.win_rate * 100 || 0).toFixed(1)}%</div>
+                                <div class="stat-label">胜率</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value ${perf.total_pnl_pct >= 0 ? 'stat-positive' : 'stat-negative'}">${perf.total_pnl_pct?.toFixed(2) || 0}%</div>
+                                <div class="stat-label">总收益率</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${perf.avg_pnl_pct?.toFixed(2) || 0}%</div>
+                                <div class="stat-label">平均单笔收益</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${perf.max_win_pct?.toFixed(2) || 0}%</div>
+                                <div class="stat-label">最大单笔盈利</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value stat-negative">${perf.max_loss_pct?.toFixed(2) || 0}%</div>
+                                <div class="stat-label">最大单笔亏损</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${perf.win_trades || 0}</div>
+                                <div class="stat-label">盈利笔数</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">${perf.loss_trades || 0}</div>
+                                <div class="stat-label">亏损笔数</div>
+                            </div>
+                        </div>
+                        ${perf.mindset_avg ? `
+                            <div class="card" style="margin-top: 16px;">
+                                <h4 style="margin-bottom: 8px; font-size: 14px;">心态统计</h4>
+                                <p>平均心态评级: ${perf.mindset_avg}</p>
+                                <p>平均自我评分: ${perf.self_score_avg?.toFixed(1) || 0}</p>
+                            </div>
+                        ` : ''}
+                    `;
+                } else {
+                    perfEl.innerHTML = '<div style="color: var(--text-muted);">暂无绩效数据</div>';
+                }
+            } catch (error) {
+                perfEl.innerHTML = `<div style="color: var(--accent-red);">加载失败: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

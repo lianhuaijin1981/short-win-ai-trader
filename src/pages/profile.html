@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人中心 - 短线致胜 AI 交易智能体</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1a2235;
+            --bg-card-hover: #1f2a40;
+            --border-color: #2a3550;
+            --text-primary: #e8eaed;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-orange: #f59e0b;
+            --accent-purple: #8b5cf6;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        .top-bar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .top-bar .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .top-bar .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .top-bar .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .top-bar .nav-links {
+            display: flex;
+            gap: 16px;
+        }
+        .top-bar .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .top-bar .nav-link:hover {
+            color: var(--text-primary);
+            background: var(--bg-card);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 24px;
+        }
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 24px;
+        }
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .avatar-section {
+            text-align: center;
+            padding: 24px 20px;
+        }
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 700;
+            margin: 0 auto 16px;
+        }
+        .username {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .membership-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        .membership-badge.trial {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-orange);
+        }
+        .membership-badge.season {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-green);
+        }
+        .membership-badge.annual {
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--accent-purple);
+        }
+        .membership-badge.free {
+            background: rgba(107, 114, 128, 0.15);
+            color: var(--text-muted);
+        }
+        .menu-list {
+            list-style: none;
+        }
+        .menu-item {
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .menu-item:hover, .menu-item.active {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+        .menu-item.active {
+            border-left: 3px solid var(--accent-blue);
+        }
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 18px;
+            background: var(--accent-blue);
+            border-radius: 2px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .info-label {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .info-value {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            font-family: 'SF Mono', monospace;
+            color: var(--accent-cyan);
+        }
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: #fff;
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+        .btn-outline:hover {
+            border-color: var(--accent-blue);
+            color: var(--text-primary);
+        }
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .form-group input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+        .form-group input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .membership-card {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.1));
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .membership-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .membership-status {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .membership-expire {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .toast {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            z-index: 300;
+            animation: slideIn 0.3s ease;
+        }
+        .toast-success { background: var(--accent-green); color: white; }
+        .toast-error { background: var(--accent-red); color: white; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @media (max-width: 768px) {
+            .profile-grid { grid-template-columns: 1fr; }
+            .info-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div class="logo">
+            <div class="logo-icon">S</div>
+            <span class="logo-text">短线致胜 · AI 交易智能体</span>
+        </div>
+        <div class="nav-links">
+            <a href="market-dashboard.html" class="nav-link">📊 市场看板</a>
+            <a href="trade-journal.html" class="nav-link">📝 交易笔记</a>
+            <a href="profile.html" class="nav-link" style="color: var(--accent-cyan);">👤 个人中心</a>
+            <a href="pricing.html" class="nav-link">💎 会员升级</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1 class="page-title">👤 个人中心</h1>
+
+        <div class="profile-grid">
+            <!-- 左侧边栏 -->
+            <div class="sidebar">
+                <div class="card avatar-section">
+                    <div class="avatar" id="avatarText">U</div>
+                    <div class="username" id="displayName">未登录</div>
+                    <div class="membership-badge free" id="membershipBadge">免费用户</div>
+                </div>
+                <div class="card" style="padding: 8px;">
+                    <ul class="menu-list">
+                        <li class="menu-item active" onclick="switchTab('info')">📋 基本信息</li>
+                        <li class="menu-item" onclick="switchTab('membership')">💎 会员信息</li>
+                        <li class="menu-item" onclick="switchTab('orders')">📦 订单记录</li>
+                        <li class="menu-item" onclick="switchTab('settings')">⚙️ 账号设置</li>
+                        <li class="menu-item" onclick="switchTab('security')">🔒 安全中心</li>
+                    </ul>
+                </div>
+                <button class="btn btn-danger" onclick="logout()" style="width:100%">🚪 退出登录</button>
+            </div>
+
+            <!-- 主内容区 -->
+            <div class="main-content">
+                <!-- 基本信息 -->
+                <div id="tab-info" class="tab-content active">
+                    <div class="card">
+                        <div class="section-title">基本信息</div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">用户名</span>
+                                <span class="info-value" id="infoUsername">--</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">邮箱</span>
+                                <span class="info-value" id="infoEmail">--</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">手机号</span>
+                                <span class="info-value" id="infoPhone">--</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">注册时间</span>
+                                <span class="info-value" id="infoCreatedAt">--</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">最后登录</span>
+                                <span class="info-value" id="infoLastLogin">--</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">登录次数</span>
+                                <span class="info-value" id="infoLoginCount">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top: 16px;">
+                        <div class="section-title">使用统计</div>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="statTrades">0</div>
+                                <div class="stat-label">交易记录</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="statNotes">0</div>
+                                <div class="stat-label">交易笔记</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="statScreens">0</div>
+                                <div class="stat-label">选股次数</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="statDays">0</div>
+                                <div class="stat-label">使用天数</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 会员信息 -->
+                <div id="tab-membership" class="tab-content">
+                    <div class="card">
+                        <div class="section-title">会员状态</div>
+                        <div class="membership-card">
+                            <div class="membership-info">
+                                <div>
+                                    <div style="font-size: 18px; font-weight: 700;" id="membershipType">免费用户</div>
+                                    <div class="membership-expire" id="membershipExpire">无到期时间</div>
+                                </div>
+                                <button class="btn btn-primary" onclick="window.location.href='pricing.html'">升级会员</button>
+                            </div>
+                        </div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">会员类型</span>
+                                <span class="info-value" id="memType">--</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">到期时间</span>
+                                <span class="info-value" id="memExpire">--</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">是否体验</span>
+                                <span class="info-value" id="memTrial">--</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">剩余天数</span>
+                                <span class="info-value" id="memDaysLeft">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 订单记录 -->
+                <div id="tab-orders" class="tab-content">
+                    <div class="card">
+                        <div class="section-title">订单记录</div>
+                        <div id="ordersList" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            暂无订单记录
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 账号设置 -->
+                <div id="tab-settings" class="tab-content">
+                    <div class="card">
+                        <div class="section-title">修改资料</div>
+                        <div class="form-group">
+                            <label>用户名</label>
+                            <input type="text" id="editUsername" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>邮箱</label>
+                            <input type="email" id="editEmail">
+                        </div>
+                        <div class="form-group">
+                            <label>手机号</label>
+                            <input type="tel" id="editPhone">
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" onclick="saveProfile()">保存修改</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 安全中心 -->
+                <div id="tab-security" class="tab-content">
+                    <div class="card">
+                        <div class="section-title">修改密码</div>
+                        <div class="form-group">
+                            <label>当前密码</label>
+                            <input type="password" id="currentPassword" placeholder="请输入当前密码">
+                        </div>
+                        <div class="form-group">
+                            <label>新密码</label>
+                            <input type="password" id="newPassword" placeholder="请输入新密码（至少6位）">
+                        </div>
+                        <div class="form-group">
+                            <label>确认新密码</label>
+                            <input type="password" id="confirmPassword" placeholder="请再次输入新密码">
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" onclick="changePassword()">修改密码</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/v1';
+
+        function getToken() {
+            return localStorage.getItem('access_token');
+        }
+
+        function showToast(msg, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function logout() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        }
+
+        async function loadUserProfile() {
+            const token = getToken();
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const resp = await fetch(`${API_BASE}/user/profile`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await resp.json();
+
+                if (data.code === 200) {
+                    const user = data.data.user;
+                    const membership = data.data.membership;
+
+                    // 更新显示
+                    document.getElementById('displayName').textContent = user.username;
+                    document.getElementById('avatarText').textContent = user.username.charAt(0).toUpperCase();
+                    document.getElementById('infoUsername').textContent = user.username;
+                    document.getElementById('infoEmail').textContent = user.email || '未设置';
+                    document.getElementById('infoPhone').textContent = user.phone || '未设置';
+                    document.getElementById('infoCreatedAt').textContent = user.created_at ? new Date(user.created_at).toLocaleDateString() : '--';
+                    document.getElementById('infoLastLogin').textContent = user.last_login_at ? new Date(user.last_login_at).toLocaleString() : '--';
+                    document.getElementById('infoLoginCount').textContent = user.login_count || 0;
+
+                    // 编辑表单
+                    document.getElementById('editUsername').value = user.username;
+                    document.getElementById('editEmail').value = user.email || '';
+                    document.getElementById('editPhone').value = user.phone || '';
+
+                    // 会员信息
+                    if (membership) {
+                        const typeMap = { 'free': '免费用户', 'trial': '体验用户', 'season': '季卡会员', 'annual': '年卡会员' };
+                        const badgeClass = membership.membership_type === 'season' ? 'season' :
+                                          membership.membership_type === 'annual' ? 'annual' :
+                                          membership.is_trial ? 'trial' : 'free';
+                        document.getElementById('membershipBadge').className = `membership-badge ${badgeClass}`;
+                        document.getElementById('membershipBadge').textContent = typeMap[membership.membership_type] || '免费用户';
+                        document.getElementById('membershipType').textContent = typeMap[membership.membership_type] || '免费用户';
+                        document.getElementById('memType').textContent = typeMap[membership.membership_type] || '--';
+                        document.getElementById('memExpire').textContent = membership.expire_at ? new Date(membership.expire_at).toLocaleDateString() : '永久';
+                        document.getElementById('memTrial').textContent = membership.is_trial ? '是' : '否';
+
+                        if (membership.expire_at) {
+                            const daysLeft = Math.ceil((new Date(membership.expire_at) - new Date()) / (1000 * 60 * 60 * 24));
+                            document.getElementById('memDaysLeft').textContent = `${daysLeft}天`;
+                            document.getElementById('membershipExpire').textContent = `到期时间：${new Date(membership.expire_at).toLocaleDateString()}`;
+                        }
+                    }
+                } else {
+                    showToast(data.message || '获取用户信息失败', 'error');
+                }
+            } catch (err) {
+                console.error('Load profile error:', err);
+                showToast('网络错误', 'error');
+            }
+        }
+
+        async function saveProfile() {
+            const token = getToken();
+            const email = document.getElementById('editEmail').value;
+            const phone = document.getElementById('editPhone').value;
+
+            try {
+                const resp = await fetch(`${API_BASE}/user/profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, phone })
+                });
+                const data = await resp.json();
+
+                if (data.code === 200) {
+                    showToast('资料更新成功', 'success');
+                    loadUserProfile();
+                } else {
+                    showToast(data.message || '更新失败', 'error');
+                }
+            } catch (err) {
+                showToast('网络错误', 'error');
+            }
+        }
+
+        async function changePassword() {
+            const token = getToken();
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (!currentPassword || !newPassword) {
+                showToast('请填写密码', 'error');
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                showToast('两次密码不一致', 'error');
+                return;
+            }
+            if (newPassword.length < 6) {
+                showToast('密码至少6位', 'error');
+                return;
+            }
+
+            try {
+                const resp = await fetch(`${API_BASE}/user/change-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+                });
+                const data = await resp.json();
+
+                if (data.code === 200) {
+                    showToast('密码修改成功', 'success');
+                    document.getElementById('currentPassword').value = '';
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                } else {
+                    showToast(data.message || '修改失败', 'error');
+                }
+            } catch (err) {
+                showToast('网络错误', 'error');
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUserProfile();
+        });
+    </script>
+</body>
+</html>

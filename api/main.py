@@ -12,6 +12,10 @@ from api.routers import (
     market_router, news_router, sentiment_router,
     scoring_router, yingyou_router, tactics_router,
     intraday_router, diagnosis_router, stock_router,
+    journal_router,
+    # 用户账号体系路由
+    auth_router, user_router, membership_router,
+    order_router, admin_router,
 )
 from api.core.config import APIConfig
 from api.core.logger import get_logger
@@ -80,6 +84,8 @@ async def health_check():
             "m05_tactics": "active",
             "m06_scoring": "active",
             "m07_diagnosis": "active",
+            "m08_journal": "active",
+            "m09_user_system": "active",
         },
     }
 
@@ -100,6 +106,12 @@ async def root():
             "diagnosis": "/api/v1/diagnosis",
             "stock": "/api/v1/stock",
             "news": "/api/v1/news",
+            "journal": "/api/v1/journal",
+            "auth": "/api/v1/auth",
+            "user": "/api/v1/user",
+            "membership": "/api/v1/membership",
+            "order": "/api/v1/order",
+            "admin": "/api/v1/admin",
         },
     }
 
@@ -114,6 +126,14 @@ app.include_router(scoring_router, prefix="/api/v1", tags=["Scoring"])
 app.include_router(diagnosis_router, prefix="/api/v1", tags=["Diagnosis"])
 app.include_router(stock_router, prefix="/api/v1", tags=["Stock"])
 app.include_router(news_router, prefix="/api/v1", tags=["News"])
+app.include_router(journal_router, prefix="/api/v1", tags=["TradeJournal"])
+
+# 用户账号体系路由
+app.include_router(auth_router, prefix="/api/v1")
+app.include_router(user_router, prefix="/api/v1")
+app.include_router(membership_router, prefix="/api/v1")
+app.include_router(order_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")
 
 # ── 启动入口 ────────────────────────────────────────────
 

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会员定价 - 短线致胜 AI 交易智能体</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1a2235;
+            --bg-card-hover: #1f2a40;
+            --border-color: #2a3550;
+            --text-primary: #e8eaed;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-orange: #f59e0b;
+            --accent-purple: #8b5cf6;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        .top-bar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .top-bar .logo { display: flex; align-items: center; gap: 12px; }
+        .top-bar .logo-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan));
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; font-weight: bold;
+        }
+        .top-bar .logo-text {
+            font-size: 18px; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .top-bar .nav-links { display: flex; gap: 16px; }
+        .top-bar .nav-link {
+            color: var(--text-secondary); text-decoration: none;
+            font-size: 13px; padding: 6px 12px; border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .top-bar .nav-link:hover { color: var(--text-primary); background: var(--bg-card); }
+        .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+        .page-header { text-align: center; margin-bottom: 48px; }
+        .page-header h1 {
+            font-size: 36px; font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        .page-header p { color: var(--text-secondary); font-size: 16px; }
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+        .pricing-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 32px 28px;
+            text-align: center;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .pricing-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+        }
+        .pricing-card.popular {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.2);
+        }
+        .popular-badge {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            color: #fff;
+            padding: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .pricing-card.popular { padding-top: 52px; }
+        .plan-icon { font-size: 40px; margin-bottom: 16px; }
+        .plan-name { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+        .plan-desc { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; }
+        .plan-price {
+            font-size: 48px; font-weight: 800;
+            font-family: 'SF Mono', monospace;
+            margin-bottom: 4px;
+        }
+        .plan-price .currency { font-size: 20px; vertical-align: top; }
+        .plan-price .period { font-size: 14px; color: var(--text-muted); font-weight: 400; }
+        .plan-original {
+            color: var(--text-muted); font-size: 14px;
+            text-decoration: line-through;
+            margin-bottom: 24px;
+        }
+        .plan-features {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 28px;
+        }
+        .plan-features li {
+            padding: 8px 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .plan-features li .check { color: var(--accent-green); }
+        .plan-features li .cross { color: var(--text-muted); }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            color: #fff;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+        .btn-outline:hover {
+            border-color: var(--accent-blue);
+            color: var(--text-primary);
+        }
+        .faq-section { margin-top: 48px; }
+        .faq-title {
+            font-size: 24px; font-weight: 700;
+            text-align: center; margin-bottom: 32px;
+        }
+        .faq-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        .faq-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .faq-item h4 {
+            font-size: 14px; font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--accent-cyan);
+        }
+        .faq-item p {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+        .toast {
+            position: fixed; top: 70px; right: 20px;
+            padding: 12px 20px; border-radius: 8px;
+            font-size: 13px; z-index: 300;
+            animation: slideIn 0.3s ease;
+        }
+        .toast-success { background: var(--accent-green); color: white; }
+        .toast-error { background: var(--accent-red); color: white; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @media (max-width: 768px) {
+            .pricing-grid { grid-template-columns: 1fr; }
+            .faq-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div class="logo">
+            <div class="logo-icon">S</div>
+            <span class="logo-text">短线致胜 · AI 交易智能体</span>
+        </div>
+        <div class="nav-links">
+            <a href="market-dashboard.html" class="nav-link">📊 市场看板</a>
+            <a href="trade-journal.html" class="nav-link">📝 交易笔记</a>
+            <a href="profile.html" class="nav-link">👤 个人中心</a>
+            <a href="pricing.html" class="nav-link" style="color: var(--accent-cyan);">💎 会员升级</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>💎 选择适合你的会员方案</h1>
+            <p>解锁全部AI交易功能，提升短线交易胜率</p>
+        </div>
+
+        <div class="pricing-grid">
+            <!-- 体验卡 -->
+            <div class="pricing-card">
+                <div class="plan-icon">🎁</div>
+                <div class="plan-name">体验卡</div>
+                <div class="plan-desc">新用户注册即送7天</div>
+                <div class="plan-price">
+                    <span class="currency">¥</span>0
+                    <span class="period">/7天</span>
+                </div>
+                <div class="plan-original">免费体验</div>
+                <ul class="plan-features">
+                    <li><span class="check">✓</span> 市场情绪看板</li>
+                    <li><span class="check">✓</span> 基础选股功能</li>
+                    <li><span class="check">✓</span> 交易笔记（限10条）</li>
+                    <li><span class="cross">✗</span> AI智能评分</li>
+                    <li><span class="cross">✗</span> 游资诊断</li>
+                    <li><span class="cross">✗</span> 实时盘中监控</li>
+                </ul>
+                <button class="btn btn-outline" onclick="showToast('注册即自动激活体验卡', 'info')">注册获取</button>
+            </div>
+
+            <!-- 季卡 -->
+            <div class="pricing-card popular">
+                <div class="popular-badge">🔥 最受欢迎</div>
+                <div class="plan-icon">🥇</div>
+                <div class="plan-name">季卡会员</div>
+                <div class="plan-desc">适合活跃短线交易者</div>
+                <div class="plan-price">
+                    <span class="currency">¥</span>199
+                    <span class="period">/季</span>
+                </div>
+                <div class="plan-original">原价 ¥299/季</div>
+                <ul class="plan-features">
+                    <li><span class="check">✓</span> 全部市场数据</li>
+                    <li><span class="check">✓</span> AI智能选股</li>
+                    <li><span class="check">✓</span> 交易笔记（无限）</li>
+                    <li><span class="check">✓</span> AI多维评分</li>
+                    <li><span class="check">✓</span> 游资行为诊断</li>
+                    <li><span class="cross">✗</span> 实时盘中监控</li>
+                </ul>
+                <button class="btn btn-primary" onclick="purchaseMembership('season')">立即开通</button>
+            </div>
+
+            <!-- 年卡 -->
+            <div class="pricing-card">
+                <div class="plan-icon">💎</div>
+                <div class="plan-name">年卡会员</div>
+                <div class="plan-desc">专业交易者首选</div>
+                <div class="plan-price">
+                    <span class="currency">¥</span>599
+                    <span class="period">/年</span>
+                </div>
+                <div class="plan-original">原价 ¥796/年（省¥197）</div>
+                <ul class="plan-features">
+                    <li><span class="check">✓</span> 全部市场数据</li>
+                    <li><span class="check">✓</span> AI智能选股</li>
+                    <li><span class="check">✓</span> 交易笔记（无限）</li>
+                    <li><span class="check">✓</span> AI多维评分</li>
+                    <li><span class="check">✓</span> 游资行为诊断</li>
+                    <li><span class="check">✓</span> 实时盘中监控</li>
+                </ul>
+                <button class="btn btn-primary" onclick="purchaseMembership('annual')">立即开通</button>
+            </div>
+        </div>
+
+        <!-- FAQ -->
+        <div class="faq-section">
+            <h2 class="faq-title">常见问题</h2>
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <h4>Q: 会员到期后怎么办？</h4>
+                    <p>会员到期后将自动降级为免费用户，已保存的数据不会丢失，但部分高级功能将无法使用。</p>
+                </div>
+                <div class="faq-item">
+                    <h4>Q: 可以随时升级或降级吗？</h4>
+                    <p>可以随时升级会员，升级时会自动计算剩余天数并折算抵扣。降级将在当前会员期结束后生效。</p>
+                </div>
+                <div class="faq-item">
+                    <h4>Q: 支持哪些支付方式？</h4>
+                    <p>目前支持微信支付和支付宝。企业用户还支持银行转账。</p>
+                </div>
+                <div class="faq-item">
+                    <h4>Q: 可以退款吗？</h4>
+                    <p>购买后7天内如未使用高级功能，可申请全额退款。超过7天或使用过高级功能则不支持退款。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api/v1';
+
+        function getToken() {
+            return localStorage.getItem('access_token');
+        }
+
+        function showToast(msg, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        async function purchaseMembership(type) {
+            const token = getToken();
+            if (!token) {
+                showToast('请先登录', 'error');
+                setTimeout(() => window.location.href = 'login.html', 1500);
+                return;
+            }
+
+            const priceMap = { season: 199, annual: 599 };
+            const price = priceMap[type];
+
+            try {
+                // 创建订单
+                const resp = await fetch(`${API_BASE}/order/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        membership_type: type,
+                        amount: price,
+                        payment_method: 'wechat'
+                    })
+                });
+                const data = await resp.json();
+
+                if (data.code === 200) {
+                    showToast('订单创建成功！模拟支付中...', 'success');
+
+                    // 模拟支付（实际项目中对接支付SDK）
+                    setTimeout(async () => {
+                        const payResp = await fetch(`${API_BASE}/order/${data.data.order_id}/pay`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                payment_method: 'wechat',
+                                transaction_id: 'MOCK_' + Date.now()
+                            })
+                        });
+                        const payData = await payResp.json();
+
+                        if (payData.code === 200) {
+                            showToast('🎉 支付成功！会员已激活', 'success');
+                            setTimeout(() => window.location.href = 'profile.html', 2000);
+                        } else {
+                            showToast(payData.message || '支付失败', 'error');
+                        }
+                    }, 1500);
+                } else {
+                    showToast(data.message || '创建订单失败', 'error');
+                }
+            } catch (err) {
+                showToast('网络错误', 'error');
+                console.error('Purchase error:', err);
+            }
+        }
+    </script>
+</body>
+</html>
