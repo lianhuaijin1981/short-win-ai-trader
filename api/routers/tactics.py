@@ -49,6 +49,9 @@ def _tactic_to_dict(tactic) -> Dict[str, Any]:
         "forbidden_cycles": tactic.forbidden_cycles,
         "best_env": tactic.best_env,
         "risk_boundary": tactic.risk_boundary,
+        # 新增分类字段
+        "category": tactic.category,
+        "subcategory": tactic.subcategory,
     }
 
 
@@ -101,6 +104,49 @@ def _resonance_to_dict(rs) -> Dict[str, Any]:
 # ──────────────────────────────────────────────────────────
 
 # ──────────────────────────────────────────────────────────
+# GET /tactics/categories — 战法分类体系（6大类+小类）
+# ──────────────────────────────────────────────────────────
+
+@router.get("/tactics/categories", response_model=DataResponse)
+async def get_tactic_categories(
+    tree: bool = Query(True, description="返回树形结构（True）或扁平结构（False）"),
+):
+    """获取战法分类体系
+
+    返回6大战法大类及其小类的完整分类体系:
+    - 资金流: 多维共振/龙虎榜/资金周期/主力行为/量化指标
+    - 筹码峰: 筹码分布/压力突破
+    - 技术分析: K线形态/底部反转/平台突破/技术指标/分时盘口/尾盘策略
+    - 情绪周期: 龙头低吸/连板接力/龙头博弈/反包博弈
+    - 量价关系: 放量突破/缩量控盘
+    - 跟庄: 筹码资金共振
+
+    Args:
+        tree: 是否返回树形结构（默认True）
+
+    Returns:
+        战法分类体系
+    """
+    from short_win_ai_trader.modules.m05_tactic_screening.tactics_library import (
+        get_all_categories,
+        get_category_tree,
+    )
+
+    if tree:
+        data = {
+            "tree": get_category_tree(),
+            "total_tactics": len(
+                __import__("short_win_ai_trader.modules.m05_tactic_screening.tactics_library",
+                          fromlist=["ALL_TACTICS"]).ALL_TACTICS
+            ),
+        }
+    else:
+        data = get_all_categories()
+
+    return DataResponse(data=data)
+
+
+# ──────────────────────────────────────────────────────────
 # GET /tactics/list — 战法列表
 # ──────────────────────────────────────────────────────────
 
@@ -108,22 +154,28 @@ def _resonance_to_dict(rs) -> Dict[str, Any]:
 async def list_tactics(
     cycle: Optional[str] = Query(None, description="按情绪周期筛选（如: 发酵期）"),
     risk_level: Optional[str] = Query(None, description="按风险等级筛选（low/medium/high/extreme）"),
+    category: Optional[str] = Query(None, description="按战法大类筛选（资金流/筹码峰/技术分析/情绪周期/量价关系/跟庄）"),
+    subcategory: Optional[str] = Query(None, description="按战法小类筛选（如: 多维共振/龙虎榜/K线形态等）"),
 ):
     """获取战法列表
 
-    返回所有可用战法的概览信息，支持按情绪周期和风险等级筛选。
+    返回所有可用战法的概览信息，支持按情绪周期、风险等级、战法大类/小类筛选。
 
     Args:
         cycle: 情绪周期筛选（可选）
         risk_level: 风险等级筛选（可选）
+        category: 战法大类筛选（可选）
+        subcategory: 战法小类筛选（可选）
 
     Returns:
         战法列表及统计信息
     """
     from short_win_ai_trader.modules.m05_tactic_screening.tactics_library import (
         ALL_TACTICS,
+        TACTICS_BY_CATEGORY,
         TACTICS_BY_CYCLE,
         TACTICS_BY_RISK,
+        TACTICS_BY_SUBCATEGORY,
         get_tactics_summary_stats,
     )
 
@@ -141,6 +193,20 @@ async def list_tactics(
         risk_tactics = TACTICS_BY_RISK.get(risk_level, [])
         if risk_tactics:
             allowed_names = {t.name for t in risk_tactics}
+            tactics = [t for t in tactics if t.name in allowed_names]
+
+    # 按战法大类筛选
+    if category:
+        category_tactics = TACTICS_BY_CATEGORY.get(category, [])
+        if category_tactics:
+            allowed_names = {t.name for t in category_tactics}
+            tactics = [t for t in tactics if t.name in allowed_names]
+
+    # 按战法小类筛选
+    if subcategory:
+        subcategory_tactics = TACTICS_BY_SUBCATEGORY.get(subcategory, [])
+        if subcategory_tactics:
+            allowed_names = {t.name for t in subcategory_tactics}
             tactics = [t for t in tactics if t.name in allowed_names]
 
     stats = get_tactics_summary_stats()

@@ -66,8 +66,9 @@ class TacticRuleSet:
     # 不适用的情绪周期
     forbidden_cycles: List[str] = field(default_factory=list)
 
-    # 战法大类（新增分类维度）
-    category: str = ""  # 技术形态/情绪/筹码峰/资金流/量价/分时/尾部
+    # 战法分类体系（大类 + 小类）
+    category: str = ""                 # 大类: 资金流/筹码峰/技术分析/情绪周期/量价关系/跟庄
+    subcategory: str = ""              # 小类: 根据大类细分
 
 
 # ──────────────────────────────────────────────────────────
@@ -172,6 +173,7 @@ CHIP_PEAK_TACTIC = TacticRuleSet(
     applicable_cycles=["启动期", "发酵期"],
     forbidden_cycles=["退潮期", "高潮期"],
     category="筹码峰",
+    subcategory="筹码分布",
 )
 
 
@@ -226,7 +228,8 @@ TRIPLE_VOLUME_BREAKOUT_TACTIC = TacticRuleSet(
 
     applicable_cycles=["发酵期", "高潮期", "启动期"],
     forbidden_cycles=["退潮期", "混沌期"],
-    category="量价",
+    category="量价关系",
+    subcategory="放量突破",
 )
 
 
@@ -281,7 +284,8 @@ SHRINK_VOLUME_BREAKOUT_TACTIC = TacticRuleSet(
 
     applicable_cycles=["启动期", "发酵期"],
     forbidden_cycles=["退潮期"],
-    category="量价",
+    category="量价关系",
+    subcategory="缩量控盘",
 )
 
 
@@ -337,6 +341,7 @@ LEFT_PEAK_BREAK_TACTIC = TacticRuleSet(
     applicable_cycles=["发酵期", "启动期"],
     forbidden_cycles=["退潮期", "高潮期"],
     category="筹码峰",
+    subcategory="压力突破",
 )
 
 
@@ -391,7 +396,8 @@ FIRST_YIN_TACTIC = TacticRuleSet(
 
     applicable_cycles=["发酵期", "分歧期"],
     forbidden_cycles=["退潮期", "混沌期"],
-    category="情绪",
+    category="情绪周期",
+    subcategory="龙头低吸",
 )
 
 
@@ -446,7 +452,8 @@ N_SHAPE_TACTIC = TacticRuleSet(
 
     applicable_cycles=["发酵期", "启动期"],
     forbidden_cycles=["退潮期"],
-    category="技术形态",
+    category="技术分析",
+    subcategory="K线形态",
 )
 
 
@@ -501,7 +508,8 @@ MAGPIE_PLUM_TACTIC = TacticRuleSet(
 
     applicable_cycles=["混沌期", "启动期"],
     forbidden_cycles=["高潮期", "退潮期"],
-    category="技术形态",
+    category="技术分析",
+    subcategory="底部反转",
 )
 
 
@@ -556,7 +564,8 @@ PLATFORM_BREAKOUT_TACTIC = TacticRuleSet(
 
     applicable_cycles=["启动期", "发酵期"],
     forbidden_cycles=["退潮期", "混沌期"],
-    category="技术形态",
+    category="技术分析",
+    subcategory="平台突破",
 )
 
 
@@ -611,7 +620,8 @@ BOARD_1TO2_TACTIC = TacticRuleSet(
 
     applicable_cycles=["发酵期"],
     forbidden_cycles=["退潮期", "分歧期", "混沌期"],
-    category="情绪",
+    category="情绪周期",
+    subcategory="连板接力",
 )
 
 
@@ -666,7 +676,8 @@ DRAGON_EMOTION_TACTIC = TacticRuleSet(
 
     applicable_cycles=["启动期", "发酵期", "分歧期"],
     forbidden_cycles=["退潮期"],
-    category="情绪",
+    category="情绪周期",
+    subcategory="龙头博弈",
 )
 
 
@@ -722,7 +733,8 @@ BOLLINGER_TACTIC = TacticRuleSet(
 
     applicable_cycles=["启动期", "发酵期"],
     forbidden_cycles=["退潮期", "混沌期"],
-    category="技术形态",
+    category="技术分析",
+    subcategory="技术指标",
 )
 
 
@@ -777,7 +789,8 @@ INTRADAY_SUPPORT_TACTIC = TacticRuleSet(
 
     applicable_cycles=["发酵期", "高潮期", "启动期"],
     forbidden_cycles=["退潮期"],
-    category="分时",
+    category="技术分析",
+    subcategory="分时盘口",
 )
 
 
@@ -832,7 +845,8 @@ TRIPLE_BOTTOM_TACTIC = TacticRuleSet(
 
     applicable_cycles=["混沌期", "启动期"],
     forbidden_cycles=["高潮期", "退潮期"],
-    category="技术形态",
+    category="技术分析",
+    subcategory="底部反转",
 )
 
 
@@ -888,7 +902,8 @@ ANTI_NUCLEAR_TACTIC = TacticRuleSet(
 
     applicable_cycles=["分歧期", "启动期"],
     forbidden_cycles=["退潮期", "混沌期"],
-    category="情绪",
+    category="情绪周期",
+    subcategory="反包博弈",
 )
 
 
@@ -944,7 +959,8 @@ SHRINK_TAIL_PREEMPT_TACTIC = TacticRuleSet(
 
     applicable_cycles=["分歧期", "混沌期"],
     forbidden_cycles=["退潮期"],
-    category="尾部",
+    category="技术分析",
+    subcategory="尾盘策略",
 )
 
 
@@ -1002,6 +1018,7 @@ CAPITAL_3D_RESONANCE_TACTIC = TacticRuleSet(
     applicable_cycles=["发酵期", "加速期"],
     forbidden_cycles=["退潮期", "混沌期"],
     category="资金流",
+    subcategory="多维共振",
 )
 
 
@@ -1060,6 +1077,7 @@ CAPITAL_DRAGON_TIGER_TACTIC = TacticRuleSet(
     applicable_cycles=["发酵期", "加速期"],
     forbidden_cycles=["退潮期", "混沌期"],
     category="资金流",
+    subcategory="龙虎榜",
 )
 
 
@@ -1117,6 +1135,7 @@ CAPITAL_EMOTION_4PHASE_TACTIC = TacticRuleSet(
     applicable_cycles=["启动期", "发酵期", "加速期"],
     forbidden_cycles=["退潮期"],
     category="资金流",
+    subcategory="资金周期",
 )
 
 
@@ -1177,6 +1196,7 @@ CAPITAL_4STEP_METHOD_TACTIC = TacticRuleSet(
     applicable_cycles=["启动期", "发酵期", "加速期"],
     forbidden_cycles=["退潮期", "混沌期"],
     category="资金流",
+    subcategory="主力行为",
 )
 
 
@@ -1236,6 +1256,7 @@ CAPITAL_QUANT_INDEX_TACTIC = TacticRuleSet(
     applicable_cycles=["启动期", "发酵期", "加速期", "分歧期", "混沌期"],
     forbidden_cycles=["退潮期"],
     category="资金流",
+    subcategory="量化指标",
 )
 
 
@@ -1294,7 +1315,8 @@ CAPITAL_CHIP_RESONANCE_TACTIC = TacticRuleSet(
 
     applicable_cycles=["启动期", "发酵期"],
     forbidden_cycles=["退潮期", "高潮期"],
-    category="资金流",
+    category="跟庄",
+    subcategory="筹码资金共振",
 )
 
 
@@ -1441,9 +1463,71 @@ def get_tactics_summary_stats() -> Dict[str, Any]:
 
 
 # ──────────────────────────────────────────────────────────
-# 按战法大类分类索引（新增）
+# 战法分类体系：6大类 + 小类
 # ──────────────────────────────────────────────────────────
 
+# 6大类定义
+TACTIC_CATEGORIES: Dict[str, Dict[str, Any]] = {
+    "资金流": {
+        "description": "基于主力资金流向、北向资金、龙虎榜等资金行为分析",
+        "icon": "💰",
+        "subcategories": {
+            "多维共振": "宏观/中观/微观三维度资金共振",
+            "龙虎榜": "龙虎榜席位分析与跟随",
+            "资金周期": "资金情绪四阶段模型",
+            "主力行为": "建仓/洗盘/拉升/出货全过程识别",
+            "量化指标": "资金流量化指标体系",
+        },
+    },
+    "筹码峰": {
+        "description": "基于筹码分布、支撑压力位的资金沉淀分析",
+        "icon": "🏔️",
+        "subcategories": {
+            "筹码分布": "低位单峰密集、多峰形态识别",
+            "压力突破": "过左峰、解放套牢盘",
+        },
+    },
+    "技术分析": {
+        "description": "基于K线形态、技术指标、分时盘口的经典技术分析",
+        "icon": "📊",
+        "subcategories": {
+            "K线形态": "N字形、喜鹊闹梅等经典形态",
+            "底部反转": "三星探底、喜鹊闹梅等底部信号",
+            "平台突破": "横盘整理后放量突破",
+            "技术指标": "布林带、MACD等技术指标应用",
+            "分时盘口": "分时承接、均价线支撑",
+            "尾盘策略": "尾盘缩量企稳先手布局",
+        },
+    },
+    "情绪周期": {
+        "description": "基于市场情绪周期、连板接力、龙头博弈",
+        "icon": "🔥",
+        "subcategories": {
+            "龙头低吸": "龙头首阴低吸战法",
+            "连板接力": "一进二、连板晋级",
+            "龙头博弈": "情绪周期龙头综合战法",
+            "反包博弈": "反核反包涨停战法",
+        },
+    },
+    "量价关系": {
+        "description": "基于成交量与价格配合关系的量能分析",
+        "icon": "📈",
+        "subcategories": {
+            "放量突破": "三倍量突破等放量启动信号",
+            "缩量控盘": "缩量突破、筹码锁定",
+        },
+    },
+    "跟庄": {
+        "description": "跟随主力资金行为，识别庄家建仓/拉升/出货",
+        "icon": "🎯",
+        "subcategories": {
+            "筹码资金共振": "资金流+筹码峰双重确认",
+        },
+    },
+}
+
+
+# 按大类分类索引
 TACTICS_BY_CATEGORY: Dict[str, List[TacticRuleSet]] = {}
 for t in ALL_TACTICS:
     cat = t.category
@@ -1454,11 +1538,21 @@ for t in ALL_TACTICS:
     TACTICS_BY_CATEGORY[cat].append(t)
 
 
+# 按小类分类索引
+TACTICS_BY_SUBCATEGORY: Dict[str, List[TacticRuleSet]] = {}
+for t in ALL_TACTICS:
+    subcat = t.subcategory
+    if subcat:
+        if subcat not in TACTICS_BY_SUBCATEGORY:
+            TACTICS_BY_SUBCATEGORY[subcat] = []
+        TACTICS_BY_SUBCATEGORY[subcat].append(t)
+
+
 def get_tactics_by_category(category: str) -> List[TacticRuleSet]:
     """按战法大类获取战法列表
 
     Args:
-        category: 战法大类名称（如 "资金流" / "技术形态" / "情绪" / "筹码峰" 等）
+        category: 战法大类名称（如 "资金流" / "技术分析" / "情绪周期" / "筹码峰" / "量价关系" / "跟庄"）
 
     Returns:
         战法列表
@@ -1466,35 +1560,98 @@ def get_tactics_by_category(category: str) -> List[TacticRuleSet]:
     return TACTICS_BY_CATEGORY.get(category, [])
 
 
-def get_all_categories() -> Dict[str, Any]:
-    """获取所有战法大类及统计信息
+def get_tactics_by_subcategory(subcategory: str) -> List[TacticRuleSet]:
+    """按战法小类获取战法列表
+
+    Args:
+        subcategory: 战法小类名称（如 "多维共振" / "龙虎榜" / "K线形态" 等）
 
     Returns:
-        战法大类字典
+        战法列表
     """
-    return {
-        "categories": {
-            cat: {
-                "description": _category_descriptions.get(cat, ""),
-                "count": len(tactics),
-                "tactics": [
-                    {"name": t.name, "code": t.code, "risk_level": t.risk_level}
-                    for t in tactics
-                ],
-            }
-            for cat, tactics in TACTICS_BY_CATEGORY.items()
-        },
+    return TACTICS_BY_SUBCATEGORY.get(subcategory, [])
+
+
+def get_all_categories() -> Dict[str, Any]:
+    """获取所有战法大类及小类统计信息
+
+    Returns:
+        战法分类体系字典，包含6大类及其小类
+    """
+    result = {
+        "categories": {},
         "total_tactics": len(ALL_TACTICS),
+        "category_count": len(TACTIC_CATEGORIES),
     }
 
+    for cat_name, cat_info in TACTIC_CATEGORIES.items():
+        tactics = TACTICS_BY_CATEGORY.get(cat_name, [])
+        subcategories = {}
+        for subcat_name, subcat_desc in cat_info["subcategories"].items():
+            sub_tactics = TACTICS_BY_SUBCATEGORY.get(subcat_name, [])
+            subcategories[subcat_name] = {
+                "description": subcat_desc,
+                "count": len(sub_tactics),
+                "tactics": [
+                    {
+                        "name": t.name,
+                        "code": t.code,
+                        "risk_level": t.risk_level,
+                        "hold_period": t.hold_period,
+                    }
+                    for t in sub_tactics
+                ],
+            }
 
-# 大类描述
-_category_descriptions: Dict[str, str] = {
-    "技术形态": "基于K线形态、价格走势的经典技术分析战法",
-    "情绪": "基于市场情绪、连板接力、龙头博弈的情绪战法",
-    "筹码峰": "基于筹码分布、支撑压力的资金沉淀战法",
-    "资金流": "基于主力资金流向、北向资金、龙虎榜的资金行为战法",
-    "量价": "基于成交量与价格配合关系的量能战法",
-    "分时": "基于日内分时走势的短线战法",
-    "尾部": "基于尾盘信号的先手布局战法",
-}
+        result["categories"][cat_name] = {
+            "description": cat_info["description"],
+            "icon": cat_info["icon"],
+            "count": len(tactics),
+            "subcategories": subcategories,
+            "tactics": [
+                {
+                    "name": t.name,
+                    "code": t.code,
+                    "risk_level": t.risk_level,
+                    "subcategory": t.subcategory,
+                }
+                for t in tactics
+            ],
+        }
+
+    return result
+
+
+def get_category_tree() -> List[Dict[str, Any]]:
+    """获取战法分类树形结构（用于前端展示）
+
+    Returns:
+        树形结构列表
+    """
+    tree = []
+    for cat_name, cat_info in TACTIC_CATEGORIES.items():
+        tactics = TACTICS_BY_CATEGORY.get(cat_name, [])
+        children = []
+        for subcat_name, subcat_desc in cat_info["subcategories"].items():
+            sub_tactics = TACTICS_BY_SUBCATEGORY.get(subcat_name, [])
+            children.append({
+                "key": f"{cat_name}/{subcat_name}",
+                "title": subcat_name,
+                "description": subcat_desc,
+                "count": len(sub_tactics),
+                "tactics": [
+                    {"name": t.name, "code": t.code, "risk_level": t.risk_level}
+                    for t in sub_tactics
+                ],
+            })
+
+        tree.append({
+            "key": cat_name,
+            "title": cat_name,
+            "description": cat_info["description"],
+            "icon": cat_info["icon"],
+            "count": len(tactics),
+            "children": children,
+        })
+
+    return tree

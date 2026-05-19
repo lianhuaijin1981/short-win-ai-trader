@@ -33,9 +33,11 @@ from ...data_platform.data_models import (
     DragonBond,
     EmotionDiagnosis,
     EmotionIndicators,
+    EmotionTrend,
     LimitUpStock,
     MarketSnapshot,
     NextDayPrediction,
+    ThemeCycle,
     ThemeCycleAnalysis,
     ThemeData,
 )
@@ -66,6 +68,10 @@ class MarketReplayReport:
     fund_summary: str = ""                  # 资金复盘摘要
     # 情绪周期诊断
     emotion_diagnosis: Optional[EmotionDiagnosis] = None
+    # 情绪趋势分析
+    emotion_trend: Optional[EmotionTrend] = None
+    # 极端信号
+    extreme_signals: List[Dict] = field(default_factory=list)
     # 题材周期分析
     theme_analysis: List[ThemeCycleAnalysis] = field(default_factory=list)
     # 次日预判
@@ -76,6 +82,10 @@ class MarketReplayReport:
     key_conclusions: List[str] = field(default_factory=list)
     # 次日交易方向
     next_day_directions: Dict = field(default_factory=dict)
+    # 复盘质量评分 (0-100)
+    replay_quality_score: float = 0.0
+    # 历史对比
+    historical_comparison: Optional[Dict] = None
 
 
 class MarketReplay:
@@ -597,3 +607,187 @@ class MarketReplay:
     def get_market_predictor(self) -> MarketPredictor:
         """获取大盘趋势推演器实例"""
         return self.market_predictor
+
+    # ==================== 复盘增强功能 ====================
+
+    def _enhance_report(
+        self,
+        report: MarketReplayReport,
+        indicators: EmotionIndicators,
+        snapshot: MarketSnapshot,
+        theme_analysis: List[ThemeCycleAnalysis],
+    ) -> MarketReplayReport:
+        """增强复盘报告，添加趋势分析、极端信号、历史对比和质量评分"""
+        # 1. 情绪趋势分析
+        report.emotion_trend = self.emotion_engine.analyze_emotion_trend(days=5)
+
+        # 2. 极端信号检测
+        report.extreme_signals = self.emotion_engine.get_emotion_extreme_signals(indicators)
+
+        # 3. 历史对比
+        report.historical_comparison = self._compare_with_history(report)
+
+        # 4. 复盘质量评分
+        report.replay_quality_score = self._calculate_replay_quality(
+            snapshot, indicators, theme_analysis
+        )
+
+        # 5. 更新情绪历史
+        if report.trade_date and report.emotion_diagnosis:
+            self.emotion_engine.update_emotion_history(
+                report.trade_date,
+                indicators,
+                report.emotion_diagnosis.current_cycle,
+            )
+
+        return report
+
+    def _compare_with_history(self, current_report: MarketReplayReport) -> Dict:
+        """与历史复盘对比"""
+        # 从历史报告中获取数据
+        history = getattr(self, '_replay_history', [])
+        if len(history) < 2:
+            return {"message": "历史数据不足，无法对比"}
+
+        recent = history[-3:]
+
+        # 情绪得分趋势
+        emotion_scores = []
+        for r in recent:
+            if r.emotion_diagnosis:
+                emotion_scores.append(r.emotion_diagnosis.confidence)
+
+        avg_confidence = sum(emotion_scores) / len(emotion_scores) if emotion_scores else 0
+        current_confidence = current_report.emotion_diagnosis.confidence if current_report.emotion_diagnosis else 0
+
+        # 题材热度变化
+        recent_themes: Dict[str, int] = {}
+        for r in recent:
+            for t in r.theme_analysis[:3]:
+                recent_themes[t.theme_name] = recent_themes.get(t.theme_name, 0) + 1
+
+        current_themes = [t.theme_name for t in current_report.theme_analysis[:3]]
+
+        new_themes = [t for t in current_themes if t not in recent_themes]
+        disappeared_themes = [t for t in recent_themes if t not in current_themes and recent_themes[t] >= 2]
+
+        return {
+            "avg_emotion_confidence": round(avg_confidence, 1),
+            "current_emotion_confidence": round(current_confidence, 1),
+            "emotion_trend": "上升" if current_confidence > avg_confidence else "下降",
+            "new_themes": new_themes,
+            "disappeared_themes": disappeared_themes,
+            "persistent_themes": [t for t in current_themes if t in recent_themes and recent_themes[t] >= 2],
+        }
+
+    def _calculate_replay_quality(
+        self,
+        snapshot: MarketSnapshot,
+        indicators: EmotionIndicators,
+        theme_analysis: List[ThemeCycleAnalysis],
+    ) -> float:
+        """计算复盘质量评分 (0-100)
+
+        评分维度:
+        - 数据完整性 (30分)
+        - 分析深度 (30分)
+        - 逻辑一致性 (20分)
+        - 可操作性 (20分)
+        """
+        score = 0.0
+
+        # 1. 数据完整性 (30分)
+        if snapshot.total_stocks > 0:
+            score += 10
+        if indicators.up_down_ratio > 0:
+            score += 5
+        if indicators.max_consecutive_boards > 0:
+            score += 5
+        if len(theme_analysis) > 0:
+            score += 5
+        if indicators.theme_strength > 0:
+            score += 5
+
+        # 2. 分析深度 (30分)
+        if len(theme_analysis) >= 5:
+            score += 10
+        elif len(theme_analysis) >= 3:
+            score += 5
+
+        themes_with_persistence = sum(1 for t in theme_analysis if t.persistence_type)
+        if themes_with_persistence >= 3:
+            score += 10
+        elif themes_with_persistence >= 1:
+            score += 5
+
+        themes_with_operations = sum(1 for t in theme_analysis if t.entry_point)
+        if themes_with_operations >= 3:
+            score += 10
+        elif themes_with_operations >= 1:
+            score += 5
+
+        # 3. 逻辑一致性 (20分)
+        if indicators.profit_effect > 60 and indicators.up_down_ratio > 1.5:
+            score += 10
+        elif indicators.profit_effect < 30 and indicators.up_down_ratio < 0.8:
+            score += 10
+        else:
+            score += 5
+
+        if indicators.explode_rate < 20 and indicators.max_consecutive_boards >= 5:
+            score += 10
+        elif indicators.explode_rate > 40 and indicators.max_consecutive_boards <= 2:
+            score += 10
+        else:
+            score += 5
+
+        # 4. 可操作性 (20分)
+        if indicators.explode_rate > 30 or indicators.break_rate > 30:
+            score += 10
+        else:
+            score += 5
+
+        if any(t.rotation_target for t in theme_analysis):
+            score += 10
+        else:
+            score += 5
+
+        return min(100, score)
+
+    def get_replay_statistics(self, days: int = 30) -> Dict:
+        """获取复盘统计信息
+
+        Args:
+            days: 统计天数
+
+        Returns:
+            Dict 统计信息
+        """
+        history = getattr(self, '_replay_history', [])
+        recent = history[-days:]
+        if not recent:
+            return {"message": "无复盘数据"}
+
+        # 情绪周期分布
+        cycle_counts: Dict[str, int] = {}
+        for r in recent:
+            if r.emotion_diagnosis:
+                cycle = r.emotion_diagnosis.current_cycle.value
+                cycle_counts[cycle] = cycle_counts.get(cycle, 0) + 1
+
+        # 平均复盘质量
+        avg_quality = sum(r.replay_quality_score for r in recent) / len(recent)
+
+        # 极端信号统计
+        extreme_count = sum(len(r.extreme_signals) for r in recent)
+
+        return {
+            "total_replays": len(recent),
+            "avg_quality_score": round(avg_quality, 1),
+            "emotion_cycle_distribution": cycle_counts,
+            "extreme_signal_count": extreme_count,
+            "date_range": {
+                "start": recent[0].trade_date.isoformat() if recent[0].trade_date else "",
+                "end": recent[-1].trade_date.isoformat() if recent[-1].trade_date else "",
+            },
+        }

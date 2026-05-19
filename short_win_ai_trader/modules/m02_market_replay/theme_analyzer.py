@@ -20,9 +20,11 @@ from ...core.logger import get_logger
 from ...data_platform.data_models import (
     DragonBond,
     LimitUpStock,
+    ThemeCorrelation,
     ThemeCycle,
     ThemeCycleAnalysis,
     ThemeData,
+    ThemeRotationSpeed,
 )
 
 logger = get_logger("swat.m02.theme_analyzer")
@@ -103,6 +105,7 @@ class ThemeAnalyzer:
 
     基于量化指标自动研判各热门题材所处的生命周期阶段，
     并输出操作节点和轮动预判。
+    支持题材关联度分析、轮动速度分析。
 
     Attributes:
         config: 应用配置
@@ -118,6 +121,8 @@ class ThemeAnalyzer:
         self.config = config
         # 题材历史记录: {theme_name: [{date, limit_up_count, avg_change, ...}, ...]}
         self._theme_history: Dict[str, List[Dict]] = {}
+        # 题材阶段历史: {theme_name: [(date, stage), ...]}
+        self._theme_stage_history: Dict[str, List[Tuple[date, ThemeCycle]]] = {}
 
         logger.info("题材周期分析器初始化完成")
 
@@ -229,6 +234,164 @@ class ThemeAnalyzer:
             themes: 热门题材名称列表
         """
         logger.info(f"热门题材列表更新: {themes}")
+
+    def analyze_theme_correlations(
+        self,
+        themes: List[ThemeData],
+        days: int = 10,
+    ) -> List[ThemeCorrelation]:
+        """分析题材间关联度
+
+        基于历史数据，分析题材间的联动关系，识别正相关、负相关题材对。
+
+        Args:
+            themes: 题材数据列表
+            days: 分析天数
+
+        Returns:
+            List[ThemeCorrelation] 题材关联度列表
+        """
+        correlations: List[ThemeCorrelation] = []
+        theme_names = [t.theme_name for t in themes]
+
+        for i, theme_a in enumerate(theme_names):
+            for theme_b in theme_names[i + 1:]:
+                corr = self._calculate_theme_correlation(theme_a, theme_b, days)
+                if corr.correlation_score > 20:  # 只返回有关联的
+                    correlations.append(corr)
+
+        # 按关联度排序
+        correlations.sort(key=lambda x: x.correlation_score, reverse=True)
+        return correlations
+
+    def analyze_rotation_speed(
+        self,
+        theme_name: str,
+    ) -> Optional[ThemeRotationSpeed]:
+        """分析题材轮动速度
+
+        基于题材阶段历史，分析轮动速度和预估剩余时间。
+
+        Args:
+            theme_name: 题材名称
+
+        Returns:
+            ThemeRotationSpeed 轮动速度分析结果
+        """
+        stage_history = self._theme_stage_history.get(theme_name, [])
+        if len(stage_history) < 2:
+            return None
+
+        # 统计各阶段持续天数
+        stage_duration: Dict[str, int] = {}
+        current_stage = stage_history[0][1]
+        current_start = stage_history[0][0]
+
+        for date_val, stage in stage_history[1:]:
+            if stage != current_stage:
+                duration = (date_val - current_start).days
+                stage_name = current_stage.value
+                stage_duration[stage_name] = stage_duration.get(stage_name, 0) + duration
+                current_stage = stage
+                current_start = date_val
+
+        # 当前阶段已持续天数
+        if stage_history:
+            last_date = stage_history[-1][0]
+            current_duration = (last_date - current_start).days
+            current_stage_name = current_stage.value
+            stage_duration[current_stage_name] = stage_duration.get(current_stage_name, 0) + current_duration
+
+        # 计算轮动速度（总天数/阶段数）
+        total_days = sum(stage_duration.values())
+        stage_count = len(stage_duration)
+        rotation_speed = total_days / max(stage_count, 1)
+
+        # 判断是否加速轮动
+        is_accelerating = False
+        if len(stage_history) >= 4:
+            recent_stages = [s for _, s in stage_history[-4:]]
+            unique_recent = len(set(recent_stages))
+            if unique_recent >= 3:
+                is_accelerating = True
+
+        # 预估剩余天数
+        stage_order = [
+            ThemeCycle.SPROUT,
+            ThemeCycle.FERMENT,
+            ThemeCycle.ACCELERATE,
+            ThemeCycle.DIVERGE,
+            ThemeCycle.COMPLEMENT,
+            ThemeCycle.RETREAT,
+        ]
+        current_idx = stage_order.index(current_stage) if current_stage in stage_order else 0
+        remaining_stages = len(stage_order) - current_idx - 1
+        estimated_remaining = int(remaining_stages * rotation_speed)
+
+        return ThemeRotationSpeed(
+            theme_name=theme_name,
+            rotation_speed=round(rotation_speed, 1),
+            stage_duration=stage_duration,
+            is_accelerating=is_accelerating,
+            estimated_remaining_days=max(0, estimated_remaining),
+        )
+
+    def get_theme_momentum(
+        self,
+        theme_name: str,
+        days: int = 5,
+    ) -> Dict:
+        """获取题材动量指标
+
+        计算题材的短期动量，判断题材强度变化趋势。
+
+        Args:
+            theme_name: 题材名称
+            days: 计算天数
+
+        Returns:
+            Dict 动量指标
+        """
+        history = self._theme_history.get(theme_name, [])
+        if len(history) < 2:
+            return {"momentum": 0, "trend": "数据不足"}
+
+        recent = sorted(history, key=lambda x: x["date"], reverse=True)[:days]
+
+        # 计算涨停数变化动量
+        limit_up_changes = []
+        for i in range(1, len(recent)):
+            change = recent[i - 1]["limit_up_count"] - recent[i]["limit_up_count"]
+            limit_up_changes.append(change)
+
+        avg_change = sum(limit_up_changes) / len(limit_up_changes) if limit_up_changes else 0
+
+        # 计算资金流入动量
+        inflow_changes = []
+        for i in range(1, len(recent)):
+            change = recent[i - 1]["total_inflow"] - recent[i]["total_inflow"]
+            inflow_changes.append(change)
+
+        avg_inflow_change = sum(inflow_changes) / len(inflow_changes) if inflow_changes else 0
+
+        # 综合动量
+        momentum = avg_change * 10 + avg_inflow_change / 1e7
+
+        if momentum > 5:
+            trend = "加速上升"
+        elif momentum > 0:
+            trend = "温和上升"
+        elif momentum > -5:
+            trend = "温和下降"
+        else:
+            trend = "加速下降"
+
+        return {
+            "momentum": round(momentum, 2),
+            "trend": trend,
+            "limit_up_momentum": round(avg_change, 2),
+            "inflow_momentum": round(avg_inflow_change / 1e7, 2),
+        }
 
     # ==================== 内部方法 ====================
 
@@ -529,3 +692,92 @@ class ThemeAnalyzer:
         persistence_score = persistence_scores.get(analysis.persistence_type, 0)
 
         return stage_score + persistence_score
+
+    def _calculate_theme_correlation(
+        self,
+        theme_a: str,
+        theme_b: str,
+        days: int,
+    ) -> ThemeCorrelation:
+        """计算两个题材的关联度"""
+        history_a = self._theme_history.get(theme_a, [])
+        history_b = self._theme_history.get(theme_b, [])
+
+        if not history_a or not history_b:
+            return ThemeCorrelation(
+                theme_a=theme_a,
+                theme_b=theme_b,
+                correlation_score=0,
+                correlation_type="无关联",
+            )
+
+        # 按日期对齐
+        dates_a = {h["date"]: h for h in history_a[-days:]}
+        dates_b = {h["date"]: h for h in history_b[-days:]}
+        common_dates = sorted(set(dates_a.keys()) & set(dates_b.keys()))
+
+        if len(common_dates) < 3:
+            return ThemeCorrelation(
+                theme_a=theme_a,
+                theme_b=theme_b,
+                correlation_score=0,
+                correlation_type="数据不足",
+            )
+
+        # 计算涨跌同向天数
+        co_movement = 0
+        total_pairs = 0
+
+        for i in range(1, len(common_dates)):
+            date_curr = common_dates[i]
+            date_prev = common_dates[i - 1]
+
+            change_a = dates_a[date_curr]["avg_change_pct"] - dates_a[date_prev]["avg_change_pct"]
+            change_b = dates_b[date_curr]["avg_change_pct"] - dates_b[date_prev]["avg_change_pct"]
+
+            # 同向运动
+            if (change_a > 0 and change_b > 0) or (change_a < 0 and change_b < 0):
+                co_movement += 1
+            total_pairs += 1
+
+        # 关联度计算
+        if total_pairs > 0:
+            correlation_ratio = co_movement / total_pairs
+            correlation_score = correlation_ratio * 100
+        else:
+            correlation_score = 0
+
+        # 判断关联类型
+        if correlation_score > 70:
+            correlation_type = "强正相关"
+        elif correlation_score > 50:
+            correlation_type = "正相关"
+        elif correlation_score < 30:
+            correlation_type = "负相关"
+        else:
+            correlation_type = "弱关联"
+
+        return ThemeCorrelation(
+            theme_a=theme_a,
+            theme_b=theme_b,
+            correlation_score=round(correlation_score, 1),
+            correlation_type=correlation_type,
+            co_movement_days=co_movement,
+            lead_lag_days=0,  # 需要更复杂的分析
+        )
+
+    def _update_theme_stage_history(self, theme_name: str, stage: ThemeCycle, trade_date: date) -> None:
+        """更新题材阶段历史"""
+        if theme_name not in self._theme_stage_history:
+            self._theme_stage_history[theme_name] = []
+
+        # 去重
+        self._theme_stage_history[theme_name] = [
+            (d, s) for d, s in self._theme_stage_history[theme_name]
+            if d != trade_date
+        ]
+        self._theme_stage_history[theme_name].append((trade_date, stage))
+
+        # 保持最多60天
+        if len(self._theme_stage_history[theme_name]) > 60:
+            self._theme_stage_history[theme_name] = self._theme_stage_history[theme_name][-60:]

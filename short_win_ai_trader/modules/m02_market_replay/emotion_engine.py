@@ -23,6 +23,7 @@ from ...data_platform.data_models import (
     EmotionCycle,
     EmotionDiagnosis,
     EmotionIndicators,
+    EmotionTrend,
     LimitUpStock,
     MarketSnapshot,
     ThemeData,
@@ -121,10 +122,12 @@ class EmotionEngine:
     """情绪周期研判引擎
 
     基于多因子量化模型，自动研判当前市场情绪所处周期阶段。
+    支持情绪趋势分析、动态权重调整和极端值预警。
 
     Attributes:
         config: 应用配置
         emotion_weights: 四大因子权重（大盘/连板/资金/题材）
+        emotion_history: 情绪历史数据缓存（用于趋势分析）
     """
 
     def __init__(self, config: AppConfig):
@@ -137,6 +140,15 @@ class EmotionEngine:
         self.emotion_weights = config.emotion_cycle.default_weights
         # 最近一次市场快照缓存（用于周期判定中引用原始市场数据）
         self._last_snapshot: Optional[MarketSnapshot] = None
+        # 情绪历史记录: [(date, score, cycle), ...]
+        self._emotion_history: List[Tuple[date, float, EmotionCycle]] = []
+        # 动态权重调整系数
+        self._weight_adjustments: Dict[str, float] = {
+            "market": 1.0,
+            "board": 1.0,
+            "fund": 1.0,
+            "theme": 1.0,
+        }
 
         logger.info(
             "情绪周期研判引擎初始化完成",
@@ -319,6 +331,355 @@ class EmotionEngine:
             Dict 包含仓位上限、适配模式、核心原则
         """
         return CYCLE_CONFIG.get(cycle, CYCLE_CONFIG[EmotionCycle.CHAOS])
+
+    def analyze_emotion_trend(self, days: int = 5) -> EmotionTrend:
+        """情绪趋势分析
+
+        基于历史情绪数据，分析情绪变化趋势、动量和加速度，
+        并预判周期转换概率。
+
+        Args:
+            days: 分析天数
+
+        Returns:
+            EmotionTrend 情绪趋势分析结果
+        """
+        if len(self._emotion_history) < 2:
+            return EmotionTrend(
+                trend_direction="数据不足",
+                extreme_warning="历史数据不足，无法进行趋势分析",
+            )
+
+        # 获取最近N天的情绪得分
+        recent = self._emotion_history[-days:]
+        scores = [s for _, s, _ in recent]
+        dates = [d for d, _, _ in recent]
+
+        current_score = scores[-1] if scores else 0.0
+
+        # 计算趋势方向
+        if len(scores) >= 3:
+            # 使用线性回归斜率判断趋势
+            n = len(scores)
+            x_mean = (n - 1) / 2
+            y_mean = sum(scores) / n
+            numerator = sum((i - x_mean) * (scores[i] - y_mean) for i in range(n))
+            denominator = sum((i - x_mean) ** 2 for i in range(n))
+            slope = numerator / denominator if denominator > 0 else 0
+
+            if slope > 5:
+                trend_direction = "上升"
+            elif slope < -5:
+                trend_direction = "下降"
+            else:
+                trend_direction = "震荡"
+        else:
+            trend_direction = "数据不足"
+
+        # 计算动量（最近3天的变化率）
+        if len(scores) >= 3:
+            momentum = ((scores[-1] - scores[-3]) / max(abs(scores[-3]), 1)) * 100
+            momentum = max(-100, min(100, momentum))
+        else:
+            momentum = 0.0
+
+        # 计算加速度（动量的变化）
+        if len(scores) >= 5:
+            recent_momentum = ((scores[-1] - scores[-2]) / max(abs(scores[-2]), 1)) * 100
+            prev_momentum = ((scores[-3] - scores[-4]) / max(abs(scores[-4]), 1)) * 100
+            acceleration = recent_momentum - prev_momentum
+            acceleration = max(-100, min(100, acceleration))
+        else:
+            acceleration = 0.0
+
+        # 周期转换概率预测
+        current_cycle = self._emotion_history[-1][2] if self._emotion_history else EmotionCycle.CHAOS
+        cycle_transition_prob = self._predict_cycle_transition(current_cycle, scores, momentum)
+
+        # 极端值预警
+        extreme_warning = self._check_extreme_warning(scores, current_cycle)
+
+        return EmotionTrend(
+            current_score=round(current_score, 2),
+            trend_direction=trend_direction,
+            momentum=round(momentum, 2),
+            acceleration=round(acceleration, 2),
+            cycle_transition_prob=cycle_transition_prob,
+            extreme_warning=extreme_warning,
+            history_scores=[round(s, 2) for s in scores],
+        )
+
+    def update_emotion_history(
+        self,
+        trade_date: date,
+        indicators: EmotionIndicators,
+        cycle: EmotionCycle,
+    ) -> None:
+        """更新情绪历史记录
+
+        Args:
+            trade_date: 交易日
+            indicators: 情绪指标
+            cycle: 情绪周期
+        """
+        # 计算综合情绪得分
+        score = self._calculate_composite_score(indicators)
+
+        # 去重（同一天只保留最新）
+        self._emotion_history = [
+            (d, s, c) for d, s, c in self._emotion_history
+            if d != trade_date
+        ]
+        self._emotion_history.append((trade_date, score, cycle))
+
+        # 保持最多60天历史
+        if len(self._emotion_history) > 60:
+            self._emotion_history = self._emotion_history[-60:]
+
+        logger.debug(
+            f"情绪历史更新: {trade_date.isoformat()}, score={score:.1f}, cycle={cycle.value}"
+        )
+
+    def adjust_weights_dynamically(
+        self,
+        indicators: EmotionIndicators,
+        market_snap: MarketSnapshot,
+    ) -> Dict[str, float]:
+        """动态调整因子权重
+
+        根据市场状态动态调整各因子权重，提高研判准确性。
+        例如：在极端行情下，提高连板和资金因子的权重。
+
+        Args:
+            indicators: 情绪指标
+            market_snap: 市场快照
+
+        Returns:
+            Dict 调整后的权重
+        """
+        adjustments = self._weight_adjustments.copy()
+
+        # 极端行情检测
+        is_extreme = False
+
+        # 跌停过多 -> 提高连板因子权重
+        if market_snap.limit_down_count > 15:
+            adjustments["board"] = 1.5
+            is_extreme = True
+
+        # 炸板率极高 -> 提高大盘因子权重
+        if indicators.explode_rate > 50:
+            adjustments["market"] = 1.3
+            is_extreme = True
+
+        # 量能异常 -> 提高资金因子权重
+        if abs(indicators.volume_change) > 30:
+            adjustments["fund"] = 1.4
+            is_extreme = True
+
+        # 题材强度极高 -> 提高题材因子权重
+        if indicators.theme_strength > 80:
+            adjustments["theme"] = 1.3
+
+        # 归一化权重
+        total = sum(adjustments.values())
+        if total > 0:
+            adjustments = {k: v / total * 4 for k, v in adjustments.items()}
+
+        self._weight_adjustments = adjustments
+
+        if is_extreme:
+            logger.info("检测到极端行情，已动态调整因子权重", adjustments=adjustments)
+
+        return adjustments
+
+    def get_emotion_extreme_signals(self, indicators: EmotionIndicators) -> List[Dict]:
+        """获取情绪极端信号
+
+        检测市场情绪的极端状态，提供预警信号。
+
+        Args:
+            indicators: 情绪指标
+
+        Returns:
+            List[Dict] 极端信号列表
+        """
+        signals: List[Dict] = []
+
+        # 冰点信号
+        if indicators.up_down_ratio < 0.3 and indicators.profit_effect < 20:
+            signals.append({
+                "type": "冰点",
+                "level": "critical",
+                "description": f"涨跌比{indicators.up_down_ratio:.2f}，赚钱效应{indicators.profit_effect:.1f}%",
+                "advice": "情绪极度悲观，可能接近底部，关注恐慌盘后的修复机会",
+            })
+
+        # 高潮信号
+        if indicators.profit_effect > 80 and indicators.explode_rate < 15:
+            signals.append({
+                "type": "高潮",
+                "level": "critical",
+                "description": f"赚钱效应{indicators.profit_effect:.1f}%，炸板率{indicators.explode_rate:.1f}%",
+                "advice": "情绪极度乐观，随时可能分化，注意兑现利润",
+            })
+
+        # 恐慌信号
+        if indicators.explode_rate > 60 and indicators.break_rate > 50:
+            signals.append({
+                "type": "恐慌",
+                "level": "high",
+                "description": f"炸板率{indicators.explode_rate:.1f}%，断板率{indicators.break_rate:.1f}%",
+                "advice": "市场恐慌情绪蔓延，避免接力操作",
+            })
+
+        # 量价背离信号
+        if indicators.volume_change > 30 and indicators.profit_effect < 30:
+            signals.append({
+                "type": "量价背离",
+                "level": "high",
+                "description": f"量能放大{indicators.volume_change:.1f}%但赚钱效应仅{indicators.profit_effect:.1f}%",
+                "advice": "放量不涨，警惕主力出货",
+            })
+
+        # 缩量阴跌信号
+        if indicators.volume_change < -30 and indicators.up_down_ratio < 0.5:
+            signals.append({
+                "type": "缩量阴跌",
+                "level": "medium",
+                "description": f"量能萎缩{abs(indicators.volume_change):.1f}%，涨跌比{indicators.up_down_ratio:.2f}",
+                "advice": "无量阴跌，等待放量企稳信号",
+            })
+
+        return signals
+
+    # ==================== 情绪趋势辅助方法 ====================
+
+    def _calculate_composite_score(self, indicators: EmotionIndicators) -> float:
+        """计算综合情绪得分 (0-100)"""
+        score = 0.0
+
+        # 涨跌比得分 (0-25)
+        if indicators.up_down_ratio > 2.0:
+            score += 25
+        elif indicators.up_down_ratio > 1.5:
+            score += 20
+        elif indicators.up_down_ratio > 1.0:
+            score += 15
+        elif indicators.up_down_ratio > 0.6:
+            score += 10
+        else:
+            score += 5
+
+        # 炸板率得分 (0-25，低炸板率=高分)
+        if indicators.explode_rate < 15:
+            score += 25
+        elif indicators.explode_rate < 30:
+            score += 20
+        elif indicators.explode_rate < 50:
+            score += 15
+        else:
+            score += 5
+
+        # 赚钱效应得分 (0-25)
+        if indicators.profit_effect > 60:
+            score += 25
+        elif indicators.profit_effect > 40:
+            score += 20
+        elif indicators.profit_effect > 20:
+            score += 15
+        else:
+            score += 5
+
+        # 连板高度得分 (0-25)
+        if indicators.max_consecutive_boards >= 7:
+            score += 25
+        elif indicators.max_consecutive_boards >= 5:
+            score += 20
+        elif indicators.max_consecutive_boards >= 3:
+            score += 15
+        else:
+            score += 10
+
+        return score
+
+    def _predict_cycle_transition(
+        self,
+        current_cycle: EmotionCycle,
+        scores: List[float],
+        momentum: float,
+    ) -> Dict[str, float]:
+        """预测周期转换概率"""
+        # 周期转换顺序
+        cycle_order = [
+            EmotionCycle.CHAOS,
+            EmotionCycle.START,
+            EmotionCycle.FERMENT,
+            EmotionCycle.PEAK,
+            EmotionCycle.DIVERGE,
+            EmotionCycle.RETREAT,
+        ]
+
+        current_idx = cycle_order.index(current_cycle) if current_cycle in cycle_order else 0
+        probs: Dict[str, float] = {}
+
+        # 基于动量预测
+        if momentum > 20:
+            # 上升动量，向下一周期转换概率高
+            if current_idx < len(cycle_order) - 1:
+                next_cycle = cycle_order[current_idx + 1]
+                probs[next_cycle.value] = min(80, 50 + momentum * 0.5)
+                probs[current_cycle.value] = 100 - probs[next_cycle.value]
+            else:
+                probs[current_cycle.value] = 70
+                probs[cycle_order[0].value] = 30
+        elif momentum < -20:
+            # 下降动量，向前一周期转换概率高
+            if current_idx > 0:
+                prev_cycle = cycle_order[current_idx - 1]
+                probs[prev_cycle.value] = min(80, 50 + abs(momentum) * 0.5)
+                probs[current_cycle.value] = 100 - probs[prev_cycle.value]
+            else:
+                probs[current_cycle.value] = 70
+                probs[cycle_order[-1].value] = 30
+        else:
+            # 动量不足，维持当前周期
+            probs[current_cycle.value] = 70
+            if current_idx < len(cycle_order) - 1:
+                probs[cycle_order[current_idx + 1].value] = 15
+            if current_idx > 0:
+                probs[cycle_order[current_idx - 1].value] = 15
+
+        return probs
+
+    def _check_extreme_warning(
+        self,
+        scores: List[float],
+        current_cycle: EmotionCycle,
+    ) -> Optional[str]:
+        """检查极端值预警"""
+        if not scores:
+            return None
+
+        current = scores[-1]
+
+        # 连续3天得分>85，预警高潮
+        if len(scores) >= 3 and all(s > 85 for s in scores[-3:]):
+            return "情绪连续3天处于极高水平，警惕高潮后分化"
+
+        # 连续3天得分<20，预警冰点
+        if len(scores) >= 3 and all(s < 20 for s in scores[-3:]):
+            return "情绪连续3天处于极低水平，可能接近冰点底部"
+
+        # 单日暴跌
+        if len(scores) >= 2 and scores[-2] - current > 30:
+            return "情绪单日暴跌超30分，注意恐慌风险"
+
+        # 单日暴涨
+        if len(scores) >= 2 and current - scores[-2] > 30:
+            return "情绪单日暴涨超30分，注意追高风险"
+
+        return None
 
     # ==================== 指标计算方法 ====================
 

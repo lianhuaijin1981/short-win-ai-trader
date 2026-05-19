@@ -199,6 +199,42 @@ class NextDayPrediction:
     support_level: float = 0.0
     resistance_level: float = 0.0
     risk_warning: Optional[str] = None
+    confidence: float = 0.0  # 预判置信度
+    key_levels: Dict[str, float] = field(default_factory=dict)  # 关键点位
+    volume_expectation: str = ""  # 量能预期
+
+
+@dataclass
+class EmotionTrend:
+    """情绪趋势分析"""
+    current_score: float = 0.0
+    trend_direction: str = ""  # 上升/下降/震荡
+    momentum: float = 0.0  # 动量 (-100 ~ 100)
+    acceleration: float = 0.0  # 加速度
+    cycle_transition_prob: Dict[str, float] = field(default_factory=dict)  # 周期转换概率
+    extreme_warning: Optional[str] = None  # 极端值预警
+    history_scores: List[float] = field(default_factory=list)
+
+
+@dataclass
+class ThemeCorrelation:
+    """题材关联度分析"""
+    theme_a: str = ""
+    theme_b: str = ""
+    correlation_score: float = 0.0  # 关联度 0-100
+    correlation_type: str = ""  # 正相关/负相关/无关联
+    co_movement_days: int = 0  # 同向运动天数
+    lead_lag_days: int = 0  # 领先/滞后天数
+
+
+@dataclass
+class ThemeRotationSpeed:
+    """题材轮动速度分析"""
+    theme_name: str = ""
+    rotation_speed: float = 0.0  # 轮动速度（天/周期）
+    stage_duration: Dict[str, int] = field(default_factory=dict)  # 各阶段持续天数
+    is_accelerating: bool = False  # 是否加速轮动
+    estimated_remaining_days: int = 0  # 预估剩余天数
 
 
 # ==================== 锚定标的数据模型 ====================

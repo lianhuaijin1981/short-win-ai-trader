@@ -39,13 +39,24 @@ class TechnicalContext:
     ma5: float = 0.0                # 5日均线
     ma10: float = 0.0               # 10日均线
     ma20: float = 0.0               # 20日均线
+    ma60: float = 0.0               # 60日均线
     volume_ma5: float = 0.0         # 5日均量
+    volume_ma10: float = 0.0        # 10日均量
     recent_high: float = 0.0        # 近期高点
     recent_low: float = 0.0         # 近期低点
     support_level_1: float = 0.0    # 第一支撑
     support_level_2: float = 0.0    # 第二支撑
     resistance_level_1: float = 0.0 # 第一阻力
     resistance_level_2: float = 0.0 # 第二阻力
+    macd_dif: float = 0.0           # MACD DIF
+    macd_dea: float = 0.0           # MACD DEA
+    macd_hist: float = 0.0          # MACD 柱状图
+    kdj_k: float = 0.0              # KDJ K值
+    kdj_d: float = 0.0              # KDJ D值
+    kdj_j: float = 0.0              # KDJ J值
+    boll_upper: float = 0.0         # 布林上轨
+    boll_mid: float = 0.0           # 布林中轨
+    boll_lower: float = 0.0         # 布林下轨
 
 
 class MarketPredictor:
@@ -53,6 +64,7 @@ class MarketPredictor:
 
     综合分析市场情绪诊断结果和技术面数据，
     推演次日大盘走势并输出关键点位。
+    支持量价背离检测、多时间周期分析。
 
     Attributes:
         config: 应用配置
@@ -65,6 +77,8 @@ class MarketPredictor:
             config: 应用配置对象
         """
         self.config = config
+        # 历史预测记录用于准确率评估
+        self._prediction_history: List[Dict] = []
         logger.info("大盘趋势推演器初始化完成")
 
     def predict_next_day(
@@ -123,11 +137,27 @@ class MarketPredictor:
             # 7. 生成风险提示
             risk_warning = self._generate_risk_warning(diagnosis, final_trend, indicators)
 
+            # 计算预判置信度
+            prediction_confidence = self._calculate_prediction_confidence(
+                diagnosis, tech_adjustment, volume_adjustment, global_adjustment
+            )
+
+            # 量能预期
+            volume_expectation = self._predict_volume(indicators)
+
+            # 关键点位
+            key_levels = self._calculate_detailed_key_levels(
+                market_snap, technical_ctx, diagnosis
+            )
+
             prediction = NextDayPrediction(
                 trend=final_trend,
                 support_level=round(support, 2),
                 resistance_level=round(resistance, 2),
                 risk_warning=risk_warning,
+                confidence=round(prediction_confidence, 1),
+                key_levels=key_levels,
+                volume_expectation=volume_expectation,
             )
 
             logger.info(
@@ -446,6 +476,8 @@ class MarketPredictor:
         ctx.ma5 = sum(sh_index_prices[-5:]) / 5
         ctx.ma10 = sum(sh_index_prices[-10:]) / 10
         ctx.ma20 = sum(sh_index_prices[-20:]) / 20
+        if len(sh_index_prices) >= 60:
+            ctx.ma60 = sum(sh_index_prices[-60:]) / 60
 
         # 近期高低点（近10日）
         recent = sh_index_prices[-10:]
@@ -463,5 +495,269 @@ class MarketPredictor:
         # 均量
         if volumes and len(volumes) >= 5:
             ctx.volume_ma5 = sum(volumes[-5:]) / 5
+        if volumes and len(volumes) >= 10:
+            ctx.volume_ma10 = sum(volumes[-10:]) / 10
+
+        # 计算MACD
+        if len(sh_index_prices) >= 26:
+            ctx.macd_dif, ctx.macd_dea, ctx.macd_hist = self._calculate_macd(sh_index_prices)
+
+        # 计算KDJ
+        if len(sh_index_prices) >= 9:
+            ctx.kdj_k, ctx.kdj_d, ctx.kdj_j = self._calculate_kdj(sh_index_prices)
+
+        # 计算布林带
+        if len(sh_index_prices) >= 20:
+            ctx.boll_upper, ctx.boll_mid, ctx.boll_lower = self._calculate_bollinger(sh_index_prices)
 
         return ctx
+
+    def detect_volume_price_divergence(
+        self,
+        prices: List[float],
+        volumes: List[float],
+        days: int = 5,
+    ) -> Dict:
+        """检测量价背离
+
+        识别价格与成交量的背离信号，预警潜在拐点。
+
+        Args:
+            prices: 价格列表（从旧到新）
+            volumes: 成交量列表
+            days: 分析天数
+
+        Returns:
+            Dict 背离分析结果
+        """
+        if len(prices) < days + 1 or len(volumes) < days + 1:
+            return {"type": "数据不足", "signal": "none"}
+
+        recent_prices = prices[-days:]
+        recent_volumes = volumes[-days:]
+
+        # 计算价格趋势
+        price_change = (recent_prices[-1] - recent_prices[0]) / recent_prices[0] * 100
+
+        # 计算量能趋势
+        volume_change = (recent_volumes[-1] - recent_volumes[0]) / recent_volumes[0] * 100
+
+        # 背离判断
+        divergence_type = "none"
+        signal = "none"
+        description = ""
+
+        if price_change > 2 and volume_change < -10:
+            divergence_type = "量缩价涨"
+            signal = "bearish"
+            description = f"价格上涨{price_change:.1f}%但量能萎缩{abs(volume_change):.1f}%，上涨动力不足"
+        elif price_change < -2 and volume_change < -10:
+            divergence_type = "量缩价跌"
+            signal = "neutral"
+            description = f"价格下跌{abs(price_change):.1f}%且量能萎缩{abs(volume_change):.1f}%，下跌动能减弱"
+        elif price_change < -2 and volume_change > 20:
+            divergence_type = "量增价跌"
+            signal = "bearish"
+            description = f"价格下跌{abs(price_change):.1f}%且量能放大{volume_change:.1f}%，恐慌抛售"
+        elif price_change > 2 and volume_change > 20:
+            divergence_type = "量价齐升"
+            signal = "bullish"
+            description = f"价格上涨{price_change:.1f}%且量能放大{volume_change:.1f}%，健康上涨"
+
+        return {
+            "type": divergence_type,
+            "signal": signal,
+            "description": description,
+            "price_change": round(price_change, 2),
+            "volume_change": round(volume_change, 2),
+        }
+
+    def get_prediction_accuracy(self, days: int = 30) -> Dict:
+        """获取历史预测准确率
+
+        Args:
+            days: 回溯天数
+
+        Returns:
+            Dict 预测准确率统计
+        """
+        if not self._prediction_history:
+            return {"accuracy": 0, "total": 0, "message": "无历史预测数据"}
+
+        recent = self._prediction_history[-days:]
+        total = len(recent)
+        correct = sum(1 for p in recent if p.get("correct", False))
+
+        accuracy = (correct / total * 100) if total > 0 else 0
+
+        return {
+            "accuracy": round(accuracy, 1),
+            "total": total,
+            "correct": correct,
+            "trend_accuracy": self._calculate_trend_accuracy(recent),
+        }
+
+    # ==================== 技术分析辅助方法 ====================
+
+    def _calculate_macd(self, prices: List[float]) -> Tuple[float, float, float]:
+        """计算MACD指标"""
+        if len(prices) < 26:
+            return 0.0, 0.0, 0.0
+
+        # EMA12
+        ema12 = self._calculate_ema(prices, 12)
+        # EMA26
+        ema26 = self._calculate_ema(prices, 26)
+
+        dif = ema12 - ema26
+
+        # DEA (DIF的9日EMA)
+        # 简化：使用最近DIF值估算
+        dea = dif * 0.8  # 简化估算
+
+        hist = (dif - dea) * 2
+
+        return round(dif, 2), round(dea, 2), round(hist, 2)
+
+    def _calculate_ema(self, prices: List[float], period: int) -> float:
+        """计算EMA"""
+        if len(prices) < period:
+            return prices[-1] if prices else 0.0
+
+        multiplier = 2 / (period + 1)
+        ema = sum(prices[:period]) / period
+
+        for price in prices[period:]:
+            ema = (price - ema) * multiplier + ema
+
+        return ema
+
+    def _calculate_kdj(self, prices: List[float]) -> Tuple[float, float, float]:
+        """计算KDJ指标"""
+        if len(prices) < 9:
+            return 50.0, 50.0, 50.0
+
+        recent = prices[-9:]
+        high_9 = max(recent)
+        low_9 = min(recent)
+        close = prices[-1]
+
+        # RSV
+        if high_9 != low_9:
+            rsv = (close - low_9) / (high_9 - low_9) * 100
+        else:
+            rsv = 50.0
+
+        # K, D (简化计算)
+        k = rsv * 0.6 + 50 * 0.4  # 简化
+        d = k * 0.6 + 50 * 0.4
+        j = 3 * k - 2 * d
+
+        return round(k, 2), round(d, 2), round(j, 2)
+
+    def _calculate_bollinger(self, prices: List[float]) -> Tuple[float, float, float]:
+        """计算布林带"""
+        if len(prices) < 20:
+            return 0.0, 0.0, 0.0
+
+        recent = prices[-20:]
+        mid = sum(recent) / 20
+
+        # 标准差
+        variance = sum((p - mid) ** 2 for p in recent) / 20
+        std = variance ** 0.5
+
+        upper = mid + 2 * std
+        lower = mid - 2 * std
+
+        return round(upper, 2), round(mid, 2), round(lower, 2)
+
+    def _calculate_prediction_confidence(
+        self,
+        diagnosis: EmotionDiagnosis,
+        tech_adj: float,
+        vol_adj: float,
+        global_adj: float,
+    ) -> float:
+        """计算预判置信度"""
+        # 基础置信度来自情绪诊断
+        base_confidence = diagnosis.confidence
+
+        # 修正因子一致性加分
+        adjustments = [tech_adj, vol_adj, global_adj]
+        positive = sum(1 for a in adjustments if a > 0)
+        negative = sum(1 for a in adjustments if a < 0)
+
+        # 因子方向一致则置信度高
+        if positive >= 2 or negative >= 2:
+            consistency_bonus = 10
+        else:
+            consistency_bonus = 0
+
+        # 情绪置信度高且因子一致，则总置信度高
+        confidence = min(95, base_confidence * 0.6 + 30 + consistency_bonus)
+
+        return confidence
+
+    def _predict_volume(self, indicators: EmotionIndicators) -> str:
+        """预判次日量能"""
+        vol_change = indicators.volume_change
+
+        if vol_change > 20:
+            if indicators.profit_effect > 50:
+                return "放量上涨，量能有望维持"
+            else:
+                return "放量滞涨，警惕量能衰竭"
+        elif vol_change > 5:
+            return "温和放量，量能健康"
+        elif vol_change > -10:
+            return "量能平稳，维持当前水平"
+        elif vol_change > -25:
+            return "量能萎缩，观望情绪浓厚"
+        else:
+            return "极度缩量，等待变盘信号"
+
+    def _calculate_detailed_key_levels(
+        self,
+        market_snap: Optional[MarketSnapshot],
+        technical_ctx: Optional[TechnicalContext],
+        diagnosis: EmotionDiagnosis,
+    ) -> Dict[str, float]:
+        """计算详细关键点位"""
+        sh_index = market_snap.sh_index if market_snap else 3000.0
+        levels: Dict[str, float] = {}
+
+        if technical_ctx:
+            levels["ma5"] = round(technical_ctx.ma5, 2)
+            levels["ma10"] = round(technical_ctx.ma10, 2)
+            levels["ma20"] = round(technical_ctx.ma20, 2)
+            levels["boll_upper"] = round(technical_ctx.boll_upper, 2)
+            levels["boll_lower"] = round(technical_ctx.boll_lower, 2)
+            levels["recent_high"] = round(technical_ctx.recent_high, 2)
+            levels["recent_low"] = round(technical_ctx.recent_low, 2)
+        else:
+            # 基于当前指数估算
+            levels["ma5"] = round(sh_index * 0.995, 2)
+            levels["ma10"] = round(sh_index * 0.99, 2)
+            levels["ma20"] = round(sh_index * 0.98, 2)
+
+        return levels
+
+    def _calculate_trend_accuracy(self, predictions: List[Dict]) -> Dict[str, float]:
+        """计算各趋势类型的准确率"""
+        trend_stats: Dict[str, Dict[str, int]] = {}
+
+        for p in predictions:
+            trend = p.get("predicted_trend", "")
+            if trend not in trend_stats:
+                trend_stats[trend] = {"total": 0, "correct": 0}
+            trend_stats[trend]["total"] += 1
+            if p.get("correct", False):
+                trend_stats[trend]["correct"] += 1
+
+        accuracy: Dict[str, float] = {}
+        for trend, stats in trend_stats.items():
+            if stats["total"] > 0:
+                accuracy[trend] = round(stats["correct"] / stats["total"] * 100, 1)
+
+        return accuracy

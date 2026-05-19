@@ -1,264 +1,190 @@
-"""交割单导入解析器 — 支持Excel/CSV/手动"""
+"""交割单数据导入器
+
+支持多种格式导入交割单数据:
+- CSV文件导入
+- Excel文件导入
+- 手动逐笔录入
+- JSON格式导入
+
+数据标准化:
+- 统一股票代码格式(添加.SH/.SZ后缀)
+- 自动识别交易模式(打板/低吸/半路/接力)
+- 计算盈亏金额和比例
+- 时间戳标准化
+"""
 
 import csv
-import os
-import uuid
-from datetime import date, datetime
+import json
+from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
 from ...core.logger import get_logger
-from ...data_platform.data_models import TradeRecord
 
-logger = get_logger("swat.trade_import")
+logger = get_logger("swat.m07.importer")
 
+
+# ── 数据模型 ─────────────────────────────────────────────
+
+@dataclass
+class TradeRecord:
+    """交易记录"""
+    trade_id: str = ""                    # 交易ID
+    ticker: str = ""                      # 股票代码
+    stock_name: str = ""                  # 股票名称
+    trade_date: Optional[datetime] = None # 交易日期
+    trade_time: str = ""                  # 交易时间
+    trade_type: str = "买入"              # 交易类型(买入/卖出)
+    price: float = 0.0                    # 成交价格
+    volume: int = 0                       # 成交数量
+    amount: float = 0.0                   # 成交金额
+    commission: float = 0.0               # 手续费
+    trade_mode: str = ""                  # 交易模式(打板/低吸/半路/接力)
+    profit_loss: float = 0.0              # 盈亏金额
+    profit_loss_pct: float = 0.0          # 盈亏比例(%)
+    hold_days: int = 0                    # 持仓天数
+    emotion_cycle: str = ""               # 当时情绪周期
+    theme_name: str = ""                  # 所属题材
+    notes: str = ""                       # 备注
+    raw_data: Dict = field(default_factory=dict)  # 原始数据
+
+
+# ── 导入器 ───────────────────────────────────────────────
 
 class TradeImporter:
-    """交易记录导入器
+    """交割单导入器
     
-    支持主流券商导出格式:
-    - Excel (.xlsx): 同花顺/东方财富/通达信等
-    - CSV (.csv): 通用格式
-    - 手动录入: 单笔输入
+    支持多种格式导入，自动标准化数据。
     """
-
-    # 常见列名映射
-    COLUMN_MAP = {
-        "代码": "ticker",
-        "股票代码": "ticker",
-        "证券代码": "ticker",
-        "名称": "stock_name",
-        "股票名称": "stock_name",
-        "证券名称": "stock_name",
-        "日期": "trade_date",
-        "成交日期": "trade_date",
-        "时间": "trade_time",
-        "成交时间": "trade_time",
-        "操作": "trade_type",
-        "买卖": "trade_type",
-        "成交类别": "trade_type",
-        "价格": "price",
-        "成交价格": "price",
-        "成交价": "price",
-        "数量": "volume",
-        "成交数量": "volume",
-        "成交量": "volume",
-        "金额": "amount",
-        "成交金额": "amount",
-        "成交额": "amount",
-        "盈亏": "profit_loss",
-        "实现盈亏": "profit_loss",
-        "模式": "trade_mode",
-        "交易方式": "trade_mode",
-    }
-
-    TRADE_TYPE_MAP = {
-        "买入": "买入",
-        "买": "买入",
-        "证券买入": "买入",
-        "卖出": "卖出",
-        "卖": "卖出",
-        "证券卖出": "卖出",
-        "buy": "买入",
-        "sell": "卖出",
-    }
-
+    
     def __init__(self):
+        """初始化导入器"""
+        self._trade_counter = 0
         logger.info("交割单导入器初始化完成")
-
-    def import_from_file(self, file_path: str) -> List[TradeRecord]:
-        """从文件导入交割单"""
-        path = Path(file_path)
-        if not path.exists():
-            raise FileNotFoundError(f"文件不存在: {file_path}")
-
-        ext = path.suffix.lower()
-        if ext == ".xlsx":
-            return self._import_excel(file_path)
-        elif ext == ".csv":
-            return self._import_csv(file_path)
-        else:
-            raise ValueError(f"不支持的文件格式: {ext}，请使用.xlsx或.csv")
-
-    def _import_excel(self, file_path: str) -> List[TradeRecord]:
-        """导入Excel格式"""
+    
+    # ==================== 公共接口 ====================
+    
+    async def import_from_csv(self, file_path: str) -> List[TradeRecord]:
+        """从CSV文件导入
+        
+        CSV格式要求:
+        - 必须列: 代码,名称,日期,类型,价格,数量
+        - 可选列: 金额,手续费,盈亏,模式,题材,备注
+        
+        Args:
+            file_path: CSV文件路径
+            
+        Returns:
+            List[TradeRecord]: 交易记录列表
+        """
+        logger.info(f"从CSV导入交割单: {file_path}")
+        records: List[TradeRecord] = []
+        
         try:
-            import openpyxl
-        except ImportError:
-            raise ImportError("请安装openpyxl: pip install openpyxl")
-
-        wb = openpyxl.load_workbook(file_path, data_only=True)
-        ws = wb.active
-
-        # 读取表头
-        headers = [cell.value for cell in ws[1]]
-        column_mapping = self._map_columns(headers)
-
-        records = []
-        for row in ws.iter_rows(min_row=2, values_only=True):
-            record = self._parse_row(row, column_mapping)
-            if record:
-                records.append(record)
-
-        logger.info(f"Excel导入完成: {len(records)}条记录")
+            with open(file_path, 'r', encoding='utf-8-sig') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    record = self._parse_csv_row(row)
+                    if record:
+                        records.append(record)
+        except Exception as e:
+            logger.error(f"CSV导入失败: {e}")
+            raise
+        
+        logger.info(f"CSV导入完成: {len(records)}笔交易")
         return records
-
-    def _import_csv(self, file_path: str) -> List[TradeRecord]:
-        """导入CSV格式"""
-        records = []
-        with open(file_path, "r", encoding="utf-8-sig") as f:
-            reader = csv.reader(f)
-            headers = next(reader)
-            column_mapping = self._map_columns(headers)
-
-            for row in reader:
-                record = self._parse_row(row, column_mapping)
-                if record:
-                    records.append(record)
-
-        logger.info(f"CSV导入完成: {len(records)}条记录")
+    
+    async def import_from_json(self, file_path: str) -> List[TradeRecord]:
+        """从JSON文件导入
+        
+        Args:
+            file_path: JSON文件路径
+            
+        Returns:
+            List[TradeRecord]: 交易记录列表
+        """
+        logger.info(f"从JSON导入交割单: {file_path}")
+        records: List[TradeRecord] = []
+        
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            if isinstance(data, list):
+                for item in data:
+                    record = self._parse_json_item(item)
+                    if record:
+                        records.append(record)
+            elif isinstance(data, dict) and 'trades' in data:
+                for item in data['trades']:
+                    record = self._parse_json_item(item)
+                    if record:
+                        records.append(record)
+        except Exception as e:
+            logger.error(f"JSON导入失败: {e}")
+            raise
+        
+        logger.info(f"JSON导入完成: {len(records)}笔交易")
         return records
-
-    def _map_columns(self, headers: List[str]) -> Dict[int, str]:
-        """映射列名到标准字段"""
-        mapping = {}
-        for i, header in enumerate(headers):
-            if header in self.COLUMN_MAP:
-                mapping[i] = self.COLUMN_MAP[header]
-        return mapping
-
-    def _parse_row(self, row: tuple, column_mapping: Dict[int, str]) -> Optional[TradeRecord]:
-        """解析单行数据"""
-        data = {}
-        for col_idx, field_name in column_mapping.items():
-            if col_idx < len(row):
-                data[field_name] = row[col_idx]
-
-        if not data.get("ticker"):
-            return None
-
-        # 处理ticker格式
-        ticker = str(data.get("ticker", "")).strip()
-        if "." not in ticker and len(ticker) == 6:
-            # 自动补充后缀
-            if ticker.startswith("6"):
-                ticker = f"{ticker}.SH"
-            elif ticker.startswith("0") or ticker.startswith("3"):
-                ticker = f"{ticker}.SZ"
-            elif ticker.startswith("8") or ticker.startswith("4"):
-                ticker = f"{ticker}.BJ"
-
-        # 解析日期
-        trade_date = data.get("trade_date")
-        if trade_date:
-            if isinstance(trade_date, str):
-                for fmt in ["%Y-%m-%d", "%Y/%m/%d", "%Y%m%d", "%m/%d/%Y"]:
-                    try:
-                        trade_date = datetime.strptime(trade_date, fmt)
-                        break
-                    except ValueError:
-                        continue
-
-        # 解析交易类型
-        trade_type = self.TRADE_TYPE_MAP.get(
-            str(data.get("trade_type", "")).strip(),
-            str(data.get("trade_type", "买入")).strip(),
-        )
-
-        # 解析价格
-        try:
-            price = float(data.get("price", 0))
-        except (ValueError, TypeError):
-            price = 0.0
-
-        # 解析数量
-        try:
-            volume = int(float(str(data.get("volume", "0")).replace(",", "")))
-        except (ValueError, TypeError):
-            volume = 0
-
-        # 解析金额
-        try:
-            amount = float(str(data.get("amount", "0")).replace(",", ""))
-        except (ValueError, TypeError):
-            amount = price * volume
-
-        # 解析盈亏
-        profit_loss = None
-        if "profit_loss" in data and data["profit_loss"]:
-            try:
-                profit_loss = float(str(data["profit_loss"]).replace(",", ""))
-            except (ValueError, TypeError):
-                pass
-
-        # 盈亏比例
-        profit_loss_pct = None
-        if profit_loss and amount > 0:
-            profit_loss_pct = round(profit_loss / amount * 100, 2)
-
-        # 交易模式自动识别
-        trade_mode = data.get("trade_mode", "")
-        if not trade_mode:
-            trade_mode = self._auto_detect_mode(price, volume, amount)
-
-        return TradeRecord(
-            trade_id=str(uuid.uuid4())[:8],
-            ticker=ticker,
-            stock_name=str(data.get("stock_name", "")),
-            trade_date=trade_date if isinstance(trade_date, datetime) else datetime.now(),
-            trade_type=trade_type,
-            price=price,
-            volume=volume,
-            amount=amount,
-            trade_mode=trade_mode,
-            profit_loss=profit_loss,
-            profit_loss_pct=profit_loss_pct,
-        )
-
-    def _auto_detect_mode(self, price: float, volume: int, amount: float) -> str:
-        """自动识别交易模式"""
-        # 简单启发式判断
-        if amount > 1000000:  # 100万以上
-            return "打板"
-        elif volume > 10000:  # 大手数
-            return "半路"
-        return "低吸"
-
+    
     def manual_entry(
         self,
         ticker: str,
         stock_name: str,
         trade_date: str,
-        trade_type: str,
-        price: float,
-        volume: int,
+        trade_type: str = "买入",
+        price: float = 0.0,
+        volume: int = 0,
         trade_mode: str = "",
-        profit_loss: Optional[float] = None,
+        profit_loss: float = 0.0,
+        emotion_cycle: str = "",
+        theme_name: str = "",
+        notes: str = "",
     ) -> TradeRecord:
-        """手动录入单笔交易"""
-        if "." not in ticker and len(ticker) == 6:
-            if ticker.startswith("6"):
-                ticker = f"{ticker}.SH"
-            elif ticker.startswith("0") or ticker.startswith("3"):
-                ticker = f"{ticker}.SZ"
-            elif ticker.startswith("8") or ticker.startswith("4"):
-                ticker = f"{ticker}.BJ"
-
-        dt = datetime.strptime(trade_date, "%Y-%m-%d") if trade_date else datetime.now()
+        """手动录入交易记录
+        
+        Args:
+            ticker: 股票代码
+            stock_name: 股票名称
+            trade_date: 交易日期(YYYY-MM-DD)
+            trade_type: 交易类型(买入/卖出)
+            price: 成交价格
+            volume: 成交数量
+            trade_mode: 交易模式
+            profit_loss: 盈亏金额
+            emotion_cycle: 情绪周期
+            theme_name: 题材名称
+            notes: 备注
+            
+        Returns:
+            TradeRecord: 交易记录
+        """
+        self._trade_counter += 1
+        
+        # 标准化股票代码
+        ticker = self._normalize_ticker(ticker)
+        
+        # 解析日期
+        trade_date_obj = self._parse_date(trade_date)
+        
+        # 计算金额
         amount = price * volume
-
-        profit_loss_pct = None
-        if profit_loss:
-            profit_loss_pct = round(profit_loss / amount * 100, 2)
-
+        
+        # 自动识别交易模式
         if not trade_mode:
             trade_mode = self._auto_detect_mode(price, volume, amount)
-
-        return TradeRecord(
-            trade_id=str(uuid.uuid4())[:8],
+        
+        # 计算盈亏比例
+        profit_loss_pct = 0.0
+        if amount > 0:
+            profit_loss_pct = round(profit_loss / amount * 100, 2)
+        
+        record = TradeRecord(
+            trade_id=f"T{self._trade_counter:04d}",
             ticker=ticker,
             stock_name=stock_name,
-            trade_date=dt,
+            trade_date=trade_date_obj,
             trade_type=trade_type,
             price=price,
             volume=volume,
@@ -266,4 +192,200 @@ class TradeImporter:
             trade_mode=trade_mode,
             profit_loss=profit_loss,
             profit_loss_pct=profit_loss_pct,
+            emotion_cycle=emotion_cycle,
+            theme_name=theme_name,
+            notes=notes,
         )
+        
+        logger.info(f"手动录入: {stock_name}({ticker}) {trade_type} {price}元 x{volume}")
+        return record
+    
+    def batch_manual_entry(self, entries: List[Dict]) -> List[TradeRecord]:
+        """批量手动录入
+        
+        Args:
+            entries: 录入数据列表
+            
+        Returns:
+            List[TradeRecord]: 交易记录列表
+        """
+        records: List[TradeRecord] = []
+        for entry in entries:
+            try:
+                record = self.manual_entry(**entry)
+                records.append(record)
+            except Exception as e:
+                logger.warning(f"录入失败: {entry.get('stock_name', '未知')} - {e}")
+        
+        logger.info(f"批量录入完成: {len(records)}/{len(entries)}笔")
+        return records
+    
+    # ==================== 内部方法 ====================
+    
+    def _parse_csv_row(self, row: Dict) -> Optional[TradeRecord]:
+        """解析CSV行"""
+        try:
+            self._trade_counter += 1
+            
+            # 提取字段(支持多种列名)
+            ticker = self._get_field(row, ['代码', 'code', 'ticker', '股票代码'])
+            stock_name = self._get_field(row, ['名称', 'name', 'stock_name', '股票名称'])
+            trade_date_str = self._get_field(row, ['日期', 'date', 'trade_date', '交易日期'])
+            trade_type = self._get_field(row, ['类型', 'type', 'trade_type', '交易类型'], '买入')
+            price = float(self._get_field(row, ['价格', 'price', '成交价'], 0))
+            volume = int(float(self._get_field(row, ['数量', 'volume', '成交量'], 0)))
+            amount = float(self._get_field(row, ['金额', 'amount', '成交金额'], 0))
+            commission = float(self._get_field(row, ['手续费', 'commission'], 0))
+            profit_loss = float(self._get_field(row, ['盈亏', 'profit_loss', 'pnl'], 0))
+            trade_mode = self._get_field(row, ['模式', 'mode', 'trade_mode', '交易模式'], '')
+            emotion_cycle = self._get_field(row, ['情绪周期', 'emotion_cycle'], '')
+            theme_name = self._get_field(row, ['题材', 'theme', 'theme_name'], '')
+            notes = self._get_field(row, ['备注', 'notes', 'note'], '')
+            
+            if not ticker or not stock_name:
+                return None
+            
+            ticker = self._normalize_ticker(ticker)
+            trade_date = self._parse_date(trade_date_str)
+            
+            if amount == 0 and price > 0 and volume > 0:
+                amount = price * volume
+            
+            if not trade_mode:
+                trade_mode = self._auto_detect_mode(price, volume, amount)
+            
+            profit_loss_pct = 0.0
+            if amount > 0:
+                profit_loss_pct = round(profit_loss / amount * 100, 2)
+            
+            return TradeRecord(
+                trade_id=f"T{self._trade_counter:04d}",
+                ticker=ticker,
+                stock_name=stock_name,
+                trade_date=trade_date,
+                trade_type=trade_type,
+                price=price,
+                volume=volume,
+                amount=amount,
+                commission=commission,
+                trade_mode=trade_mode,
+                profit_loss=profit_loss,
+                profit_loss_pct=profit_loss_pct,
+                emotion_cycle=emotion_cycle,
+                theme_name=theme_name,
+                notes=notes,
+                raw_data=row,
+            )
+        except Exception as e:
+            logger.warning(f"CSV行解析失败: {e}")
+            return None
+    
+    def _parse_json_item(self, item: Dict) -> Optional[TradeRecord]:
+        """解析JSON项"""
+        try:
+            self._trade_counter += 1
+            
+            ticker = item.get('ticker', item.get('代码', ''))
+            stock_name = item.get('stock_name', item.get('名称', ''))
+            
+            if not ticker or not stock_name:
+                return None
+            
+            ticker = self._normalize_ticker(ticker)
+            
+            trade_date_str = item.get('trade_date', item.get('日期', ''))
+            trade_date = self._parse_date(trade_date_str)
+            
+            price = float(item.get('price', item.get('价格', 0)))
+            volume = int(item.get('volume', item.get('数量', 0)))
+            amount = float(item.get('amount', item.get('金额', price * volume)))
+            profit_loss = float(item.get('profit_loss', item.get('盈亏', 0)))
+            
+            trade_mode = item.get('trade_mode', item.get('模式', ''))
+            if not trade_mode:
+                trade_mode = self._auto_detect_mode(price, volume, amount)
+            
+            profit_loss_pct = 0.0
+            if amount > 0:
+                profit_loss_pct = round(profit_loss / amount * 100, 2)
+            
+            return TradeRecord(
+                trade_id=f"T{self._trade_counter:04d}",
+                ticker=ticker,
+                stock_name=stock_name,
+                trade_date=trade_date,
+                trade_type=item.get('trade_type', item.get('类型', '买入')),
+                price=price,
+                volume=volume,
+                amount=amount,
+                commission=float(item.get('commission', item.get('手续费', 0))),
+                trade_mode=trade_mode,
+                profit_loss=profit_loss,
+                profit_loss_pct=profit_loss_pct,
+                hold_days=int(item.get('hold_days', item.get('持仓天数', 0))),
+                emotion_cycle=item.get('emotion_cycle', item.get('情绪周期', '')),
+                theme_name=item.get('theme_name', item.get('题材', '')),
+                notes=item.get('notes', item.get('备注', '')),
+                raw_data=item,
+            )
+        except Exception as e:
+            logger.warning(f"JSON项解析失败: {e}")
+            return None
+    
+    def _normalize_ticker(self, ticker: str) -> str:
+        """标准化股票代码"""
+        ticker = ticker.strip().upper()
+        # 移除已有后缀
+        ticker = ticker.replace('.SH', '').replace('.SZ', '').replace('.BJ', '')
+        # 纯数字代码
+        if ticker.isdigit():
+            if ticker.startswith('6'):
+                return f"{ticker}.SH"
+            elif ticker.startswith('0') or ticker.startswith('3'):
+                return f"{ticker}.SZ"
+            elif ticker.startswith('8') or ticker.startswith('4'):
+                return f"{ticker}.BJ"
+        return ticker
+    
+    def _parse_date(self, date_str: str) -> Optional[datetime]:
+        """解析日期字符串"""
+        if not date_str:
+            return None
+        
+        formats = [
+            '%Y-%m-%d', '%Y/%m/%d', '%Y%m%d',
+            '%Y-%m-%d %H:%M:%S', '%Y/%m/%d %H:%M:%S',
+        ]
+        
+        for fmt in formats:
+            try:
+                return datetime.strptime(str(date_str).strip(), fmt)
+            except ValueError:
+                continue
+        
+        logger.warning(f"日期解析失败: {date_str}")
+        return None
+    
+    def _auto_detect_mode(self, price: float, volume: int, amount: float) -> str:
+        """自动识别交易模式
+        
+        根据价格和金额特征判断:
+        - 大额+整数价 → 打板
+        - 小额+非整数 → 低吸
+        - 中等金额 → 半路
+        """
+        if amount >= 100000 and price >= 10:
+            return "打板"
+        elif amount < 30000:
+            return "低吸"
+        elif amount >= 50000:
+            return "半路"
+        else:
+            return "其他"
+    
+    def _get_field(self, row: Dict, keys: List[str], default: str = '') -> str:
+        """从字典中获取字段(支持多种键名)"""
+        for key in keys:
+            if key in row and row[key]:
+                return str(row[key]).strip()
+        return default
