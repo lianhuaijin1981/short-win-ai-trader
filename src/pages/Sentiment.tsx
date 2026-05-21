@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import {
@@ -9,6 +10,7 @@ import {
   ChevronUp,
   ArrowRight,
   Calculator,
+  Home,
 } from 'lucide-react';
 import DataCard from '@/components/DataCard';
 import IndicatorDetailModal from '@/components/IndicatorDetailModal';
@@ -519,6 +521,7 @@ function MiniSparkline({ data, color }: { data: number[]; color: string }) {
 
 /* ─── Main Page ─── */
 export default function Sentiment() {
+  const navigate = useNavigate();
   const [expandedIndicators, setExpandedIndicators] = useState(false);
   const [activeTimeRange, setActiveTimeRange] = useState<'7日' | '14日' | '30日'>('7日');
   const [showRefLines, setShowRefLines] = useState(true);
@@ -763,6 +766,17 @@ export default function Sentiment() {
 
   return (
     <div className="space-y-4">
+      {/* Back to Home */}
+      <motion.button
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        onClick={() => navigate('/')}
+        className="flex items-center gap-2 text-[#94a3b8] hover:text-[#c9a84c] transition-colors"
+      >
+        <Home size={16} />
+        <span className="text-[13px]">返回首页</span>
+      </motion.button>
+
       {/* ── Row 1: Cycle Ring + 14 Indicators ── */}
       <div className="grid grid-cols-12 gap-4">
         {/* Sentiment Cycle Ring */}

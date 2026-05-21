@@ -214,6 +214,9 @@ export const navItems: NavItem[] = [
   { label: '战法选股', icon: 'Target', path: '/tactics' },
   { label: '评分决策', icon: 'BarChart3', path: '/scoring' },
   { label: '交割单诊断', icon: 'ClipboardCheck', path: '/diagnosis' },
+  { label: '资讯采集', icon: 'Newspaper', path: '/news' },
+  { label: '交易日志', icon: 'FileText', path: '/trade-journal' },
+  { label: '历史交易', icon: 'History', path: '/trade-history' },
 ];
 
 // ═══════════════════════════════════════════════════════════════

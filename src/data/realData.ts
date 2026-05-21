@@ -333,11 +333,61 @@ export const MARKET_TOP3_BOARDS: RealLimitUpStock[] = [
   },
 ];
 
+// ── 战法大类定义 ─────────────────────────────────────────
+// 6大战法大类：资金流、筹码峰、技术分析、情绪周期、量价关系、跟庄
+
+export type TacticMajorCategory = '资金流' | '筹码峰' | '技术分析' | '情绪周期' | '量价关系' | '跟庄';
+
+export const TACTIC_MAJOR_CATEGORIES: TacticMajorCategory[] = [
+  '资金流',
+  '筹码峰',
+  '技术分析',
+  '情绪周期',
+  '量价关系',
+  '跟庄',
+];
+
+// 战法大类图标映射
+export const TACTIC_MAJOR_CATEGORY_ICONS: Record<TacticMajorCategory, string> = {
+  '资金流': 'TrendingUp',
+  '筹码峰': 'Layers',
+  '技术分析': 'Cpu',
+  '情绪周期': 'Activity',
+  '量价关系': 'BarChart3',
+  '跟庄': 'UserCheck',
+};
+
+// 战法大类颜色映射
+export const TACTIC_MAJOR_CATEGORY_COLORS: Record<TacticMajorCategory, string> = {
+  '资金流': '#ef4444',
+  '筹码峰': '#8b5cf6',
+  '技术分析': '#3b82f6',
+  '情绪周期': '#f97316',
+  '量价关系': '#06d7d7',
+  '跟庄': '#c9a84c',
+};
+
+// 战法大类描述
+export const TACTIC_MAJOR_CATEGORY_DESC: Record<TacticMajorCategory, string> = {
+  '资金流': '追踪主力资金、北向资金、机构资金的流向和意图',
+  '筹码峰': '分析筹码分布、集中度、主力控盘程度',
+  '技术分析': '运用经典技术分析理论和指标系统',
+  '情绪周期': '基于市场情绪周期和游资行为模式',
+  '量价关系': '研究成交量与价格的互动关系',
+  '跟庄': '识别庄家行为、主力操盘手法',
+};
+
 // ── 战法库定义 ─────────────────────────────────────────
 // 每个战法有明确的量化触发条件，与真实K线数据关联
+// 新增：majorCategory（大类）+ minorCategory（小类）
 
 export interface TacticRule {
   name: string;
+  // 战法大类
+  majorCategory: TacticMajorCategory;
+  // 战法小类
+  minorCategory: string;
+  // 兼容旧字段
   category: string;
   // 触发条件（量化规则）
   conditions: string[];
@@ -350,112 +400,79 @@ export interface TacticRule {
 }
 
 export const TACTIC_RULES: TacticRule[] = [
-  {
-    name: '首阴战法',
-    category: '形态战法',
-    conditions: ['前日跌幅≥2%', '今日涨停反包', '成交量≥前日1.2倍'],
-    bestEnv: '退潮期转修复、龙头首阴',
-    triggerCount: 5, // 光华股份/瑞泰科技/方正电机/粤传媒/多氟多 均触发
-    successRate: 68,
-  },
-  {
-    name: 'N字形战法',
-    category: '形态战法',
-    conditions: ['前3日有涨停', '中间日回调', '今日涨停反包'],
-    bestEnv: '题材发酵期、趋势延续',
-    triggerCount: 2, // 光华股份/瑞泰科技
-    successRate: 72,
-  },
+  // ═══════════════════════════════════════════════════════
+  // 【资金流】大类
+  // ═══════════════════════════════════════════════════════
   {
     name: '倍量突破',
+    majorCategory: '资金流',
+    minorCategory: '放量突破',
     category: '量能战法',
     conditions: ['成交量≥20日均量1.5倍', '价格突破近期平台', '收盘价为日内高点'],
     bestEnv: '题材启动期、放量上攻',
-    triggerCount: 6, // 巨轮智能/瑞泰科技/方正电机/中锐股份/双象股份/多氟多
+    triggerCount: 6,
     successRate: 65,
   },
   {
     name: '三倍量突破战法',
+    majorCategory: '资金流',
+    minorCategory: '放量突破',
     category: '量能战法',
     conditions: ['成交量≥20日均量3倍', '价格突破近期高点', '封板坚决'],
     bestEnv: '题材高潮期、资金抢筹',
-    triggerCount: 1, // 方正电机(3.33倍)
+    triggerCount: 1,
     successRate: 58,
   },
   {
-    name: '缩量突破战法',
+    name: '巨量封板',
+    majorCategory: '资金流',
+    minorCategory: '资金抢筹',
     category: '量能战法',
-    conditions: ['成交量<前日0.8倍', '缩量涨停', '筹码高度锁定'],
-    bestEnv: '主力控盘、一致看多',
-    triggerCount: 2, // 利仁科技/高乐股份
-    successRate: 75,
-  },
-  {
-    name: '连板加速',
-    category: '情绪战法',
-    conditions: ['连续2日+涨停', '今日涨停速度加快', '封单强度增加'],
-    bestEnv: '题材高潮期、龙头确立',
-    triggerCount: 1, // 利仁科技(5连板)
-    successRate: 55,
-  },
-  {
-    name: '龙头情绪战法',
-    category: '情绪战法',
-    conditions: ['板块内涨停≥3只', '个股为板块最高连板', '带动板块联动'],
-    bestEnv: '题材发酵期、龙头确立',
-    triggerCount: 1, // 利仁科技
+    conditions: ['封单金额≥流通市值1%', '成交量创近期新高', '主力资金净流入'],
+    bestEnv: '题材高潮期、资金高度认可',
+    triggerCount: 0,
     successRate: 62,
   },
-  {
-    name: '分时承接战法',
-    category: '情绪战法',
-    conditions: ['均价线支撑有效', '量价配合', '回落承接有力'],
-    bestEnv: '盘中震荡、低吸机会',
-    triggerCount: 1, // 巨轮智能
-    successRate: 60,
-  },
-  {
-    name: '反核战法',
-    category: '情绪战法',
-    conditions: ['前日深度回调≥5%', '今日低开高走涨停', '地天板'],
-    bestEnv: '情绪修复期、恐慌后反弹',
-    triggerCount: 1, // 多氟多
-    successRate: 45,
-  },
-  {
-    name: '低位首板战法',
-    category: '情绪战法',
-    conditions: ['股价处于近期低位', '首板涨停', '成交量温和放大'],
-    bestEnv: '题材萌芽期、低位启动',
-    triggerCount: 1, // 中锐股份
-    successRate: 70,
-  },
+  // ═══════════════════════════════════════════════════════
+  // 【筹码峰】大类
+  // ═══════════════════════════════════════════════════════
   {
     name: '筹码峰战法',
+    majorCategory: '筹码峰',
+    minorCategory: '筹码集中',
     category: '筹码战法',
     conditions: ['缩量涨停', '筹码高度集中', '主力控盘度高'],
     bestEnv: '主力控盘、一致预期',
-    triggerCount: 1, // 高乐股份
+    triggerCount: 1,
     successRate: 73,
   },
   {
-    name: '平台突破战法',
-    category: '形态战法',
-    conditions: ['横盘整理≥5日', '振幅<15%', '放量突破平台上沿'],
-    bestEnv: '蓄势待发、突破行情',
+    name: '缩量突破战法',
+    majorCategory: '筹码峰',
+    minorCategory: '筹码锁定',
+    category: '量能战法',
+    conditions: ['成交量<前日0.8倍', '缩量涨停', '筹码高度锁定'],
+    bestEnv: '主力控盘、一致看多',
+    triggerCount: 2,
+    successRate: 75,
+  },
+  {
+    name: '筹码真空区战法',
+    majorCategory: '筹码峰',
+    minorCategory: '筹码真空',
+    category: '筹码战法',
+    conditions: ['上方无密集筹码区', '突破筹码密集区上沿', '上涨阻力小'],
+    bestEnv: '筹码断层、快速拉升',
     triggerCount: 0,
     successRate: 68,
   },
-  {
-    name: '一进二战法',
-    category: '情绪战法',
-    conditions: ['昨日首板', '今日竞价强势', '开盘快速封二板'],
-    bestEnv: '题材发酵期、接力行情',
-    triggerCount: 0,
-    successRate: 52,
-  },
+  // ═══════════════════════════════════════════════════════
+  // 【技术分析】大类
+  // ═══════════════════════════════════════════════════════
   {
     name: '布林带战法',
+    majorCategory: '技术分析',
+    minorCategory: '指标系统',
     category: '技术分析战法',
     conditions: ['股价触及布林下轨', '缩量十字星', '次日放量反弹'],
     bestEnv: '超卖反弹、趋势回归',
@@ -463,23 +480,9 @@ export const TACTIC_RULES: TacticRule[] = [
     successRate: 55,
   },
   {
-    name: '缩量尾盘先手战法',
-    category: '量能战法',
-    conditions: ['尾盘30分钟缩量', '股价企稳', '次日高开预期'],
-    bestEnv: '尾盘布局、次日套利',
-    triggerCount: 0,
-    successRate: 48,
-  },
-  {
-    name: '龙头低吸战法',
-    category: '情绪战法',
-    conditions: ['龙头首次断板或首阴', '分时低点出现承接信号', '板块情绪未完全退潮'],
-    bestEnv: '龙头分歧日、板块轮动期',
-    triggerCount: 0,
-    successRate: 58,
-  },
-  {
     name: '欧奈尔CANSLIM模型',
+    majorCategory: '技术分析',
+    minorCategory: '趋势跟踪',
     category: '技术分析战法',
     conditions: ['C: 当季EPS同比大幅增长≥25%', 'A: 年度盈利持续增长', 'N: 新产品/新管理层/新高价', 'S: 供给量紧缩+巨量突破', 'L: 板块龙头非跟风', 'I: 机构持仓增加', 'M: 大盘处于上升趋势'],
     bestEnv: '趋势上升期、业绩披露窗口',
@@ -488,6 +491,8 @@ export const TACTIC_RULES: TacticRule[] = [
   },
   {
     name: '利弗莫尔关键点位',
+    majorCategory: '技术分析',
+    minorCategory: '关键位置',
     category: '技术分析战法',
     conditions: ['股价突破历史关键阻力位', '成交量同步放大确认突破', '回踩关键位不跌破'],
     bestEnv: '长期盘整后突破、趋势确认',
@@ -496,6 +501,8 @@ export const TACTIC_RULES: TacticRule[] = [
   },
   {
     name: '达瓦斯箱体理论',
+    majorCategory: '技术分析',
+    minorCategory: '形态突破',
     category: '技术分析战法',
     conditions: ['股价在明确箱体内震荡', '成交量随震荡收窄', '放量突破箱体上沿'],
     bestEnv: '震荡市末期、箱体整理≥20日',
@@ -504,6 +511,8 @@ export const TACTIC_RULES: TacticRule[] = [
   },
   {
     name: '威科夫量价分析',
+    majorCategory: '技术分析',
+    minorCategory: '量价分析',
     category: '技术分析战法',
     conditions: ['识别机构吸筹区间', '缩量回调测试支撑', '放量突破派发区'],
     bestEnv: '机构建仓期、底部区域',
@@ -512,11 +521,172 @@ export const TACTIC_RULES: TacticRule[] = [
   },
   {
     name: '米内尔维尼趋势模板',
+    majorCategory: '技术分析',
+    minorCategory: '趋势跟踪',
     category: '技术分析战法',
     conditions: ['股价>50日均线>200日均线', 'RS相对强度排名前10%', '成交量突破时放大', '股价处于52周新高附近'],
     bestEnv: '牛市中期、趋势明确',
     triggerCount: 0,
     successRate: 70,
+  },
+  {
+    name: '平台突破战法',
+    majorCategory: '技术分析',
+    minorCategory: '形态突破',
+    category: '形态战法',
+    conditions: ['横盘整理≥5日', '振幅<15%', '放量突破平台上沿'],
+    bestEnv: '蓄势待发、突破行情',
+    triggerCount: 0,
+    successRate: 68,
+  },
+  // ═══════════════════════════════════════════════════════
+  // 【情绪周期】大类
+  // ═══════════════════════════════════════════════════════
+  {
+    name: '连板加速',
+    majorCategory: '情绪周期',
+    minorCategory: '连板接力',
+    category: '情绪战法',
+    conditions: ['连续2日+涨停', '今日涨停速度加快', '封单强度增加'],
+    bestEnv: '题材高潮期、龙头确立',
+    triggerCount: 1,
+    successRate: 55,
+  },
+  {
+    name: '龙头情绪战法',
+    majorCategory: '情绪周期',
+    minorCategory: '龙头战法',
+    category: '情绪战法',
+    conditions: ['板块内涨停≥3只', '个股为板块最高连板', '带动板块联动'],
+    bestEnv: '题材发酵期、龙头确立',
+    triggerCount: 1,
+    successRate: 62,
+  },
+  {
+    name: '分时承接战法',
+    majorCategory: '情绪周期',
+    minorCategory: '分时博弈',
+    category: '情绪战法',
+    conditions: ['均价线支撑有效', '量价配合', '回落承接有力'],
+    bestEnv: '盘中震荡、低吸机会',
+    triggerCount: 1,
+    successRate: 60,
+  },
+  {
+    name: '反核战法',
+    majorCategory: '情绪周期',
+    minorCategory: '情绪修复',
+    category: '情绪战法',
+    conditions: ['前日深度回调≥5%', '今日低开高走涨停', '地天板'],
+    bestEnv: '情绪修复期、恐慌后反弹',
+    triggerCount: 1,
+    successRate: 45,
+  },
+  {
+    name: '低位首板战法',
+    majorCategory: '情绪周期',
+    minorCategory: '首板启动',
+    category: '情绪战法',
+    conditions: ['股价处于近期低位', '首板涨停', '成交量温和放大'],
+    bestEnv: '题材萌芽期、低位启动',
+    triggerCount: 1,
+    successRate: 70,
+  },
+  {
+    name: '一进二战法',
+    majorCategory: '情绪周期',
+    minorCategory: '连板接力',
+    category: '情绪战法',
+    conditions: ['昨日首板', '今日竞价强势', '开盘快速封二板'],
+    bestEnv: '题材发酵期、接力行情',
+    triggerCount: 0,
+    successRate: 52,
+  },
+  {
+    name: '龙头低吸战法',
+    majorCategory: '情绪周期',
+    minorCategory: '龙头战法',
+    category: '情绪战法',
+    conditions: ['龙头首次断板或首阴', '分时低点出现承接信号', '板块情绪未完全退潮'],
+    bestEnv: '龙头分歧日、板块轮动期',
+    triggerCount: 0,
+    successRate: 58,
+  },
+  // ═══════════════════════════════════════════════════════
+  // 【量价关系】大类
+  // ═══════════════════════════════════════════════════════
+  {
+    name: '首阴战法',
+    majorCategory: '量价关系',
+    minorCategory: '反包形态',
+    category: '形态战法',
+    conditions: ['前日跌幅≥2%', '今日涨停反包', '成交量≥前日1.2倍'],
+    bestEnv: '退潮期转修复、龙头首阴',
+    triggerCount: 5,
+    successRate: 68,
+  },
+  {
+    name: 'N字形战法',
+    majorCategory: '量价关系',
+    minorCategory: '反包形态',
+    category: '形态战法',
+    conditions: ['前3日有涨停', '中间日回调', '今日涨停反包'],
+    bestEnv: '题材发酵期、趋势延续',
+    triggerCount: 2,
+    successRate: 72,
+  },
+  {
+    name: '缩量尾盘先手战法',
+    majorCategory: '量价关系',
+    minorCategory: '尾盘博弈',
+    category: '量能战法',
+    conditions: ['尾盘30分钟缩量', '股价企稳', '次日高开预期'],
+    bestEnv: '尾盘布局、次日套利',
+    triggerCount: 0,
+    successRate: 48,
+  },
+  {
+    name: '量价背离战法',
+    majorCategory: '量价关系',
+    minorCategory: '背离信号',
+    category: '量价关系',
+    conditions: ['价格创新高但成交量萎缩', '上涨动能衰减', '可能出现反转'],
+    bestEnv: '高位预警、顶部信号',
+    triggerCount: 0,
+    successRate: 55,
+  },
+  // ═══════════════════════════════════════════════════════
+  // 【跟庄】大类
+  // ═══════════════════════════════════════════════════════
+  {
+    name: '庄家洗盘战法',
+    majorCategory: '跟庄',
+    minorCategory: '洗盘识别',
+    category: '跟庄战法',
+    conditions: ['缩量回调不破关键支撑', '主力未大幅出逃', '洗盘结束信号出现'],
+    bestEnv: '主力洗盘末期、即将拉升',
+    triggerCount: 0,
+    successRate: 65,
+  },
+  {
+    name: '庄家建仓战法',
+    majorCategory: '跟庄',
+    minorCategory: '建仓识别',
+    category: '跟庄战法',
+    conditions: ['长期横盘震荡', '成交量温和放大', '筹码逐步集中'],
+    bestEnv: '主力建仓期、底部区域',
+    triggerCount: 0,
+    successRate: 60,
+  },
+  {
+    name: '庄家拉升战法',
+    majorCategory: '跟庄',
+    minorCategory: '拉升启动',
+    category: '跟庄战法',
+    conditions: ['突破长期盘整区间', '成交量急剧放大', '连续大单买入'],
+    bestEnv: '主力拉升初期',
+    triggerCount: 0,
+    successRate: 58,
   },
 ];
 

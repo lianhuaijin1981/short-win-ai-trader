@@ -5,14 +5,14 @@ import {
   Search, Zap, BarChart3, Layers,
   CheckCircle2, XCircle, Swords, Activity,
   Sparkles, Plus, X,
-  Cpu, Box,
+  Cpu, TrendingUp, UserCheck,
 } from 'lucide-react';
-import Layout from '@/components/Layout';
 import DataCard from '@/components/DataCard';
 import {
   TACTIC_RULES, TACTIC_STOCK_MATCHES, REAL_LIMIT_UP_STOCKS, MULTI_PERIOD_KLINES,
+  TACTIC_MAJOR_CATEGORIES,
 } from '@/data/realData';
-import type { TacticRule, TacticStockMatch } from '@/data/realData';
+import type { TacticRule, TacticStockMatch, TacticMajorCategory } from '@/data/realData';
 
 /* ─── Types ─── */
 interface MatchWithStock extends TacticStockMatch {
@@ -45,29 +45,28 @@ const TACTIC_SUCCESS_RATES: Record<string, { d3: number; d5: number; d10: number
   '米内尔维尼趋势模板': { d3: 68, d5: 70, d10: 72 },
 };
 
-/* ─── Category Filter Tabs ─── */
-const CATEGORY_TABS = ['全部', '情绪', '量能', '形态', '筹码', '技术分析'] as const;
-type CategoryTab = (typeof CATEGORY_TABS)[number];
+/* ─── 战法大类筛选 Tabs ─── */
+const MAJOR_CATEGORY_TABS = ['全部', ...TACTIC_MAJOR_CATEGORIES] as const;
+type MajorCategoryTab = (typeof MAJOR_CATEGORY_TABS)[number];
 
-const getCategoryGroup = (cat: string): CategoryTab => {
-  if (cat.includes('情绪')) return '情绪';
-  if (cat.includes('量能')) return '量能';
-  if (cat.includes('形态')) return '形态';
-  if (cat.includes('筹码')) return '筹码';
-  if (cat.includes('技术分析')) return '技术分析';
-  return '技术分析'; // default group for others
-};
-
-/* ─── Category Icon Map ─── */
-const getCategoryIcon = (name: string) => {
-  switch (name) {
-    case '量能战法': return BarChart3;
-    case '形态战法': return Layers;
-    case '情绪战法': return Activity;
-    case '筹码战法': return Box;
-    case '技术分析战法': return Cpu;
+/* ─── 大类图标映射 ─── */
+const getMajorCategoryIcon = (cat: TacticMajorCategory) => {
+  switch (cat) {
+    case '资金流': return TrendingUp;
+    case '筹码峰': return Layers;
+    case '技术分析': return Cpu;
+    case '情绪周期': return Activity;
+    case '量价关系': return BarChart3;
+    case '跟庄': return UserCheck;
     default: return Swords;
   }
+};
+
+/* ─── 小类提取 ─── */
+const getMinorCategories = (tactics: TacticRule[], majorCat: TacticMajorCategory): string[] => {
+  const filtered = majorCat ? tactics.filter(t => t.majorCategory === majorCat) : tactics;
+  const minors = new Set(filtered.map(t => t.minorCategory));
+  return Array.from(minors);
 };
 
 /* ─── Success Rate Color (按成功率分档着色) ─── */
@@ -102,7 +101,8 @@ export default function TacticsPage() {
   const [customTactics, setCustomTactics] = useState<TacticRule[]>([]);
   const [successPeriod, setSuccessPeriod] = useState<'d3' | 'd5' | 'd10'>('d5');
   const [hoveredStock, setHoveredStock] = useState<MatchWithStock | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<CategoryTab>('全部');
+  const [majorCategoryFilter, setMajorCategoryFilter] = useState<MajorCategoryTab>('全部');
+  const [minorCategoryFilter, setMinorCategoryFilter] = useState<string>('全部');
 
   /* ── Add Form State ── */
   const [formName, setFormName] = useState('');
@@ -112,17 +112,25 @@ export default function TacticsPage() {
 
   const allTactics = useMemo(() => [...TACTIC_RULES, ...customTactics], [customTactics]);
 
-  /* ── Filtered tactics by category tab ── */
+  /* ── 按大类和小类筛选战法 ── */
   const categoryFilteredTactics = useMemo(() => {
     let list = allTactics;
-    if (categoryFilter !== '全部') {
-      list = list.filter(t => getCategoryGroup(t.category) === categoryFilter);
+    if (majorCategoryFilter !== '全部') {
+      list = list.filter(t => t.majorCategory === majorCategoryFilter);
+    }
+    if (minorCategoryFilter !== '全部') {
+      list = list.filter(t => t.minorCategory === minorCategoryFilter);
     }
     if (searchQuery.trim()) {
       list = list.filter(t => t.name.includes(searchQuery.trim()));
     }
     return list;
-  }, [allTactics, categoryFilter, searchQuery]);
+  }, [allTactics, majorCategoryFilter, minorCategoryFilter, searchQuery]);
+
+  /* ── 当前可选的小类 ── */
+  const availableMinorCategories = useMemo(() => {
+    return getMinorCategories(allTactics, majorCategoryFilter === '全部' ? null as any : majorCategoryFilter as TacticMajorCategory);
+  }, [allTactics, majorCategoryFilter]);
 
   /* ── Actual matched stocks using TACTIC_STOCK_MATCHES ── */
   const matchedStocks = useMemo<MatchWithStock[]>(() => {
@@ -233,8 +241,18 @@ export default function TacticsPage() {
   /* ── Add tactic handler ── */
   const handleAddTactic = () => {
     if (!formName.trim()) return;
+    // 根据旧分类映射到大类
+    const majorCategoryMap: Record<string, TacticMajorCategory> = {
+      '情绪战法': '情绪周期',
+      '量能战法': '资金流',
+      '形态战法': '量价关系',
+      '筹码战法': '筹码峰',
+      '技术分析战法': '技术分析',
+    };
     const newTactic: TacticRule = {
       name: formName.trim(),
+      majorCategory: majorCategoryMap[formCategory] || '技术分析',
+      minorCategory: '自定义',
       category: formCategory,
       conditions: formConditions.split('；').map(s => s.trim()).filter(Boolean),
       bestEnv: formBestEnv.trim() || '震荡市',
@@ -257,8 +275,7 @@ export default function TacticsPage() {
   const periodLabel = { d3: '3日', d5: '5日', d10: '10日' } as const;
 
   return (
-    <Layout>
-      <div className="p-6 space-y-4">
+      <div className="space-y-4">
         {/* ═══════ Header ═══════ */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -372,22 +389,55 @@ export default function TacticsPage() {
               />
             </div>
 
-            {/* Category Filter Tabs */}
+            {/* 战法大类筛选 Tabs */}
             <div className="flex flex-wrap gap-1">
-              {CATEGORY_TABS.map(tab => (
+              {MAJOR_CATEGORY_TABS.map(tab => {
+                const Icon = tab !== '全部' ? getMajorCategoryIcon(tab as TacticMajorCategory) : null;
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => { setMajorCategoryFilter(tab); setMinorCategoryFilter('全部'); }}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all flex items-center gap-1 ${
+                      majorCategoryFilter === tab
+                        ? 'bg-[#c9a84c]/20 text-[#c9a84c]'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'
+                    }`}
+                  >
+                    {Icon && <Icon className="w-3 h-3" />}
+                    {tab}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 战法小类筛选 */}
+            {majorCategoryFilter !== '全部' && (
+              <div className="flex flex-wrap gap-1">
                 <button
-                  key={tab}
-                  onClick={() => setCategoryFilter(tab)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
-                    categoryFilter === tab
-                      ? 'bg-[#c9a84c]/20 text-[#c9a84c]'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'
+                  onClick={() => setMinorCategoryFilter('全部')}
+                  className={`px-2 py-0.5 rounded text-xs transition-all ${
+                    minorCategoryFilter === '全部'
+                      ? 'bg-slate-700 text-slate-200'
+                      : 'text-slate-500 hover:text-slate-300'
                   }`}
                 >
-                  {tab}
+                  全部小类
                 </button>
-              ))}
-            </div>
+                {availableMinorCategories.map(minor => (
+                  <button
+                    key={minor}
+                    onClick={() => setMinorCategoryFilter(minor)}
+                    className={`px-2 py-0.5 rounded text-xs transition-all ${
+                      minorCategoryFilter === minor
+                        ? 'bg-slate-700 text-slate-200'
+                        : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    {minor}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Success Rate Period Toggle */}
             <div className="flex items-center gap-1 bg-[#0e1629] rounded-lg p-1">
@@ -413,7 +463,7 @@ export default function TacticsPage() {
                   const tCount = getActualTriggerCount(tactic.name);
                   const sRate = getSuccessRate(tactic.name, successPeriod);
                   const isSelected = selectedTactic === tactic.name;
-                  const Icon = getCategoryIcon(tactic.category);
+                  const Icon = getMajorCategoryIcon(tactic.majorCategory);
                   // 使用新的成功率颜色分档
                   const rateColor = getSuccessRateColor(sRate);
                   return (
@@ -438,7 +488,7 @@ export default function TacticsPage() {
                           </span>
                         </div>
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 flex-shrink-0">
-                          {tactic.category.replace('战法', '')}
+                          {tactic.majorCategory} · {tactic.minorCategory}
                         </span>
                       </div>
                       {/* Trigger count + Success rate */}
@@ -481,7 +531,7 @@ export default function TacticsPage() {
                       >
                         {currentTactic.name}
                       </h2>
-                      <span className="text-xs px-2 py-0.5 rounded bg-[#c9a84c]/20 text-[#c9a84c]">{currentTactic.category}</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-[#c9a84c]/20 text-[#c9a84c]">{currentTactic.majorCategory} · {currentTactic.minorCategory}</span>
                       <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
                         实际触发: {actualCount}只
                       </span>
@@ -714,6 +764,5 @@ export default function TacticsPage() {
           </div>
         </div>
       </div>
-    </Layout>
   );
 }

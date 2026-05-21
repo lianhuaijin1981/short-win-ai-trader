@@ -9,6 +9,9 @@ import {
   Target,
   BarChart3,
   ClipboardCheck,
+  Newspaper,
+  FileText,
+  History,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
@@ -23,6 +26,9 @@ const iconMap: Record<string, React.ElementType> = {
   Target,
   BarChart3,
   ClipboardCheck,
+  Newspaper,
+  FileText,
+  History,
 };
 
 export default function Sidebar() {
