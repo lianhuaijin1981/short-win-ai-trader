@@ -217,6 +217,7 @@ export const navItems: NavItem[] = [
   { label: '资讯采集', icon: 'Newspaper', path: '/news' },
   { label: '交易日志', icon: 'FileText', path: '/trade-journal' },
   { label: '历史交易', icon: 'History', path: '/trade-history' },
+  { label: '实时推送', icon: 'Wifi', path: '/realtime-demo' },
 ];
 
 // ═══════════════════════════════════════════════════════════════

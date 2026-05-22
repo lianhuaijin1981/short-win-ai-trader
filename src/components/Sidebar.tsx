@@ -14,6 +14,7 @@ import {
   History,
   ChevronLeft,
   ChevronRight,
+  Wifi,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { navItems } from '@/data/mockData';
@@ -29,6 +30,7 @@ const iconMap: Record<string, React.ElementType> = {
   Newspaper,
   FileText,
   History,
+  Wifi,
 };
 
 export default function Sidebar() {

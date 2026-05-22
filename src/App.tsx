@@ -12,6 +12,7 @@ import News from '@/pages/News';
 import TradeJournal from '@/pages/TradeJournal';
 import TradeHistory from '@/pages/TradeHistory';
 import TradeEnvironment from '@/pages/TradeEnvironment';
+import RealtimeDemo from '@/pages/RealtimeDemo';
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/trade-journal" element={<TradeJournal />} />
         <Route path="/trade-history" element={<TradeHistory />} />
         <Route path="/trade-environment/:id" element={<TradeEnvironment />} />
+        <Route path="/realtime-demo" element={<RealtimeDemo />} />
       </Routes>
     </Layout>
   );
