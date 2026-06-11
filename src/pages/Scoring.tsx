@@ -91,44 +91,45 @@ function getRating(score: number): { label: string; color: string } {
 
 const RATING = getRating(TOTAL_SCORE);
 
-// 真实涨停股Top10 — 基于同花顺ifind_get_price量价分析
+// 真实涨停股Top10 — 基于AKShare 2026-06-10量价分析
+// 6月10日真实数据：天娱数科4板最高，71家涨停，退潮期
 const LEADERBOARD: LeaderboardItem[] = [
-  { rank: 1, code: '001259', name: '利仁科技', totalScore: 94, rating: 'S', rrRatio: 3.2, suggestPosition: '40%', dimensions: [92, 85, 95, 90, 88, 96], reasons: ['5连板龙头', '一字加速', '缩量封板'], tactics: ['连板加速', '龙头情绪战法'], yingyou: '小鳄鱼' },
-  { rank: 2, code: '001333', name: '光华股份', totalScore: 91, rating: 'A', rrRatio: 2.8, suggestPosition: '35%', dimensions: [88, 82, 90, 88, 85, 94], reasons: ['首阴反包', '倍量突破', '前日-4.0%今日涨停'], tactics: ['首阴战法', 'N字形'], yingyou: '炒股养家' },
-  { rank: 3, code: '002031', name: '巨轮智能', totalScore: 88, rating: 'A', rrRatio: 2.5, suggestPosition: '30%', dimensions: [85, 80, 88, 85, 82, 90], reasons: ['巨量封板', '资金抢筹', '484M量能'], tactics: ['倍量突破', '分时承接'], yingyou: '涅槃重生' },
-  { rank: 4, code: '002066', name: '瑞泰科技', totalScore: 85, rating: 'A', rrRatio: 2.3, suggestPosition: '25%', dimensions: [82, 78, 86, 88, 80, 86], reasons: ['N字形反包', '倍量突破', '前日-3.8%今日涨停'], tactics: ['首阴战法', 'N字形'], yingyou: '炒股养家' },
-  { rank: 5, code: '002181', name: '粤传媒', totalScore: 82, rating: 'A', rrRatio: 2.1, suggestPosition: '25%', dimensions: [80, 75, 84, 85, 78, 84], reasons: ['首阴反包', '缩量涨停', '前日-5.5%'], tactics: ['首阴战法'], yingyou: '龙飞虎' },
-  { rank: 6, code: '002196', name: '方正电机', totalScore: 79, rating: 'B', rrRatio: 1.9, suggestPosition: '20%', dimensions: [78, 72, 82, 80, 76, 80], reasons: ['3倍量突破', '首阴反包', '量比3.33'], tactics: ['首阴战法', '三倍量突破'], yingyou: '炒股养家' },
-  { rank: 7, code: '002348', name: '高乐股份', totalScore: 76, rating: 'B', rrRatio: 1.7, suggestPosition: '20%', dimensions: [75, 70, 80, 78, 74, 78], reasons: ['缩量涨停', '筹码集中', '主力控盘'], tactics: ['缩量突破', '筹码峰战法'], yingyou: '龙飞虎' },
-  { rank: 8, code: '002374', name: '中锐股份', totalScore: 73, rating: 'B', rrRatio: 1.5, suggestPosition: '15%', dimensions: [72, 68, 78, 76, 72, 76], reasons: ['低价股启动', '倍量封板', '低位首板'], tactics: ['低位首板', '倍量突破'], yingyou: 'Asking' },
-  { rank: 9, code: '002395', name: '双象股份', totalScore: 70, rating: 'B', rrRatio: 1.4, suggestPosition: '15%', dimensions: [70, 65, 76, 74, 70, 74], reasons: ['首阴反包', '倍量突破', '前日-5.4%'], tactics: ['首阴战法'], yingyou: '龙飞虎' },
-  { rank: 10, code: '002407', name: '多氟多', totalScore: 67, rating: 'C', rrRatio: 1.2, suggestPosition: '10%', dimensions: [68, 62, 74, 72, 68, 72], reasons: ['首阴反包', '倍量封板', '前日-5.8%'], tactics: ['首阴战法', '反核战法'], yingyou: '炒股养家' },
+  { rank: 1, code: '002354', name: '天娱数科', totalScore: 88, rating: 'A', rrRatio: 2.5, suggestPosition: '15%', dimensions: [85, 80, 88, 82, 75, 90], reasons: ['4连板最高标', 'AI营销龙头', '数据要素'], tactics: ['连板加速', '龙头情绪战法'], yingyou: '小鳄鱼' },
+  { rank: 2, code: '002636', name: '金安国纪', totalScore: 85, rating: 'A', rrRatio: 2.3, suggestPosition: '15%', dimensions: [82, 78, 86, 85, 72, 88], reasons: ['3连板', '覆铜板龙头', 'PCB材料'], tactics: ['连板加速', '倍量突破'], yingyou: '炒股养家' },
+  { rank: 3, code: '600500', name: '中化国际', totalScore: 82, rating: 'A', rrRatio: 2.1, suggestPosition: '10%', dimensions: [80, 75, 84, 80, 70, 85], reasons: ['2连板', '化学制品央企', '国企改革'], tactics: ['低位首板', 'N字形'], yingyou: '机构' },
+  { rank: 4, code: '605589', name: '圣泉集团', totalScore: 79, rating: 'B', rrRatio: 1.9, suggestPosition: '10%', dimensions: [78, 72, 82, 78, 68, 82], reasons: ['2连板', '合成生物', '酚醛树脂'], tactics: ['倍量突破', 'N字形'], yingyou: '涅槃重生' },
+  { rank: 5, code: '003026', name: '中晶科技', totalScore: 76, rating: 'B', rrRatio: 1.7, suggestPosition: '10%', dimensions: [75, 70, 80, 76, 65, 80], reasons: ['2连板', '半导体硅片', '次新股'], tactics: ['低位首板', '缩量突破'], yingyou: '龙飞虎' },
+  { rank: 6, code: '002971', name: '和远气体', totalScore: 73, rating: 'B', rrRatio: 1.5, suggestPosition: '5%', dimensions: [72, 68, 78, 74, 62, 78], reasons: ['2连板', '工业气体', '特种气体'], tactics: ['低位首板', '倍量突破'], yingyou: 'Asking' },
+  { rank: 7, code: '002585', name: '双星新材', totalScore: 70, rating: 'B', rrRatio: 1.4, suggestPosition: '5%', dimensions: [70, 65, 76, 72, 60, 76], reasons: ['2连板', '光学膜', '新材料'], tactics: ['低位首板', '筹码峰战法'], yingyou: '龙飞虎' },
+  { rank: 8, code: '002757', name: '南兴股份', totalScore: 67, rating: 'C', rrRatio: 1.2, suggestPosition: '5%', dimensions: [68, 62, 74, 70, 58, 74], reasons: ['首板', '专用设备', 'IDC概念'], tactics: ['低位首板', '分时承接'], yingyou: '炒股养家' },
+  { rank: 9, code: '600229', name: '城市传媒', totalScore: 64, rating: 'C', rrRatio: 1.1, suggestPosition: '5%', dimensions: [65, 60, 72, 68, 55, 72], reasons: ['首板', '出版传媒', '地方国企'], tactics: ['低位首板'], yingyou: '涅槃重生' },
+  { rank: 10, code: '002669', name: '康达新材', totalScore: 61, rating: 'C', rrRatio: 1.0, suggestPosition: '5%', dimensions: [62, 58, 70, 66, 52, 70], reasons: ['首板', '胶粘剂', '军工概念'], tactics: ['低位首板'], yingyou: 'Asking' },
 ];
 
 const TRADING_PLAN: TradingPlan = {
-  stockCode: '001259',
-  stockName: '利仁科技',
-  theme: '消费电子',
-  currentPrice: 60.5,
+  stockCode: '002354',
+  stockName: '天娱数科',
+  theme: 'AI营销/数据要素',
+  currentPrice: 8.52,
   changePercent: 10.0,
   entryPrice: '不建议追',
-  entryConditions: ['5连板高位', '缩量一字风险大', '退潮期严禁追高'],
+  entryConditions: ['4连板高位', '退潮期严禁追高', '最高标风险大'],
   entryMethod: '退潮期观望，等待回调或低位首板',
   bestTime: '当前不建议介入',
-  stopLossPrice: 49.5,
-  stopLossPercent: -18.2,
-  stopLossConditions: ['一字板打开无法回封', '板块龙头跌停'],
-  takeProfit1: 66.0,
-  takeProfit1Percent: 9.1,
-  takeProfit2: 72.0,
-  takeProfit2Percent: 19.0,
+  stopLossPrice: 6.82,
+  stopLossPercent: -20.0,
+  stopLossConditions: ['连板打开无法回封', '板块龙头跌停', '退潮期加速'],
+  takeProfit1: 9.37,
+  takeProfit1Percent: 10.0,
+  takeProfit2: 10.22,
+  takeProfit2Percent: 20.0,
   maxPosition: '退潮期单票≤5%',
   maxDrawdown: '-5%严格止损',
   holdPeriod: '观望为主',
-  addConditions: ['退潮期不加仓'],
-  reduceConditions: ['一字板打开减半', '无法回封清仓'],
-  dailyCheck: ['监控连板高度', '板块热度', '炸板率'],
-  aiComment: '利仁科技综合评分94分(S级)，5连板龙头。但当前处于退潮期，涨停72家/跌停44家，情绪极度恶化。缩量一字涨停说明筹码锁定好，但追高风险极大。小鳄鱼模式匹配98%。退潮期总仓位控制在1成以内，不建议追5板以上个股。关注明日能否6板以及板块跟风情况。',
+  addConditions: ['退潮期不加仓', '等待新周期确认'],
+  reduceConditions: ['连板打开减半', '无法回封清仓'],
+  dailyCheck: ['监控连板高度', '板块热度', '炸板率', '跌停数量'],
+  aiComment: '天娱数科综合评分88分(A级)，4连板当前最高标，AI营销+数据要素概念。但当前处于退潮期，涨停71家/跌停44家，情绪极度恶化。退潮期总仓位控制在1成以内，不建议追4板以上个股。关注明日能否5板以及板块跟风情况。等待新周期启动信号。',
 };
 
 const POSITION_FACTORS = [

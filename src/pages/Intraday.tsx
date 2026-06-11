@@ -74,7 +74,8 @@ const sectorAlerts = REAL_SECTOR_ALERTS.map((alert, i) => {
   };
 });
 
-// ── 连板高标定义（05-15收盘后，同花顺ifind全市场，排除ST）──
+// ── 连板高标定义（2026-06-10收盘后，AKShare全市场，排除ST）──
+// 6月10日真实数据：天娱数科4板最高，71家涨停
 interface BoardLeader {
   rank: number;       // 连板排名
   name: string;
@@ -88,10 +89,10 @@ interface BoardLeader {
 }
 
 const BOARD_LEADERS: BoardLeader[] = [
-  { rank: 1, name: '蒙娜丽莎', code: '002918', boards: 6, sealAmount: '3.2亿', limitUpTime: '09:30', riseLogic: '先进陶瓷+建筑陶瓷+地产链', conceptSector: '智能家居/精装修', industrySector: '建筑材料' },
-  { rank: 2, name: '利仁科技', code: '001259', boards: 5, sealAmount: '2.1亿', limitUpTime: '09:25', riseLogic: '股份转让+小家电+露营经济', conceptSector: '消费电子/小家电', industrySector: '消费电子制造' },
-  { rank: 3, name: '威龙股份', code: '603779', boards: 3, sealAmount: '0.8亿', limitUpTime: '09:35', riseLogic: '葡萄酒+消费复苏', conceptSector: '食品饮料/消费复苏', industrySector: '酒饮料' },
-  { rank: 4, name: '京能电力', code: '600578', boards: 3, sealAmount: '4.8亿', limitUpTime: '09:35', riseLogic: '风光火储+绿电转型+北京国资', conceptSector: '碳中和/绿色电力', industrySector: '电力' },
+  { rank: 1, name: '天娱数科', code: '002354', boards: 4, sealAmount: '1.7亿', limitUpTime: '09:33', riseLogic: '广告营销+AI+数据要素', conceptSector: 'AI营销/数据要素', industrySector: '广告营销' },
+  { rank: 2, name: '金安国纪', code: '002636', boards: 3, sealAmount: '1.6亿', limitUpTime: '09:31', riseLogic: '覆铜板+PCB+电子材料', conceptSector: '半导体材料', industrySector: '元件' },
+  { rank: 3, name: '中化国际', code: '600500', boards: 2, sealAmount: '2.1亿', limitUpTime: '09:25', riseLogic: '化学制品+央企改革', conceptSector: '化工新材料', industrySector: '化学制品' },
+  { rank: 4, name: '圣泉集团', code: '605589', boards: 2, sealAmount: '3.6亿', limitUpTime: '09:25', riseLogic: '合成生物+酚醛树脂', conceptSector: '化工新材料', industrySector: '塑料' },
 ];
 
 // ── 板块连板梯队定义 ──
@@ -104,104 +105,106 @@ interface SectorBoardTier {
   firstBoards: { name: string; code: string; riseLogic: string }[];
 }
 
-// 概念板块连板梯队 — 只包含真实属于该概念板块的股票，不硬塞其他板块高标凑数
+// 概念板块连板梯队 — 6月10日真实数据
 const CONCEPT_SECTOR_TIERS: SectorBoardTier[] = [
   {
-    sectorName: '智能家居/精装修',
+    sectorName: 'AI营销/数据要素',
     sectorType: '概念板块',
-    leader: BOARD_LEADERS[0], // 蒙娜丽莎
+    leader: BOARD_LEADERS[0], // 天娱数科
     boardTiers: [
-      { rank: 1, name: '蒙娜丽莎', code: '002918', boards: 6, riseLogic: '先进陶瓷+地产链' },
-      { rank: 2, name: '瑞泰科技', code: '002066', boards: 1, riseLogic: '耐火材料+央企' },
+      { rank: 1, name: '天娱数科', code: '002354', boards: 4, riseLogic: '广告营销+AI+数据要素' },
+      { rank: 2, name: '南兴股份', code: '002757', boards: 1, riseLogic: '专用设备+IDC' },
     ],
     firstBoards: [
-      { name: '光华股份', code: '001333', riseLogic: '化工新材料' },
+      { name: '城市传媒', code: '600229', riseLogic: '出版+传媒' },
     ],
   },
   {
-    sectorName: '消费电子/小家电',
+    sectorName: '半导体材料',
     sectorType: '概念板块',
-    leader: BOARD_LEADERS[1], // 利仁科技
+    leader: BOARD_LEADERS[1], // 金安国纪
     boardTiers: [
-      { rank: 1, name: '利仁科技', code: '001259', boards: 5, riseLogic: '股份转让+露营经济' },
-      { rank: 2, name: '高乐股份', code: '002348', boards: 1, riseLogic: 'AI玩具+算力' },
+      { rank: 1, name: '金安国纪', code: '002636', boards: 3, riseLogic: '覆铜板+PCB+电子材料' },
+      { rank: 2, name: '中晶科技', code: '003026', boards: 2, riseLogic: '半导体硅片' },
     ],
     firstBoards: [
-      { name: '粤传媒', code: '002181', riseLogic: '文化传媒+业绩' },
+      { name: '华亚智能', code: '003043', riseLogic: '半导体设备' },
     ],
   },
   {
-    sectorName: '食品饮料/消费复苏',
+    sectorName: '化工新材料',
     sectorType: '概念板块',
-    leader: BOARD_LEADERS[2], // 威龙股份
+    leader: BOARD_LEADERS[2], // 中化国际
     boardTiers: [
-      { rank: 1, name: '威龙股份', code: '603779', boards: 3, riseLogic: '葡萄酒+消费复苏' },
-      { rank: 2, name: '中锐股份', code: '002374', boards: 1, riseLogic: '防伪瓶盖+化债' },
+      { rank: 1, name: '中化国际', code: '600500', boards: 2, riseLogic: '化学制品+央企改革' },
+      { rank: 2, name: '圣泉集团', code: '605589', boards: 2, riseLogic: '合成生物+酚醛树脂' },
     ],
     firstBoards: [
-      { name: '金富科技', code: '003018', riseLogic: '消费包装' },
+      { name: '康达新材', code: '002669', riseLogic: '胶粘剂+军工' },
     ],
   },
   {
-    sectorName: '碳中和/绿色电力',
+    sectorName: '化学制品',
     sectorType: '概念板块',
-    leader: BOARD_LEADERS[3], // 京能电力
+    leader: BOARD_LEADERS[3], // 圣泉集团
     boardTiers: [
-      { rank: 1, name: '京能电力', code: '600578', boards: 3, riseLogic: '风光火储+绿电' },
+      { rank: 1, name: '圣泉集团', code: '605589', boards: 2, riseLogic: '合成生物+酚醛树脂' },
+      { rank: 2, name: '和远气体', code: '002971', boards: 2, riseLogic: '工业气体' },
     ],
     firstBoards: [
-      { name: '方正电机', code: '002196', riseLogic: '新能源电机' },
+      { name: '恒兴新材', code: '603276', riseLogic: '化学制品' },
     ],
   },
 ];
 
-// 行业板块连板梯队 — 只包含真实属于该行业板块的股票，不硬塞其他板块高标凑数
+// 行业板块连板梯队 — 6月10日真实数据
 const INDUSTRY_SECTOR_TIERS: SectorBoardTier[] = [
   {
-    sectorName: '建筑材料',
+    sectorName: '广告营销',
     sectorType: '行业板块',
-    leader: BOARD_LEADERS[0], // 蒙娜丽莎
+    leader: BOARD_LEADERS[0], // 天娱数科
     boardTiers: [
-      { rank: 1, name: '蒙娜丽莎', code: '002918', boards: 6, riseLogic: '建筑陶瓷龙头' },
-      { rank: 2, name: '瑞泰科技', code: '002066', boards: 1, riseLogic: '耐火材料' },
+      { rank: 1, name: '天娱数科', code: '002354', boards: 4, riseLogic: 'AI营销龙头' },
+      { rank: 2, name: '南兴股份', code: '002757', boards: 1, riseLogic: '专用设备' },
     ],
     firstBoards: [
-      { name: '光华股份', code: '001333', riseLogic: '涂料' },
+      { name: '城市传媒', code: '600229', riseLogic: '出版' },
     ],
   },
   {
-    sectorName: '消费电子制造',
+    sectorName: '元件',
     sectorType: '行业板块',
-    leader: BOARD_LEADERS[1], // 利仁科技
+    leader: BOARD_LEADERS[1], // 金安国纪
     boardTiers: [
-      { rank: 1, name: '利仁科技', code: '001259', boards: 5, riseLogic: '小家电龙头' },
-      { rank: 2, name: '高乐股份', code: '002348', boards: 1, riseLogic: 'AI玩具' },
+      { rank: 1, name: '金安国纪', code: '002636', boards: 3, riseLogic: '覆铜板龙头' },
+      { rank: 2, name: '中晶科技', code: '003026', boards: 2, riseLogic: '半导体硅片' },
     ],
     firstBoards: [
-      { name: '粤传媒', code: '002181', riseLogic: '消费电子+传媒' },
+      { name: '华亚智能', code: '003043', riseLogic: '半导体设备' },
     ],
   },
   {
-    sectorName: '酒饮料',
+    sectorName: '化学制品',
     sectorType: '行业板块',
-    leader: BOARD_LEADERS[2], // 威龙股份
+    leader: BOARD_LEADERS[2], // 中化国际
     boardTiers: [
-      { rank: 1, name: '威龙股份', code: '603779', boards: 3, riseLogic: '葡萄酒' },
+      { rank: 1, name: '中化国际', code: '600500', boards: 2, riseLogic: '化学制品央企' },
+      { rank: 2, name: '和远气体', code: '002971', boards: 2, riseLogic: '工业气体' },
     ],
     firstBoards: [
-      { name: '中锐股份', code: '002374', riseLogic: '瓶盖(酒包装)' },
+      { name: '康达新材', code: '002669', riseLogic: '胶粘剂' },
+      { name: '恒兴新材', code: '603276', riseLogic: '化学制品' },
     ],
   },
   {
-    sectorName: '电力',
+    sectorName: '塑料',
     sectorType: '行业板块',
-    leader: BOARD_LEADERS[3], // 京能电力
+    leader: BOARD_LEADERS[3], // 圣泉集团
     boardTiers: [
-      { rank: 1, name: '京能电力', code: '600578', boards: 3, riseLogic: '北京电力龙头' },
+      { rank: 1, name: '圣泉集团', code: '605589', boards: 2, riseLogic: '酚醛树脂龙头' },
+      { rank: 2, name: '双星新材', code: '002585', boards: 2, riseLogic: '光学膜' },
     ],
-    firstBoards: [
-      { name: '方正电机', code: '002196', riseLogic: '新能源电机' },
-    ],
+    firstBoards: [],
   },
 ];
 

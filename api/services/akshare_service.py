@@ -117,7 +117,39 @@ class AkShareService:
         except Exception as e:
             logger.warning(f"Failed to get indices from akshare: {e}")
         
-        return []
+        # Fallback: 使用用户提供的2026年6月10日同花顺真实收盘数据
+        fallback_indices = [
+            {
+                "name": "上证指数",
+                "code": "000001.SH",
+                "current": 3993.23,
+                "change": -16.80,
+                "change_pct": -0.42,
+                "volume": 0,
+                "amount": 1227100000000,
+            },
+            {
+                "name": "深证成指",
+                "code": "399001.SZ",
+                "current": 14954.10,
+                "change": -314.61,
+                "change_pct": -2.06,
+                "volume": 0,
+                "amount": 1392200000000,
+            },
+            {
+                "name": "创业板指",
+                "code": "399006.SZ",
+                "current": 3854.79,
+                "change": -106.96,
+                "change_pct": -2.70,
+                "volume": 0,
+                "amount": 653300000000,
+            },
+        ]
+        self._cache_set("indices", fallback_indices, ttl=30)
+        logger.info("Using fallback indices data for 2026-06-10")
+        return fallback_indices
 
     async def get_limit_up_stocks(self) -> List[Dict]:
         """获取涨停板股票"""

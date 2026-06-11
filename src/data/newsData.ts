@@ -388,96 +388,32 @@ export function generateRiskWarning(
 // ═══════════════════════════════════════════════════════════════
 
 export const MOCK_NEWS: NewsItem[] = [
-  // 重大利好 - 重组并购
-  {
-    id: 'news-001',
-    publishTime: '2026-05-20 22:35:00',
-    source: '巨潮资讯',
-    category: '重组并购',
-    title: '【重大资产重组】中芯国际拟收购华虹半导体部分产线，整合国内晶圆代工产能',
-    summary: '中芯国际公告称拟以现金+股份方式收购华虹半导体上海及无锡产线，交易对价约280亿元。此次收购将大幅提升公司12英寸晶圆产能，巩固国内晶圆代工龙头地位。',
-    content: '中芯国际(688981)晚间公告，公司拟通过发行股份及支付现金方式，收购华虹半导体旗下上海华虹宏力及无锡华虹半导体全部资产。交易完成后，公司将新增月产能约8万片12英寸晶圆，成为全球第三大纯晶圆代工厂。',
-    relatedSectors: ['半导体', '芯片概念', '国产替代'],
-    relatedStocks: [
-      { code: '688981', name: '中芯国际' },
-      { code: '603893', name: '瑞芯微' },
-      { code: '002049', name: '紫光国微' }
-    ],
-    importance: '重大利好',
-    importanceScore: 92,
-    backtestStats: CATEGORY_BACKTEST_STATS['重组并购'],
-    suggestion: {
-      type: '积极介入',
-      suggestedPosition: 30,
-      buyRange: { low: 88.5, high: 92.0 },
-      stopLoss: 82.0,
-      takeProfit: 105.0,
-      holdingPeriod: '短线(3-5日)',
-      reason: '重组并购类消息历史回测胜率78%，平均最大涨幅15.8%，半导体国产替代逻辑强化',
-      confidence: 85
-    },
-    riskWarning: null,
-    isRead: false,
-    userTag: null
-  },
   // 重大利好 - 监管政策
   {
-    id: 'news-002',
-    publishTime: '2026-05-20 21:15:00',
-    source: '上交所官网',
+    id: 'news-001',
+    publishTime: '2026-06-10 21:30:00',
+    source: '财联社',
     category: '监管政策',
-    title: '【政策利好】证监会发布《关于深化科创板改革 服务科技创新的若干意见》',
-    summary: '证监会发布科创板改革新政，包括优化上市条件、放宽涨跌幅限制、引入做市商制度等12项措施，旨在提升科创板服务科技创新能力。',
-    content: '为深入贯彻创新驱动发展战略，证监会今日发布《关于深化科创板改革 服务科技创新的若干意见》，提出优化科创板上市条件、研究适当放宽涨跌幅限制、引入做市商制度、完善退市机制等12项改革措施。',
-    relatedSectors: ['科创板', '半导体', '生物医药', '新能源'],
+    title: '【政策利好】国务院：加快培育数据要素市场，推进数据资产入表试点',
+    summary: '国务院印发《关于加快数据要素市场化配置改革的指导意见》，提出加快培育数据要素市场，推进数据资产入表试点，数据要素概念股有望受益。',
+    content: '国务院今日印发《关于加快数据要素市场化配置改革的指导意见》，明确提出加快培育数据要素市场，推进数据资产入表试点工作，支持符合条件的数据服务企业上市融资。文件还提出建立数据产权制度，推动数据跨境流动。',
+    relatedSectors: ['数据要素', 'AI营销', '数字经济'],
     relatedStocks: [
-      { code: '688981', name: '中芯国际' },
-      { code: '688008', name: '澜起科技' },
-      { code: '688111', name: '金山办公' }
+      { code: '002354', name: '天娱数科' },
+      { code: '300496', name: '中科创达' },
+      { code: '603881', name: '数据港' }
     ],
     importance: '重大利好',
     importanceScore: 88,
     backtestStats: CATEGORY_BACKTEST_STATS['监管政策'],
     suggestion: {
-      type: '积极介入',
-      suggestedPosition: 25,
+      type: '谨慎介入',
+      suggestedPosition: 10,
       buyRange: { low: 0, high: 0 },
       stopLoss: 0,
       takeProfit: 0,
       holdingPeriod: '中线(1-2周)',
-      reason: '监管政策类消息历史回测胜率72%，科创板改革利好科技股估值提升',
-      confidence: 80
-    },
-    riskWarning: null,
-    isRead: false,
-    userTag: null
-  },
-  // 一般利好 - 业绩预告
-  {
-    id: 'news-003',
-    publishTime: '2026-05-20 20:45:00',
-    source: '巨潮资讯',
-    category: '业绩预告',
-    title: '【业绩超预期】利仁科技上半年净利润预增180%-200%，消费电子需求旺盛',
-    summary: '利仁科技发布半年度业绩预告，预计上半年实现净利润2.8-3.0亿元，同比增长180%-200%，主要受益于消费电子市场需求持续旺盛。',
-    content: '利仁科技(001259)发布2026年半年度业绩预告，预计实现归属于上市公司股东的净利润2.8-3.0亿元，同比增长180%-200%。公司表示，受益于智能家居产品需求增长及新品放量，上半年订单量同比大幅增长。',
-    relatedSectors: ['消费电子', '智能家居', '小家电'],
-    relatedStocks: [
-      { code: '001259', name: '利仁科技' },
-      { code: '002032', name: '苏泊尔' },
-      { code: '002242', name: '九阳股份' }
-    ],
-    importance: '一般利好',
-    importanceScore: 72,
-    backtestStats: CATEGORY_BACKTEST_STATS['业绩预告'],
-    suggestion: {
-      type: '谨慎介入',
-      suggestedPosition: 15,
-      buyRange: { low: 58.5, high: 61.0 },
-      stopLoss: 55.0,
-      takeProfit: 68.0,
-      holdingPeriod: '超短(1-2日)',
-      reason: '业绩预告类消息历史回测胜率68%，但股价已处高位，注意追高风险',
+      reason: '监管政策类消息历史回测胜率72%，但当前处于退潮期，涨停71家/跌停44家，建议轻仓试水',
       confidence: 65
     },
     riskWarning: null,
@@ -486,31 +422,69 @@ export const MOCK_NEWS: NewsItem[] = [
   },
   // 一般利好 - 题材催化
   {
-    id: 'news-004',
-    publishTime: '2026-05-20 19:30:00',
-    source: '财联社',
+    id: 'news-002',
+    publishTime: '2026-06-10 20:15:00',
+    source: '同花顺',
     category: '题材催化',
-    title: '【AI应用催化】华为发布盘古大模型5.0，AI应用产业链有望受益',
-    summary: '华为在开发者大会上正式发布盘古大模型5.0，性能较上一代提升10倍，支持多模态交互。AI应用产业链相关公司有望受益。',
-    content: '华为今日在HDC 2026开发者大会上正式发布盘古大模型5.0，该模型在语言理解、图像识别、代码生成等方面性能较4.0版本提升10倍。同时宣布将向合作伙伴开放API接口，推动AI应用在多行业落地。',
-    relatedSectors: ['AI应用', '华为概念', '大模型', '算力'],
+    title: '【AI营销催化】天娱数科4连板成最高标，AI营销+数据要素双轮驱动',
+    summary: '天娱数科今日缩量涨停走出4连板，成为当前市场最高连板标的，AI营销+数据要素概念受资金追捧。',
+    content: '天娱数科(002354)今日缩量涨停，走出4连板行情，成为当前市场最高连板标的。公司主营AI营销业务，同时布局数据要素赛道。从龙虎榜来看，知名游资小鳄鱼现身买方。但当前市场处于退潮期，涨停71家/跌停44家，追高需谨慎。',
+    relatedSectors: ['AI营销', '数据要素', '数字经济'],
     relatedStocks: [
-      { code: '002407', name: '多氟多' },
-      { code: '300496', name: '中科创达' },
-      { code: '002230', name: '科大讯飞' }
+      { code: '002354', name: '天娱数科' },
+      { code: '002636', name: '金安国纪' },
+      { code: '600500', name: '中化国际' }
     ],
     importance: '一般利好',
-    importanceScore: 68,
+    importanceScore: 72,
     backtestStats: CATEGORY_BACKTEST_STATS['题材催化'],
     suggestion: {
-      type: '谨慎介入',
-      suggestedPosition: 15,
-      buyRange: { low: 35.0, high: 37.0 },
-      stopLoss: 33.0,
-      takeProfit: 42.0,
-      holdingPeriod: '短线(3-5日)',
-      reason: '题材催化类消息历史回测胜率65%，AI产业链热度持续，但需关注持续性',
-      confidence: 62
+      type: '观望等待',
+      suggestedPosition: 0,
+      buyRange: { low: 0, high: 0 },
+      stopLoss: 0,
+      takeProfit: 0,
+      holdingPeriod: '超短(1-2日)',
+      reason: '题材催化类消息历史回测胜率65%，但4连板高位+退潮期，追高风险极大',
+      confidence: 45
+    },
+    riskWarning: {
+      level: '高风险',
+      riskType: '流动性风险',
+      description: '4连板高位股，退潮期追高风险极大，可能面临连续跌停',
+      impactScope: '个股',
+      suggestedAction: '退潮期严禁追高，等待回调或新周期确认',
+      warningTime: '20:15:00'
+    },
+    isRead: false,
+    userTag: null
+  },
+  // 一般利好 - 龙虎榜数据
+  {
+    id: 'news-003',
+    publishTime: '2026-06-10 18:30:00',
+    source: '同花顺',
+    category: '龙虎榜数据',
+    title: '【龙虎榜】金安国纪获游资炒股养家买入，3连板覆铜板龙头',
+    summary: '金安国纪今日登上龙虎榜，知名游资炒股养家现身买方，该股今日走出3连板行情。',
+    content: '金安国纪(002636)今日因连续3个交易日涨幅偏离值累计达20%登上龙虎榜。买方席位中，炒股养家所在营业部买入约3200万元。该股为覆铜板龙头，受益于PCB材料需求增长。',
+    relatedSectors: ['覆铜板', 'PCB材料', '电子元件'],
+    relatedStocks: [
+      { code: '002636', name: '金安国纪' },
+      { code: '600500', name: '中化国际' }
+    ],
+    importance: '一般利好',
+    importanceScore: 65,
+    backtestStats: CATEGORY_BACKTEST_STATS['龙虎榜数据'],
+    suggestion: {
+      type: '观望等待',
+      suggestedPosition: 0,
+      buyRange: { low: 0, high: 0 },
+      stopLoss: 0,
+      takeProfit: 0,
+      holdingPeriod: '超短(1-2日)',
+      reason: '龙虎榜显示游资买入，但3连板高位+退潮期，建议观望',
+      confidence: 50
     },
     riskWarning: null,
     isRead: false,
@@ -518,21 +492,17 @@ export const MOCK_NEWS: NewsItem[] = [
   },
   // 中性 - 行业动态
   {
-    id: 'news-005',
-    publishTime: '2026-05-20 18:20:00',
-    source: '同花顺',
+    id: 'news-004',
+    publishTime: '2026-06-10 17:00:00',
+    source: '东方财富',
     category: '行业动态',
-    title: '【行业动态】5月新能源汽车销量同比增长25%，渗透率达38%',
-    summary: '乘联会数据显示，5月新能源汽车零售销量85万辆，同比增长25%，环比增长8%，市场渗透率达到38%，行业维持高景气度。',
-    content: '据乘联会最新数据，5月份国内新能源汽车零售销量达到85万辆，同比增长25%，环比增长8%。其中纯电动车销量58万辆，插电混动车型27万辆。新能源汽车市场渗透率进一步提升至38%。',
-    relatedSectors: ['新能源汽车', '锂电池', '充电桩'],
-    relatedStocks: [
-      { code: '002196', name: '方正电机' },
-      { code: '300750', name: '宁德时代' },
-      { code: '002594', name: '比亚迪' }
-    ],
+    title: '【行业动态】6月10日涨停71家/跌停44家，市场处于退潮期',
+    summary: '今日A股涨停71家，跌停44家，连板高度压缩至4板，市场情绪处于退潮阶段。',
+    content: '据同花顺数据，6月10日A股涨停71家，跌停44家，涨停/跌停比1.61，连板高度仅4板（天娱数科）。从情绪周期来看，当前处于退潮期，建议总仓位控制在1成以内。历史数据显示，退潮期涨停股次日溢价率仅35%左右。',
+    relatedSectors: ['大盘'],
+    relatedStocks: [],
     importance: '中性',
-    importanceScore: 52,
+    importanceScore: 55,
     backtestStats: CATEGORY_BACKTEST_STATS['行业动态'],
     suggestion: {
       type: '观望等待',
@@ -540,9 +510,47 @@ export const MOCK_NEWS: NewsItem[] = [
       buyRange: { low: 0, high: 0 },
       stopLoss: 0,
       takeProfit: 0,
-      holdingPeriod: '短线(3-5日)',
-      reason: '行业动态消息历史回测胜率55%，数据符合预期，暂无超预期表现',
-      confidence: 50
+      holdingPeriod: '超短(1-2日)',
+      reason: '退潮期涨停71家/跌停44家，建议总仓位控制在1成以内，等待新周期确认',
+      confidence: 70
+    },
+    riskWarning: {
+      level: '中风险',
+      riskType: '系统性风险',
+      description: '市场处于退潮期，涨停71家/跌停44家，情绪极度恶化',
+      impactScope: '大盘',
+      suggestedAction: '退潮期总仓位控制在1成以内，严禁追高',
+      warningTime: '17:00:00'
+    },
+    isRead: false,
+    userTag: null
+  },
+  // 一般利好 - 资金流向
+  {
+    id: 'news-005',
+    publishTime: '2026-06-10 15:30:00',
+    source: '东方财富',
+    category: '资金流向',
+    title: '【资金动向】今日主力资金净流入AI营销板块，天娱数科获净买入1.2亿',
+    summary: '今日主力资金净流入AI营销板块2.8亿元，天娱数科获净买入1.2亿元居首。',
+    content: '今日主力资金流向显示，AI营销板块获净流入2.8亿元，其中天娱数科获净买入1.2亿元居首，金安国纪获净买入8500万元。但整体市场资金呈净流出状态，主力资金全天净流出约180亿元。',
+    relatedSectors: ['AI营销', '数据要素'],
+    relatedStocks: [
+      { code: '002354', name: '天娱数科' },
+      { code: '002636', name: '金安国纪' }
+    ],
+    importance: '一般利好',
+    importanceScore: 62,
+    backtestStats: CATEGORY_BACKTEST_STATS['资金流向'],
+    suggestion: {
+      type: '谨慎介入',
+      suggestedPosition: 5,
+      buyRange: { low: 0, high: 0 },
+      stopLoss: 0,
+      takeProfit: 0,
+      holdingPeriod: '超短(1-2日)',
+      reason: '资金流向类消息历史回测胜率58%，但退潮期资金持续性存疑',
+      confidence: 48
     },
     riskWarning: null,
     isRead: false,
@@ -551,15 +559,15 @@ export const MOCK_NEWS: NewsItem[] = [
   // 一般利空 - 股东减持
   {
     id: 'news-006',
-    publishTime: '2026-05-20 17:45:00',
+    publishTime: '2026-06-10 17:45:00',
     source: '巨潮资讯',
     category: '股东增减持',
-    title: '【减持公告】巨轮智能股东拟减持不超过3%股份',
-    summary: '巨轮智能公告，持股5%以上股东XX计划在未来3个月内通过集中竞价方式减持不超过公司总股本3%的股份。',
-    content: '巨轮智能(002031)今日公告，公司股东广州XX投资有限公司因自身资金需求，计划自本公告披露之日起3个交易日后的3个月内，通过集中竞价交易方式减持公司股份不超过2100万股，即不超过公司总股本的3%。',
-    relatedSectors: ['机器人', '智能制造'],
+    title: '【减持公告】中化国际股东拟减持不超过2%股份',
+    summary: '中化国际公告，持股5%以上股东计划在未来3个月内通过集中竞价方式减持不超过公司总股本2%的股份。',
+    content: '中化国际(600500)今日公告，公司股东因自身资金需求，计划自本公告披露之日起3个交易日后的3个月内，通过集中竞价交易方式减持公司股份不超过2800万股，即不超过公司总股本的2%。',
+    relatedSectors: ['化学制品', '国企改革'],
     relatedStocks: [
-      { code: '002031', name: '巨轮智能' }
+      { code: '600500', name: '中化国际' }
     ],
     importance: '一般利空',
     importanceScore: 38,
@@ -568,9 +576,9 @@ export const MOCK_NEWS: NewsItem[] = [
     riskWarning: {
       level: '中风险',
       riskType: '减持风险',
-      description: '大股东拟减持不超过3%股份，可能对股价形成压制',
+      description: '大股东拟减持不超过2%股份，可能对股价形成压制',
       impactScope: '个股',
-      suggestedAction: '建议关注减持进展，若股价跌破7.5元支撑位建议减仓',
+      suggestedAction: '建议关注减持进展，若股价跌破支撑位建议减仓',
       warningTime: '17:45:00'
     },
     isRead: false,
@@ -579,7 +587,7 @@ export const MOCK_NEWS: NewsItem[] = [
   // 重大利空 - 风险提示
   {
     id: 'news-007',
-    publishTime: '2026-05-20 16:30:00',
+    publishTime: '2026-06-10 16:30:00',
     source: '巨潮资讯',
     category: '风险提示',
     title: '【退市风险】*STXX公司股票可能被终止上市的风险提示',
@@ -604,54 +612,22 @@ export const MOCK_NEWS: NewsItem[] = [
     isRead: false,
     userTag: null
   },
-  // 一般利好 - 资金流向
+  // 一般利好 - 游资动向
   {
     id: 'news-008',
-    publishTime: '2026-05-20 15:30:00',
-    source: '东方财富',
-    category: '资金流向',
-    title: '【资金动向】北向资金今日净买入85亿元，重点加仓半导体和消费电子',
-    summary: '北向资金今日净买入85.2亿元，连续3日净流入。重点加仓方向为半导体、消费电子、新能源板块。',
-    content: '今日北向资金呈现大幅净流入态势，全天净买入85.2亿元，其中沪股通净买入52.3亿元，深股通净买入32.9亿元。从十大活跃个股来看，北向资金重点买入了中芯国际、立讯精密、宁德时代等个股。',
-    relatedSectors: ['半导体', '消费电子', '新能源'],
+    publishTime: '2026-06-10 14:30:00',
+    source: '淘股吧',
+    category: '游资动向',
+    title: '【游资追踪】小鳄鱼今日介入天娱数科，4连板最高标',
+    summary: '据龙虎榜数据，知名游资小鳄鱼今日买入天娱数科约4500万元，该股今日走出4连板行情。',
+    content: '天娱数科(002354)今日缩量涨停走出4连板，龙虎榜显示小鳄鱼所在营业部买入4500万元。该股为AI营销+数据要素概念，当前市场最高连板标的。但退潮期高位股风险较大。',
+    relatedSectors: ['AI营销', '数据要素'],
     relatedStocks: [
-      { code: '688981', name: '中芯国际' },
-      { code: '002475', name: '立讯精密' },
-      { code: '300750', name: '宁德时代' }
+      { code: '002354', name: '天娱数科' }
     ],
     importance: '一般利好',
-    importanceScore: 65,
-    backtestStats: CATEGORY_BACKTEST_STATS['资金流向'],
-    suggestion: {
-      type: '谨慎介入',
-      suggestedPosition: 15,
-      buyRange: { low: 0, high: 0 },
-      stopLoss: 0,
-      takeProfit: 0,
-      holdingPeriod: '超短(1-2日)',
-      reason: '北向资金连续净流入，市场情绪偏暖，但需关注持续性',
-      confidence: 58
-    },
-    riskWarning: null,
-    isRead: false,
-    userTag: null
-  },
-  // 中性 - 龙虎榜数据
-  {
-    id: 'news-009',
-    publishTime: '2026-05-20 15:00:00',
-    source: '同花顺',
-    category: '龙虎榜数据',
-    title: '【龙虎榜】利仁科技获3家机构买入，游资小鳄鱼现身买方',
-    summary: '利仁科技今日登上龙虎榜，买方席位出现3家机构专用席位，知名游资小鳄鱼也现身买方前五。',
-    content: '利仁科技(001259)今日因连续3个交易日涨幅偏离值累计达20%登上龙虎榜。买方席位中，3家机构专用席位合计买入约1.8亿元，知名游资小鳄鱼所在营业部买入约3500万元。卖方席位以散户为主。',
-    relatedSectors: ['消费电子', '智能家居'],
-    relatedStocks: [
-      { code: '001259', name: '利仁科技' }
-    ],
-    importance: '中性',
-    importanceScore: 55,
-    backtestStats: CATEGORY_BACKTEST_STATS['龙虎榜数据'],
+    importanceScore: 60,
+    backtestStats: CATEGORY_BACKTEST_STATS['游资动向'],
     suggestion: {
       type: '观望等待',
       suggestedPosition: 0,
@@ -659,38 +635,8 @@ export const MOCK_NEWS: NewsItem[] = [
       stopLoss: 0,
       takeProfit: 0,
       holdingPeriod: '超短(1-2日)',
-      reason: '龙虎榜显示机构和游资共同买入，但股价已处高位，追高风险较大',
-      confidence: 52
-    },
-    riskWarning: null,
-    isRead: false,
-    userTag: null
-  },
-  // 一般利好 - 游资动向
-  {
-    id: 'news-010',
-    publishTime: '2026-05-20 14:30:00',
-    source: '淘股吧',
-    category: '游资动向',
-    title: '【游资追踪】炒股养家今日介入光华股份，N字形反包战法',
-    summary: '据龙虎榜数据，知名游资炒股养家今日买入光华股份约2800万元，该股今日走出N字形反包形态。',
-    content: '光华股份(001333)今日涨停，龙虎榜显示炒股养家所在营业部买入2800万元。该股此前经历3日回调，今日倍量涨停反包，走出典型N字形形态。从历史数据看，炒股养家介入的标的次日溢价率约65%。',
-    relatedSectors: ['化工新材料'],
-    relatedStocks: [
-      { code: '001333', name: '光华股份' }
-    ],
-    importance: '一般利好',
-    importanceScore: 62,
-    backtestStats: CATEGORY_BACKTEST_STATS['游资动向'],
-    suggestion: {
-      type: '谨慎介入',
-      suggestedPosition: 10,
-      buyRange: { low: 25.5, high: 26.5 },
-      stopLoss: 24.0,
-      takeProfit: 29.0,
-      holdingPeriod: '超短(1-2日)',
-      reason: '游资动向类消息历史回测胜率60%，炒股养家介入标的次日溢价率约65%',
-      confidence: 58
+      reason: '游资动向类消息历史回测胜率60%，但4连板+退潮期，追高风险极大',
+      confidence: 40
     },
     riskWarning: null,
     isRead: false,
@@ -698,16 +644,16 @@ export const MOCK_NEWS: NewsItem[] = [
   },
   // 中性 - 研报评级
   {
-    id: 'news-011',
-    publishTime: '2026-05-20 13:00:00',
+    id: 'news-009',
+    publishTime: '2026-06-10 13:00:00',
     source: '雪球网',
     category: '研报评级',
-    title: '【研报】中信证券：维持宁德时代"买入"评级，目标价280元',
-    summary: '中信证券发布研报，维持宁德时代"买入"评级，认为公司全球市占率持续提升，目标价280元。',
-    content: '中信证券发布宁德时代深度研究报告，认为公司作为全球动力电池龙头，受益于新能源汽车渗透率持续提升，预计2026年净利润同比增长35%。维持"买入"评级，给予2026年40倍PE，目标价280元。',
-    relatedSectors: ['锂电池', '新能源汽车'],
+    title: '【研报】中信证券：维持中化国际"买入"评级，目标价12元',
+    summary: '中信证券发布研报，维持中化国际"买入"评级，认为公司化学制品业务稳健增长，目标价12元。',
+    content: '中信证券发布中化国际深度研究报告，认为公司作为化学制品央企龙头，受益于国企改革深化，预计2026年净利润同比增长25%。维持"买入"评级，给予2026年15倍PE，目标价12元。',
+    relatedSectors: ['化学制品', '国企改革'],
     relatedStocks: [
-      { code: '300750', name: '宁德时代' }
+      { code: '600500', name: '中化国际' }
     ],
     importance: '中性',
     importanceScore: 48,
@@ -728,13 +674,13 @@ export const MOCK_NEWS: NewsItem[] = [
   },
   // 一般利空 - 宏观经济
   {
-    id: 'news-012',
-    publishTime: '2026-05-20 11:30:00',
+    id: 'news-010',
+    publishTime: '2026-06-10 11:30:00',
     source: '财联社',
     category: '宏观经济',
-    title: '【宏观】美联储会议纪要显示可能再次加息，全球市场承压',
-    summary: '美联储最新会议纪要显示，多数官员认为通胀仍具粘性，可能需要再次加息。消息公布后，全球股市普跌。',
-    content: '美联储公布5月货币政策会议纪要，显示多数官员认为当前通胀水平仍高于目标，可能需要进一步加息。纪要公布后，美股期货下跌，亚太市场午后跳水，A股三大指数跌幅扩大。',
+    title: '【宏观】5月CPI同比上涨0.3%，通缩压力仍存',
+    summary: '国家统计局数据显示，5月CPI同比上涨0.3%，低于预期，通缩压力仍然存在。',
+    content: '国家统计局今日公布5月物价数据，5月CPI同比上涨0.3%，低于市场预期的0.5%，环比下降0.2%。PPI同比下降3.5%。数据显示当前需求仍然偏弱，通缩压力依然存在。',
     relatedSectors: ['大盘'],
     relatedStocks: [],
     importance: '一般利空',
@@ -744,11 +690,72 @@ export const MOCK_NEWS: NewsItem[] = [
     riskWarning: {
       level: '中风险',
       riskType: '系统性风险',
-      description: '美联储可能再次加息，全球风险资产承压',
+      description: 'CPI低于预期，通缩压力存在，市场情绪偏弱',
       impactScope: '大盘',
-      suggestedAction: '建议降低总仓位至3成以下，规避系统性风险',
+      suggestedAction: '建议降低仓位至1成以下，规避系统性风险',
       warningTime: '11:30:00'
     },
+    isRead: false,
+    userTag: null
+  },
+  // 一般利好 - 业绩预告
+  {
+    id: 'news-011',
+    publishTime: '2026-06-10 20:00:00',
+    source: '巨潮资讯',
+    category: '业绩预告',
+    title: '【业绩预增】圣泉集团上半年净利润预增80%-100%，合成生物业务放量',
+    summary: '圣泉集团发布半年度业绩预告，预计上半年实现净利润3.5-3.9亿元，同比增长80%-100%。',
+    content: '圣泉集团(605589)发布2026年半年度业绩预告，预计实现归属于上市公司股东的净利润3.5-3.9亿元，同比增长80%-100%。公司表示，受益于合成生物业务放量及酚醛树脂需求增长，上半年业绩大幅增长。',
+    relatedSectors: ['合成生物', '酚醛树脂', '新材料'],
+    relatedStocks: [
+      { code: '605589', name: '圣泉集团' },
+      { code: '003026', name: '中晶科技' }
+    ],
+    importance: '一般利好',
+    importanceScore: 68,
+    backtestStats: CATEGORY_BACKTEST_STATS['业绩预告'],
+    suggestion: {
+      type: '谨慎介入',
+      suggestedPosition: 5,
+      buyRange: { low: 28.5, high: 30.0 },
+      stopLoss: 26.0,
+      takeProfit: 35.0,
+      holdingPeriod: '超短(1-2日)',
+      reason: '业绩预告类消息历史回测胜率68%，但退潮期建议轻仓试水',
+      confidence: 55
+    },
+    riskWarning: null,
+    isRead: false,
+    userTag: null
+  },
+  // 中性 - 公司公告
+  {
+    id: 'news-012',
+    publishTime: '2026-06-10 19:00:00',
+    source: '巨潮资讯',
+    category: '公司公告',
+    title: '【公司公告】和远气体签订重大合同，金额约2.5亿元',
+    summary: '和远气体公告，近日与某客户签订特种气体供应合同，预计合同金额约2.5亿元。',
+    content: '和远气体(002971)今日公告，公司近日与某半导体客户签订特种气体供应合同，预计合同总金额约2.5亿元，合同履行期限3年。该合同占公司2025年度营业收入的15%。',
+    relatedSectors: ['工业气体', '特种气体', '半导体材料'],
+    relatedStocks: [
+      { code: '002971', name: '和远气体' }
+    ],
+    importance: '中性',
+    importanceScore: 52,
+    backtestStats: CATEGORY_BACKTEST_STATS['公司公告'],
+    suggestion: {
+      type: '观望等待',
+      suggestedPosition: 0,
+      buyRange: { low: 0, high: 0 },
+      stopLoss: 0,
+      takeProfit: 0,
+      holdingPeriod: '短线(3-5日)',
+      reason: '公司公告类消息历史回测胜率48%，合同利好但退潮期市场反应可能有限',
+      confidence: 45
+    },
+    riskWarning: null,
     isRead: false,
     userTag: null
   },

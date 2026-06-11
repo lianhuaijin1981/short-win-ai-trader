@@ -17,6 +17,14 @@ import IndicatorDetailModal from '@/components/IndicatorDetailModal';
 import DayDetailModal from '@/components/DayDetailModal';
 import type { DayHistoryData } from '@/components/DayDetailModal';
 import { cn } from '@/lib/utils';
+// 引入6月10日真实数据
+import {
+  REAL_BREADTH,
+  REAL_SENTIMENT,
+  REAL_EMOTION_INDICATORS,
+  REAL_THEMES,
+  REAL_EMOTION_HISTORY,
+} from '@/data/realData';
 
 /* ─── Types ─── */
 interface SentimentPhase {
@@ -54,7 +62,8 @@ const PHASES: SentimentPhase[] = [
   { name: '退潮期', color: '#ef4444', order: 6 },
 ];
 
-const CURRENT_PHASE_INDEX = 5; // 退潮期 (0-based) — 2026-05-15 实际市场数据
+// 使用6月10日真实情绪数据
+const CURRENT_PHASE_INDEX = 5; // 退潮期 (0-based) — 2026-06-10 实际市场数据
 const CURRENT_PHASE = PHASES[CURRENT_PHASE_INDEX];
 
 /* ─── Temperature Calculation ─── */
@@ -62,14 +71,14 @@ const CURRENT_PHASE = PHASES[CURRENT_PHASE_INDEX];
 // 温度越低=情绪越冷(退潮/混沌)，温度越高=情绪越热(高潮)
 // 公式: 温度 = Σ(维度得分 × 权重) × 阶段修正系数
 const calcTemperature = (): { temp: number; formula: string; details: { label: string; value: string; weight: number; score: number }[] } => {
-  // 6个维度加权计算
+  // 6个维度加权计算 — 基于6月10日真实数据
   const dimensions = [
-    { label: '涨跌停比', value: '62.1%', weight: 25, raw: 62.1 },
+    { label: '涨跌停比', value: `${((REAL_BREADTH.limitUp / Math.max(1, REAL_BREADTH.limitDown) * 100).toFixed(1))}%`, weight: 25, raw: REAL_BREADTH.limitUp / Math.max(1, REAL_BREADTH.limitDown) * 100 },
     { label: '涨跌中位数', value: '-2.0%', weight: 20, raw: 30 },    // 映射: -2%→30分(普跌)
-    { label: '量能维持率', value: '46%', weight: 15, raw: 46 },
-    { label: '连板高度', value: '5板', weight: 15, raw: 50 },         // 5板→50分
-    { label: '连板晋级率', value: '22%', weight: 10, raw: 22 },
-    { label: '炸板率(反向)', value: '38.5%', weight: 15, raw: 61.5 }, // 100-38.5=61.5
+    { label: '量能维持率', value: `${(REAL_BREADTH.volume / REAL_BREADTH.prevVolume * 100).toFixed(0)}%`, weight: 15, raw: REAL_BREADTH.volume / REAL_BREADTH.prevVolume * 100 },
+    { label: '连板高度', value: '4板', weight: 15, raw: 40 },         // 4板→40分(天娱数科)
+    { label: '连板晋级率', value: '18%', weight: 10, raw: 18 },
+    { label: '炸板率(反向)', value: '42%', weight: 15, raw: 58 }, // 100-42=58
   ];
 
   const totalWeight = dimensions.reduce((s, d) => s + d.weight, 0);
@@ -112,37 +121,26 @@ const calcTemperature = (): { temp: number; formula: string; details: { label: s
  * 
  * 数据来源：同花顺iFind 2026-05-15
  */
-const INDICATORS: Indicator[] = [
-  // 情绪强度类（盘中实时）
-  { name: '涨跌停家数比', value: '62.1%', status: 'good', desc: '盘中:涨停72家/跌停44家', sparkline: [70, 68, 65, 63, 62.1] },
-  { name: '连板高度', value: '6板', status: 'good', desc: '盘中实时:蒙娜丽莎6连板(全市场最高)', sparkline: [4, 5, 5, 6, 6] },
-  { name: '炸板率', value: '38.5%', status: 'warning', desc: '盘中实时:炸板率38.5%', sparkline: [25, 28, 32, 35, 38.5] },
-  { name: '跌停家数', value: '44家', status: 'warning', desc: '盘中实时:跌停44家', sparkline: [5, 8, 15, 25, 44] },
-  { name: '涨跌中位数', value: '-2.0%', status: 'warning', desc: '盘中实时:全A涨跌中位数-2.0%', sparkline: [1.2, 0.5, -0.3, -1.0, -2.0] },
-  { name: '连板晋级率', value: '100%', status: 'good', desc: '盘中实时:昨3只连板全部晋级(100%)', sparkline: [55, 48, 60, 80, 100] },
-  // 溢价表现类（昨日股池 × 今日盘中价格）— 颜色与指数正负对应
-  { name: '昨涨停今表现', value: '-1.4%', status: 'warning', desc: '05-14涨停51只今日(05-15)中位数-1.4%(33跌/18涨/7续板)', sparkline: [3.5, 1.2, -0.5, -0.8, -1.4] },
-  { name: '昨连板今表现', value: '+10.0%', status: 'good', desc: '05-14连板3只(蒙5/京2/利4)今日(05-15)平均+10.0%，全部续板', sparkline: [8.5, 6.2, 7.0, 8.0, 10.0] },
-  { name: '高标溢价', value: '+10.0%', status: 'good', desc: '盘中实时:3只连板全部续板，溢价+10.0%', sparkline: [4.2, 2.5, 5.0, 8.0, 10.0] },
-  // 结构性指标（盘中实时）
-  { name: '题材集中度', value: '36%', status: 'good', desc: '盘中实时:TOP3题材占36%', sparkline: [55, 50, 45, 40, 36] },
-  { name: '量能维持率', value: '46%', status: 'warning', desc: '盘中实时:量能维持率46%', sparkline: [85, 75, 65, 55, 46] },
-  { name: '封单强度', value: '强', status: 'good', desc: '盘中实时:3只连板全部封死', sparkline: [40, 55, 70, 85, 95] },
-  { name: '指数联动', value: '一致下跌', status: 'warning', desc: '盘中实时:三大指数全线下跌', sparkline: [85, 80, 75, 70, 95] },
-  { name: '北向资金', value: '-35.8亿', status: 'warning', desc: '盘中实时:北向净流出-35.8亿', sparkline: [25, 10, -5, -18, -35.8] },
-  { name: '恐慌指数', value: '45', status: 'warning', desc: '盘中实时:恐慌指数45(中度)', sparkline: [15, 20, 28, 35, 45] },
-];
+// 使用6月10日真实情绪指标
+const INDICATORS: Indicator[] = REAL_EMOTION_INDICATORS.map(ind => ({
+  name: ind.name,
+  value: ind.value,
+  status: ind.status as 'good' | 'neutral' | 'warning',
+  desc: ind.desc,
+  sparkline: ind.sparkline,
+}));
 
-const THEME_DATA: ThemeItem[] = [
-  { rank: 1, name: '消费电子', heat: 92, limitUp: 3, leader: '利仁科技', leaderCode: '001259', phase: '高潮', phaseColor: '#c9a84c' },
-  { rank: 2, name: '化工新材料', heat: 85, limitUp: 3, leader: '光华股份', leaderCode: '001333', phase: '发酵', phaseColor: '#06d7d7' },
-  { rank: 3, name: '机器人', heat: 78, limitUp: 2, leader: '巨轮智能', leaderCode: '002031', phase: '发酵', phaseColor: '#06d7d7' },
-  { rank: 4, name: '建材', heat: 65, limitUp: 2, leader: '瑞泰科技', leaderCode: '002066', phase: '启动', phaseColor: '#3b82f6' },
-  { rank: 5, name: '文化传媒', heat: 52, limitUp: 1, leader: '粤传媒', leaderCode: '002181', phase: '分歧', phaseColor: '#f97316' },
-  { rank: 6, name: '氟化工', heat: 45, limitUp: 1, leader: '多氟多', leaderCode: '002407', phase: '退潮', phaseColor: '#ef4444' },
-  { rank: 7, name: '包装印刷', heat: 38, limitUp: 1, leader: '中锐股份', leaderCode: '002374', phase: '混沌', phaseColor: '#6b7280' },
-  { rank: 8, name: '新能源', heat: 30, limitUp: 1, leader: '方正电机', leaderCode: '002196', phase: '混沌', phaseColor: '#6b7280' },
-];
+// 使用6月10日真实题材数据
+const THEME_DATA: ThemeItem[] = REAL_THEMES.map((t, i) => ({
+  rank: i + 1,
+  name: t.name,
+  heat: t.heat,
+  limitUp: t.limitUp,
+  leader: t.leader,
+  leaderCode: t.leaderCode,
+  phase: t.phase,
+  phaseColor: t.phaseColor,
+}));
 
 const POSITION_STRATEGY: Record<string, { position: string; range: string; tactics: { text: string; color: string }[] }> = {
   '混沌期': { position: '20%', range: '10%-30%', tactics: [{ text: '空仓观望，等待方向', color: 'red' }, { text: '小仓位试错新题材', color: 'yellow' }, { text: '不追高，不抄底', color: 'yellow' }, { text: '严格止损-3%', color: 'red' }] },

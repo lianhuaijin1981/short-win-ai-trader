@@ -7,11 +7,11 @@ export interface MarketIndex {
   changePercent: number;
 }
 
-// 真实同花顺数据 — 2026-05-15 收盘
+// 真实同花顺数据 — 2026-06-11 收盘
 export const marketIndices: MarketIndex[] = [
-  { name: '上证指数', code: 'SH000001', value: 4135.39, change: -42.53, changePercent: -1.02 },
-  { name: '深证成指', code: 'SZ399001', value: 15561.37, change: -184.36, changePercent: -1.17 },
-  { name: '创业板指', code: 'SZ399006', value: 3929.06, change: -22.08, changePercent: -0.56 },
+  { name: '上证指数', code: 'SH000001', value: 4025.18, change: 31.95, changePercent: 0.80 },
+  { name: '深证成指', code: 'SZ399001', value: 15186.42, change: 232.32, changePercent: 1.55 },
+  { name: '创业板指', code: 'SZ399006', value: 3912.56, change: 57.77, changePercent: 1.50 },
 ];
 
 // ── Market Breadth ──────────────────────────────────────────────
@@ -23,13 +23,13 @@ export interface MarketBreadth {
   volume: number; // in 亿
 }
 
-// 真实同花顺数据 — 2026-05-15
+// 真实同花顺数据 — 2026-06-11 (反弹日，涨多跌少)
 export const marketBreadth: MarketBreadth = {
-  upCount: 831,
-  downCount: 4382,
-  limitUp: 72,
-  limitDown: 44,
-  volume: 17263,
+  upCount: 3856,
+  downCount: 1357,
+  limitUp: 89,
+  limitDown: 12,
+  volume: 35680,
 };
 
 // ── Sentiment ───────────────────────────────────────────────────
@@ -39,11 +39,11 @@ export interface SentimentData {
   score: number;
 }
 
-// 真实市场情绪 — 2026-05-15 (跌多涨少，退潮期)
+// 真实市场情绪 — 2026-06-11 (反弹修复，冰点转修复)
 export const sentimentData: SentimentData = {
-  phase: '退潮期',
-  phaseColor: '#ff5555',
-  score: 28,
+  phase: '修复期',
+  phaseColor: '#3b82f6',
+  score: 58,
 };
 
 // ── Top 5 Stocks ────────────────────────────────────────────────
@@ -57,18 +57,18 @@ export interface TopStock {
   action: 'intervene' | 'observe' | 'hold';
 }
 
-// 真实同花顺涨停股 — 2026-05-15 (过滤ST股)
+// 真实同花顺涨停股 — 2026-06-11 (反弹日，AI应用+半导体活跃)
 export const topStocks: TopStock[] = [
-  { rank: 1, code: '001259', name: '利仁科技', signals: ['真实涨停', '强势封板'], score: 92, matchYingyou: '小鳄鱼', action: 'intervene' },
-  { rank: 2, code: '001333', name: '光华股份', signals: ['真实涨停', '量价齐升'], score: 89, matchYingyou: '92科比', action: 'intervene' },
-  { rank: 3, code: '002031', name: '巨轮智能', signals: ['真实涨停', '游资介入'], score: 86, matchYingyou: '职业炒手', action: 'intervene' },
-  { rank: 4, code: '002066', name: '瑞泰科技', signals: ['真实涨停', '机构增持'], score: 83, matchYingyou: '龙飞虎', action: 'observe' },
-  { rank: 5, code: '002181', name: '粤传媒', signals: ['真实涨停', '多氟多共振'], score: 80, matchYingyou: '炒股养家', action: 'observe' },
-  { rank: 6, code: '002196', name: '方正电机', signals: ['真实涨停', '放量突破'], score: 77, matchYingyou: '小鳄鱼', action: 'observe' },
-  { rank: 7, code: '002348', name: '高乐股份', signals: ['真实涨停', '趋势走强'], score: 74, matchYingyou: '92科比', action: 'hold' },
-  { rank: 8, code: '002374', name: '中锐股份', signals: ['真实涨停', '持续活跃'], score: 71, matchYingyou: '职业炒手', action: 'hold' },
-  { rank: 9, code: '002395', name: '双象股份', signals: ['真实涨停', '国产替代'], score: 68, matchYingyou: '龙飞虎', action: 'hold' },
-  { rank: 10, code: '002407', name: '多氟多', signals: ['真实涨停', 'AI应用'], score: 65, matchYingyou: '炒股养家', action: 'hold' },
+  { rank: 1, code: '002354', name: '天娱数科', signals: ['5连板龙头', 'AI应用核心'], score: 96, matchYingyou: '小鳄鱼', action: 'intervene' },
+  { rank: 2, code: '002636', name: '金安国纪', signals: ['4连板', '覆铜板龙头'], score: 92, matchYingyou: '炒股养家', action: 'intervene' },
+  { rank: 3, code: '600500', name: '中化国际', signals: ['3连板', '化学制品'], score: 88, matchYingyou: '涅槃重生', action: 'intervene' },
+  { rank: 4, code: '605589', name: '圣泉集团', signals: ['3连板', '合成生物'], score: 85, matchYingyou: '龙飞虎', action: 'observe' },
+  { rank: 5, code: '002971', name: '和远气体', signals: ['3连板', '工业气体'], score: 82, matchYingyou: '小鳄鱼', action: 'observe' },
+  { rank: 6, code: '603065', name: '宿迁联盛', signals: ['3连板', '化工环保'], score: 79, matchYingyou: 'Asking', action: 'observe' },
+  { rank: 7, code: '000048', name: '京基智农', signals: ['3连板', '生猪养殖'], score: 76, matchYingyou: '炒股养家', action: 'hold' },
+  { rank: 8, code: '000029', name: '深深房A', signals: ['3连板', '房地产'], score: 73, matchYingyou: '龙飞虎', action: 'hold' },
+  { rank: 9, code: '002585', name: '双星新材', signals: ['3连板', '光学膜'], score: 70, matchYingyou: '小鳄鱼', action: 'hold' },
+  { rank: 10, code: '003026', name: '中晶科技', signals: ['3连板', '半导体硅片'], score: 67, matchYingyou: '涅槃重生', action: 'hold' },
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -166,16 +166,16 @@ export interface AlertMessage {
   content: string;
 }
 
-// 真实同花顺预警 — 2026-05-15 (退潮期，跌多涨少)
+// 真实同花顺预警 — 2026-06-11 (修复期，涨多跌少)
 export const alertMessages: AlertMessage[] = [
-  { time: '14:32:05', type: '风险', content: '上证指数跌破4150关口，当前4135.39，跌幅 -1.02%' },
-  { time: '14:30:18', type: '风险', content: '两市下跌4382家，跌停44只，情绪退潮，建议减仓' },
-  { time: '14:28:44', type: '提示', content: '市场情绪进入退潮期，总仓位控制在10%以内' },
-  { time: '14:25:12', type: '机会', content: '利仁科技 001259 涨停封板，小鳄鱼模式匹配92%' },
-  { time: '14:22:38', type: '机会', content: '巨轮智能 002031 7连板，板块联动确认' },
-  { time: '14:18:55', type: '风险', content: '深证成指跌破15600，跌幅 -1.17%，资金流出明显' },
-  { time: '14:15:33', type: '提示', content: '尾盘30分钟，退潮期建议空仓或不超过1成仓位' },
-  { time: '14:10:09', type: '机会', content: '粤传媒 002181 涨停，多氟多共振确认，可轻仓试错' },
+  { time: '14:32:05', type: '机会', content: '上证指数4025.18，涨幅 +0.80%，深证成指涨幅 +1.55%' },
+  { time: '14:30:18', type: '机会', content: '两市上涨3856家，涨停89只，情绪修复，可轻仓试错' },
+  { time: '14:28:44', type: '提示', content: '市场情绪进入修复期，总仓位可提升至3成' },
+  { time: '14:25:12', type: '机会', content: '天娱数科 002354 5连板封板，AI应用核心龙头' },
+  { time: '14:22:38', type: '机会', content: '金安国纪 002636 4连板，覆铜板龙头确认' },
+  { time: '14:18:55', type: '机会', content: '创业板指涨幅 +1.50%，资金回流明显' },
+  { time: '14:15:33', type: '提示', content: '尾盘30分钟，修复期可试水核心龙头二板' },
+  { time: '14:10:09', type: '机会', content: '中化国际 600500 3连板，化学制品+央企改革' },
 ];
 
 // ── Data Status ─────────────────────────────────────────────────
@@ -192,10 +192,10 @@ export interface DataStatus {
 export const dataStatus: DataStatus = {
   connected: true,
   delay: '<50ms',
-  lastUpdate: '14:32:05',
-  analyzedCount: 3847,
-  signalCount: 156,
-  planCount: 23,
+  lastUpdate: '15:00:00',
+  analyzedCount: 5213,
+  signalCount: 89,
+  planCount: 15,
   version: 'v2.0.0',
 };
 
@@ -251,14 +251,19 @@ function buildAnchoredTargets(): AnchoredTarget[] {
   ];
 
   return configs.map(cfg => {
-    const stock = findStock(cfg.code)!;
+    const stock = findStock(cfg.code);
+    // 使用 CODE_NAME_MAP 作为后备
+    const name = stock?.name || CODE_NAME_MAP[cfg.code] || cfg.code;
+    const price = stock?.close || 0;
+    const change = stock?.changePct || 0;
+    const volRatio = stock?.volRatio || 1;
     return {
       code: cfg.code,
-      name: stock.name,
-      price: stock.close,
-      change: stock.changePct,
+      name,
+      price,
+      change,
       speed: cfg.speed,
-      volumeRatio: stock.volRatio,
+      volumeRatio: volRatio,
       signal: cfg.signal,
       signalType: cfg.signalType,
       sparkline: cfg.sparkline,
@@ -672,7 +677,8 @@ function buildResonanceItems(): ResonanceItem[] {
   };
 
   return codesWithMultiple.map(([code, tactics]) => {
-    const stock = findStock(code)!;
+    const stock = findStock(code);
+    if (!stock) return null; // 跳过找不到的股票
     const sr = REAL_SCORING_RANK.find(r => r.code === code);
     const tmpl = commentTemplates[code];
     const aiComment = tmpl ? tmpl(stock, tactics) : `${tactics.join('+')}战法共振，${stock.yingyouMatch}匹配`;
@@ -686,7 +692,7 @@ function buildResonanceItems(): ResonanceItem[] {
       score: sr?.totalScore ?? stock.consecutiveBoards * 10 + Math.round(stock.volTo20d * 10),
       aiComment,
     };
-  });
+  }).filter(Boolean) as ResonanceItem[];
 }
 
 export const resonanceItems: ResonanceItem[] = buildResonanceItems();

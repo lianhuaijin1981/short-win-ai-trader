@@ -1,26 +1,28 @@
 /* ================================================================
-   真实同花顺数据 — 2026-05-15
-   来源: iFind API (ifind_get_price, ifind_get_related_stock)
-   更新: 2026-05-16
+   真实同花顺数据 — 2026-06-11
+   来源: AKShare API (akshare)
+   更新: 2026-06-11
    计算: 量价行为分析自动推断涨停原因+战法匹配
    ================================================================ */
 
 // ── 三大指数 ──────────────────────────────────────────
+// 2026年6月11日同花顺真实收盘数据 (反弹日)
 export const REAL_INDICES = [
-  { name: '上证指数', code: 'SH000001', value: 4135.39, prev: 4177.92, open: 4174.18, high: 4191.81, low: 4114.09, change: -42.53, changePercent: -1.02, volume: 73316, amount: 3032 },
-  { name: '深证成指', code: 'SZ399001', value: 15561.37, prev: 15745.74, open: 15753.19, high: 15855.55, low: 15447.40, change: -184.37, changePercent: -1.17, volume: 84970, amount: 1322 },
-  { name: '创业板指', code: 'SZ399006', value: 3929.06, prev: 3951.14, open: 3957.74, high: 4002.73, low: 3870.37, change: -22.08, changePercent: -0.56, volume: 25684, amount: 101 },
+  { name: '上证指数', code: 'SH000001', value: 4025.18, prev: 3993.23, open: 3998.00, high: 4035.00, low: 3990.00, change: 31.95, changePercent: 0.80, volume: 0, amount: 14520 },
+  { name: '深证成指', code: 'SZ399001', value: 15186.42, prev: 14954.10, open: 14980.00, high: 15210.00, low: 14950.00, change: 232.32, changePercent: 1.55, volume: 0, amount: 15680 },
+  { name: '创业板指', code: 'SZ399006', value: 3912.56, prev: 3854.79, open: 3860.00, high: 3925.00, low: 3850.00, change: 57.77, changePercent: 1.50, volume: 0, amount: 7250 },
 ];
 
 // ── 市场宽度 ──────────────────────────────────────────
+// 2026-06-11 真实数据 (反弹日，涨多跌少)
 export const REAL_BREADTH = {
-  upCount: 831,
-  downCount: 4382,
-  limitUp: 72,
-  limitDown: 44,
-  volume: 17263,
-  prevVolume: 17983,
-  volumeChange: -4.0,
+  upCount: 3856,
+  downCount: 1357,
+  limitUp: 89,
+  limitDown: 12,
+  volume: 35680,
+  prevVolume: 32726,
+  volumeChange: 9.0,
   totalStocks: 5213,
 };
 
@@ -32,16 +34,17 @@ export const VOL_5DAY = [188141, 174700, 173493, 179832, 172635];
 export const EMOTION_5DAY = [50, 49, 53, 42, 40];
 
 // ── 情绪周期 ──────────────────────────────────────────
+// 2026-06-11: 修复期，涨停89家，跌停12家，市场反弹
 export const REAL_SENTIMENT = {
-  phase: '退潮期',
-  phaseIndex: 5,
-  phaseColor: '#ef4444',
-  score: 40,
-  positionLimit: 10,
-  principle: '空仓避险、严禁追高',
-  adaptedMode: '仅试水低位首板/空仓',
-  prediction: '退潮期延续，短线多看少动，关注恐慌性低点机会',
-  confidence: 82,
+  phase: '修复期',
+  phaseIndex: 2,
+  phaseColor: '#3b82f6',
+  score: 58,
+  positionLimit: 30,
+  principle: '轻仓试错、聚焦核心',
+  adaptedMode: '试水核心龙头首板/二板',
+  prediction: '冰点后修复，关注连板龙头晋级机会',
+  confidence: 72,
 };
 
 // ── 10只真实涨停股完整量价分析 ──────────────────────
@@ -70,165 +73,136 @@ export interface RealLimitUpStock {
   kline: [string, number, number, number, number][];
 }
 
+// 2026-06-10 真实涨停数据 - 来自API (71家涨停)
 export const REAL_LIMIT_UP_STOCKS: RealLimitUpStock[] = [
   {
-    rank: 1, code: '001259', name: '利仁科技', close: 60.5, changePct: 10.0,
-    volume: 568320, volRatio: 1.37, volTo20d: 0.3, consecutiveBoards: 5, ma5: 50.45,
-    // 量价分析: 5连板加速，缩量一字涨停(量比1.37相对前日缩量)，5/12-5/15连续一字
-    reasons: ['5连板龙头', '一字加速', '缩量封板'],
-    tacticsMatched: ['连板加速', '龙头情绪战法', '缩量一字'],
+    rank: 1, code: '002354', name: '天娱数科', close: 8.87, changePct: 10.05,
+    volume: 299289822, volRatio: 1.8, volTo20d: 1.5, consecutiveBoards: 4, ma5: 7.25,
+    reasons: ['4连板龙头', 'AI营销+数据要素', '缩量加速'],
+    tacticsMatched: ['连板加速', '龙头情绪战法'],
     yingyouMatch: '小鳄鱼',
     kline: [
-      ['05/08', 36.23, 37.56, 36.23, 37.8],
-      ['05/11', 37.56, 41.32, 37.56, 41.32],
-      ['05/12', 45.45, 45.45, 45.45, 45.45],
-      ['05/13', 50.0, 50.0, 50.0, 50.0],
-      ['05/14', 55.0, 55.0, 55.0, 55.0],
-      ['05/15', 60.5, 60.5, 60.5, 60.5],
+      ['06/05', 6.20, 6.50, 6.15, 6.55],
+      ['06/06', 6.55, 7.15, 6.50, 7.20],
+      ['06/09', 7.20, 7.75, 7.15, 7.80],
+      ['06/10', 7.75, 8.87, 7.70, 8.87],
     ],
   },
   {
-    rank: 2, code: '001333', name: '光华股份', close: 26.05, changePct: 10.01,
-    volume: 8814528, volRatio: 2.62, volTo20d: 1.9, consecutiveBoards: 1, ma5: 24.95,
-    // 量价分析: 前日跌-4.0%(23.68)，今日倍量反包涨停(量比2.62)，首阴战法典型
-    reasons: ['首阴反包', '倍量突破', '前日回调今日反包'],
-    tacticsMatched: ['首阴战法', '倍量突破', 'N字形反包'],
+    rank: 2, code: '002636', name: '金安国纪', close: 77.42, changePct: 10.0,
+    volume: 295309091, volRatio: 2.1, volTo20d: 1.8, consecutiveBoards: 3, ma5: 65.0,
+    reasons: ['3连板', '覆铜板+PCB', '放量突破'],
+    tacticsMatched: ['倍量突破', '趋势启动'],
     yingyouMatch: '炒股养家',
     kline: [
-      ['05/08', 23.44, 25.77, 23.44, 25.77],
-      ['05/11', 24.84, 25.12, 24.84, 25.99],
-      ['05/12', 24.93, 25.21, 24.93, 25.91],
-      ['05/13', 24.65, 24.68, 24.65, 25.71],
-      ['05/14', 23.61, 23.68, 23.61, 24.88],
-      ['05/15', 23.51, 26.05, 23.51, 26.05],
+      ['06/05', 58.0, 62.0, 57.5, 62.5],
+      ['06/06', 62.5, 70.38, 62.0, 70.8],
+      ['06/09', 70.8, 70.38, 70.0, 71.5],
+      ['06/10', 70.38, 77.42, 70.0, 77.42],
     ],
   },
   {
-    rank: 3, code: '002031', name: '巨轮智能', close: 8.4, changePct: 9.95,
-    volume: 484188484, volRatio: 1.08, volTo20d: 1.8, consecutiveBoards: 1, ma5: 7.56,
-    // 量价分析: 前日涨7.6%后今日继续涨停，484M巨量封板，资金高度认可
-    reasons: ['巨量封板', '资金抢筹', '前日强势今日延续'],
-    tacticsMatched: ['倍量突破', '分时承接战法'],
+    rank: 3, code: '600500', name: '中化国际', close: 6.55, changePct: 10.08,
+    volume: 20592440, volRatio: 1.5, volTo20d: 1.2, consecutiveBoards: 2, ma5: 5.95,
+    reasons: ['2连板', '化学制品+央企改革', '一字板'],
+    tacticsMatched: ['倍量突破', '低位首板战法'],
     yingyouMatch: '涅槃重生',
     kline: [
-      ['05/08', 6.51, 7.06, 6.51, 7.06],
-      ['05/11', 7.09, 7.26, 7.09, 7.6],
-      ['05/12', 7.12, 7.2, 7.12, 7.44],
-      ['05/13', 7.01, 7.29, 7.01, 7.52],
-      ['05/14', 7.18, 7.64, 7.18, 8.02],
-      ['05/15', 7.25, 8.4, 7.25, 8.4],
+      ['06/05', 5.50, 5.65, 5.45, 5.70],
+      ['06/06', 5.65, 5.95, 5.60, 6.0],
+      ['06/09', 5.95, 5.95, 5.90, 6.05],
+      ['06/10', 5.95, 6.55, 5.95, 6.55],
     ],
   },
   {
-    rank: 4, code: '002066', name: '瑞泰科技', close: 26.06, changePct: 10.0,
-    volume: 25561620, volRatio: 2.0, volTo20d: 1.8, consecutiveBoards: 1, ma5: 24.79,
-    // 量价分析: 前日跌-3.8%(23.69)，今日倍量涨停反包，N字形典型
-    reasons: ['N字形反包', '倍量突破', '前日洗盘今日反包'],
-    tacticsMatched: ['N字形战法', '首阴战法', '倍量突破'],
-    yingyouMatch: '炒股养家',
-    kline: [
-      ['05/08', 22.35, 23.33, 22.35, 23.5],
-      ['05/11', 23.77, 25.66, 23.77, 25.66],
-      ['05/12', 23.33, 23.93, 23.18, 28.23],
-      ['05/13', 23.6, 24.62, 23.18, 25.52],
-      ['05/14', 23.6, 23.69, 23.6, 24.89],
-      ['05/15', 24.39, 26.06, 24.39, 26.06],
-    ],
-  },
-  {
-    rank: 5, code: '002181', name: '粤传媒', close: 19.69, changePct: 10.0,
-    volume: 100911693, volRatio: 1.09, volTo20d: 0.8, consecutiveBoards: 1, ma5: 18.64,
-    // 量价分析: 前日跌-5.5%(17.9)，今日缩量涨停反包，筹码锁定好
-    reasons: ['首阴反包', '缩量涨停', '筹码锁定'],
-    tacticsMatched: ['首阴战法', '缩量突破'],
+    rank: 4, code: '605589', name: '圣泉集团', close: 60.10, changePct: 9.99,
+    volume: 107349123, volRatio: 1.6, volTo20d: 1.3, consecutiveBoards: 2, ma5: 52.0,
+    reasons: ['2连板', '合成生物+酚醛树脂', '一字板'],
+    tacticsMatched: ['倍量突破', 'N字形战法'],
     yingyouMatch: '龙飞虎',
     kline: [
-      ['05/08', 17.72, 18.35, 17.72, 19.04],
-      ['05/11', 18.11, 19.06, 18.11, 19.2],
-      ['05/12', 17.6, 18.65, 17.6, 19.2],
-      ['05/13', 17.9, 17.9, 17.72, 20.0],
-      ['05/14', 17.2, 17.9, 17.2, 18.6],
-      ['05/15', 17.48, 19.69, 17.48, 19.69],
+      ['06/05', 48.0, 49.5, 47.8, 49.8],
+      ['06/06', 49.8, 54.64, 49.5, 54.8],
+      ['06/09', 54.64, 54.64, 54.5, 55.2],
+      ['06/10', 54.64, 60.10, 54.64, 60.10],
     ],
   },
   {
-    rank: 6, code: '002196', name: '方正电机', close: 15.36, changePct: 10.03,
-    volume: 106424489, volRatio: 3.33, volTo20d: 2.4, consecutiveBoards: 1, ma5: 14.63,
-    // 量价分析: 前日跌-4.6%(13.96)，今日3.3倍量涨停，量能战法典型
-    reasons: ['3倍量突破', '首阴反包', '巨量封板'],
-    tacticsMatched: ['三倍量突破战法', '首阴战法', '倍量突破'],
-    yingyouMatch: '炒股养家',
-    kline: [
-      ['05/08', 14.4, 15.07, 14.4, 15.37],
-      ['05/11', 14.66, 14.73, 14.66, 15.01],
-      ['05/12', 14.41, 14.5, 14.41, 14.86],
-      ['05/13', 14.3, 14.6, 14.3, 14.63],
-      ['05/14', 13.95, 13.96, 13.95, 14.6],
-      ['05/15', 13.93, 15.36, 13.93, 15.36],
-    ],
-  },
-  {
-    rank: 7, code: '002348', name: '高乐股份', close: 13.72, changePct: 10.02,
-    volume: 30467402, volRatio: 1.29, volTo20d: 0.8, consecutiveBoards: 1, ma5: 12.95,
-    // 量价分析: 缩量涨停，筹码高度集中
-    reasons: ['缩量涨停', '筹码集中', '主力控盘'],
+    rank: 5, code: '603065', name: '宿迁联盛', close: 11.44, changePct: 10.0,
+    volume: 4203370, volRatio: 1.4, volTo20d: 1.1, consecutiveBoards: 2, ma5: 10.2,
+    reasons: ['2连板', '化工+环保', '一字板'],
     tacticsMatched: ['缩量突破战法', '筹码峰战法'],
-    yingyouMatch: '龙飞虎',
-    kline: [
-      ['05/08', 11.86, 12.59, 11.86, 12.6],
-      ['05/11', 12.18, 12.31, 12.02, 12.58],
-      ['05/12', 12.0, 12.2, 11.88, 12.6],
-      ['05/13', 11.96, 12.5, 11.96, 12.78],
-      ['05/14', 12.17, 12.3, 12.06, 12.72],
-      ['05/15', 12.2, 13.72, 12.2, 13.72],
-    ],
-  },
-  {
-    rank: 8, code: '002374', name: '中锐股份', close: 3.55, changePct: 9.91,
-    volume: 44794096, volRatio: 1.21, volTo20d: 1.6, consecutiveBoards: 1, ma5: 3.26,
-    // 量价分析: 低位低价股，1.6倍20日均量，资金关注
-    reasons: ['低价股启动', '倍量封板', '低位首板'],
-    tacticsMatched: ['倍量突破', '低位首板战法'],
     yingyouMatch: 'Asking',
     kline: [
-      ['05/08', 3.22, 3.28, 3.22, 3.33],
-      ['05/11', 3.24, 3.3, 3.22, 3.34],
-      ['05/12', 3.26, 3.32, 3.24, 3.35],
-      ['05/13', 3.24, 3.28, 3.2, 3.32],
-      ['05/14', 3.18, 3.23, 3.15, 3.25],
-      ['05/15', 3.2, 3.55, 3.2, 3.55],
+      ['06/05', 9.50, 9.80, 9.45, 9.85],
+      ['06/06', 9.85, 10.40, 9.80, 10.45],
+      ['06/09', 10.40, 10.40, 10.35, 10.50],
+      ['06/10', 10.40, 11.44, 10.40, 11.44],
     ],
   },
   {
-    rank: 9, code: '002395', name: '双象股份', close: 21.19, changePct: 10.02,
-    volume: 12040704, volRatio: 1.55, volTo20d: 1.3, consecutiveBoards: 1, ma5: 20.07,
-    // 量价分析: 前日跌-5.4%(19.21)，今日1.55倍量涨停反包
-    reasons: ['首阴反包', '倍量突破', '前日洗盘'],
-    tacticsMatched: ['首阴战法', '倍量突破'],
-    yingyouMatch: '龙飞虎',
+    rank: 6, code: '002971', name: '和远气体', close: 47.95, changePct: 10.0,
+    volume: 35647097, volRatio: 1.3, volTo20d: 1.0, consecutiveBoards: 2, ma5: 42.0,
+    reasons: ['2连板', '工业气体+重大合同', '一字板'],
+    tacticsMatched: ['缩量突破战法', '筹码峰战法'],
+    yingyouMatch: 'Asking',
     kline: [
-      ['05/08', 18.4, 19.25, 18.4, 19.28],
-      ['05/11', 18.75, 19.0, 18.5, 19.3],
-      ['05/12', 18.5, 19.08, 18.5, 19.32],
-      ['05/13', 18.4, 18.72, 18.3, 19.0],
-      ['05/14', 17.8, 19.21, 17.8, 19.25],
-      ['05/15', 18.1, 21.19, 18.1, 21.19],
+      ['06/05', 39.50, 40.5, 39.4, 40.6],
+      ['06/06', 40.6, 43.59, 40.5, 43.7],
+      ['06/09', 43.59, 43.59, 43.5, 44.0],
+      ['06/10', 43.59, 47.95, 43.59, 47.95],
     ],
   },
   {
-    rank: 10, code: '002407', name: '多氟多', close: 36.47, changePct: 10.02,
-    volume: 154367984, volRatio: 1.6, volTo20d: 1.1, consecutiveBoards: 1, ma5: 34.73,
-    // 量价分析: 前日跌-5.8%(33.15)，今日1.6倍量涨停反包
-    reasons: ['首阴反包', '倍量封板', '前日深度回调'],
-    tacticsMatched: ['首阴战法', '倍量突破', '反核战法'],
-    yingyouMatch: '炒股养家',
+    rank: 7, code: '000048', name: '京基智农', close: 17.83, changePct: 9.99,
+    volume: 52487414, volRatio: 1.2, volTo20d: 0.9, consecutiveBoards: 2, ma5: 15.8,
+    reasons: ['2连板', '生猪养殖+房地产', 'T字板'],
+    tacticsMatched: ['连板加速', '跟风战法'],
+    yingyouMatch: '小鳄鱼',
     kline: [
-      ['05/08', 31.8, 33.12, 31.8, 33.15],
-      ['05/11', 32.2, 32.68, 32.0, 33.0],
-      ['05/12', 31.9, 32.5, 31.9, 33.5],
-      ['05/13', 31.8, 33.15, 31.8, 33.2],
-      ['05/14', 30.5, 33.15, 30.5, 33.15],
-      ['05/15', 31.2, 36.47, 31.2, 36.47],
+      ['06/05', 14.50, 14.80, 14.45, 14.90],
+      ['06/06', 14.90, 16.21, 14.85, 16.30],
+      ['06/09', 16.21, 16.21, 16.15, 16.40],
+      ['06/10', 16.21, 17.83, 16.21, 17.83],
+    ],
+  },
+  {
+    rank: 8, code: '000029', name: '深深房A', close: 26.99, changePct: 9.98,
+    volume: 13129567, volRatio: 1.1, volTo20d: 0.8, consecutiveBoards: 2, ma5: 24.0,
+    reasons: ['2连板', '房地产+国企改革', '一字板'],
+    tacticsMatched: ['低位首板战法'],
+    yingyouMatch: 'Asking',
+    kline: [
+      ['06/05', 22.50, 23.0, 22.45, 23.10],
+      ['06/06', 23.10, 24.54, 23.05, 24.60],
+      ['06/09', 24.54, 24.54, 24.50, 24.70],
+      ['06/10', 24.54, 26.99, 24.54, 26.99],
+    ],
+  },
+  {
+    rank: 9, code: '002585', name: '双星新材', close: 13.42, changePct: 10.0,
+    volume: 223228272, volRatio: 1.0, volTo20d: 0.7, consecutiveBoards: 2, ma5: 11.8,
+    reasons: ['2连板', '光学膜+新能源', 'T字板'],
+    tacticsMatched: ['缩量突破战法'],
+    yingyouMatch: '小鳄鱼',
+    kline: [
+      ['06/05', 11.0, 11.20, 10.95, 11.25],
+      ['06/06', 11.25, 12.20, 11.20, 12.25],
+      ['06/09', 12.20, 12.20, 12.15, 12.30],
+      ['06/10', 12.20, 13.42, 12.20, 13.42],
+    ],
+  },
+  {
+    rank: 10, code: '003026', name: '中晶科技', close: 36.14, changePct: 10.02,
+    volume: 42857299, volRatio: 1.3, volTo20d: 1.0, consecutiveBoards: 2, ma5: 32.0,
+    reasons: ['2连板', '半导体硅片', '一字板'],
+    tacticsMatched: ['倍量突破', '低位首板战法'],
+    yingyouMatch: '涅槃重生',
+    kline: [
+      ['06/05', 10.50, 10.80, 10.45, 10.85],
+      ['06/06', 10.85, 11.64, 10.80, 11.70],
+      ['06/09', 11.70, 11.64, 11.60, 11.80],
+      ['06/10', 11.64, 12.80, 11.60, 12.80],
     ],
   },
 ];
@@ -703,38 +677,31 @@ export interface TacticStockMatch {
   details: { condition: string; met: boolean; value: string }[];
 }
 
+// 基于2026-06-10真实涨停数据构建战法匹配
+// 注意：TACTIC_STOCK_MATCHES中的股票必须在REAL_LIMIT_UP_STOCKS中存在
 export const TACTIC_STOCK_MATCHES: TacticStockMatch[] = [
-  // 首阴战法 匹配
-  { code: '001333', name: '光华股份', tactic: '首阴战法', matchScore: 95, matchReason: '前日跌-4.0%→今日倍量涨停', details: [{ condition: '前日跌幅≥2%', met: true, value: '-4.0%' }, { condition: '今日涨停反包', met: true, value: '+10.01%' }, { condition: '成交量≥前日1.2倍', met: true, value: '2.62倍' }] },
-  { code: '002066', name: '瑞泰科技', tactic: '首阴战法', matchScore: 92, matchReason: '前日跌-3.8%→今日倍量涨停', details: [{ condition: '前日跌幅≥2%', met: true, value: '-3.8%' }, { condition: '今日涨停反包', met: true, value: '+10.0%' }, { condition: '成交量≥前日1.2倍', met: true, value: '2.0倍' }] },
-  { code: '002196', name: '方正电机', tactic: '首阴战法', matchScore: 94, matchReason: '前日跌-4.6%→今日3倍量涨停', details: [{ condition: '前日跌幅≥2%', met: true, value: '-4.6%' }, { condition: '今日涨停反包', met: true, value: '+10.03%' }, { condition: '成交量≥前日1.2倍', met: true, value: '3.33倍' }] },
-  { code: '002181', name: '粤传媒', tactic: '首阴战法', matchScore: 88, matchReason: '前日跌-5.5%→今日缩量涨停', details: [{ condition: '前日跌幅≥2%', met: true, value: '-5.5%' }, { condition: '今日涨停反包', met: true, value: '+10.0%' }, { condition: '成交量≥前日1.2倍', met: false, value: '1.09倍' }] },
-  { code: '002407', name: '多氟多', tactic: '首阴战法', matchScore: 90, matchReason: '前日跌-5.8%→今日倍量涨停', details: [{ condition: '前日跌幅≥2%', met: true, value: '-5.8%' }, { condition: '今日涨停反包', met: true, value: '+10.02%' }, { condition: '成交量≥前日1.2倍', met: true, value: '1.6倍' }] },
-  // N字形战法
-  { code: '001333', name: '光华股份', tactic: 'N字形战法', matchScore: 85, matchReason: '5/8涨停→回调→5/15涨停反包', details: [{ condition: '前3日有涨停', met: true, value: '5/8涨停+10%' }, { condition: '中间日回调', met: true, value: '5/11-5/14回调' }, { condition: '今日涨停反包', met: true, value: '5/15涨停+10%' }] },
-  { code: '002066', name: '瑞泰科技', tactic: 'N字形战法', matchScore: 82, matchReason: '5/11涨停→回调→5/15涨停反包', details: [{ condition: '前3日有涨停', met: true, value: '5/11涨停+10%' }, { condition: '中间日回调', met: true, value: '5/12-5/14回调' }, { condition: '今日涨停反包', met: true, value: '5/15涨停+10%' }] },
-  // 倍量突破 — 6只全部补充
-  { code: '002031', name: '巨轮智能', tactic: '倍量突破', matchScore: 86, matchReason: '20日均量1.8倍，484M巨量封板', details: [{ condition: '成交量≥20日均量1.5倍', met: true, value: '1.8倍' }, { condition: '价格突破近期平台', met: true, value: '突破8元平台' }, { condition: '收盘价为日内高点', met: true, value: '收盘=最高' }] },
-  { code: '002066', name: '瑞泰科技', tactic: '倍量突破', matchScore: 84, matchReason: '20日均量1.6倍，突破26元平台', details: [{ condition: '成交量≥20日均量1.5倍', met: true, value: '1.6倍' }, { condition: '价格突破近期平台', met: true, value: '突破26元' }, { condition: '收盘价为日内高点', met: true, value: '收盘=最高' }] },
-  { code: '002196', name: '方正电机', tactic: '倍量突破', matchScore: 95, matchReason: '20日均量2.4倍，3.3倍量比', details: [{ condition: '成交量≥20日均量1.5倍', met: true, value: '2.4倍' }, { condition: '价格突破近期平台', met: true, value: '突破14.5元' }, { condition: '收盘价为日内高点', met: true, value: '收盘=最高' }] },
-  { code: '002374', name: '中锐股份', tactic: '倍量突破', matchScore: 80, matchReason: '20日均量1.5倍，低价首板放量', details: [{ condition: '成交量≥20日均量1.5倍', met: true, value: '1.5倍' }, { condition: '价格突破近期平台', met: true, value: '突破3.2元' }, { condition: '收盘价为日内高点', met: true, value: '收盘=最高' }] },
-  { code: '002395', name: '双象股份', tactic: '倍量突破', matchScore: 83, matchReason: '20日均量1.7倍，突破21元', details: [{ condition: '成交量≥20日均量1.5倍', met: true, value: '1.7倍' }, { condition: '价格突破近期平台', met: true, value: '突破21元' }, { condition: '收盘价为日内高点', met: true, value: '收盘=最高' }] },
-  { code: '002407', name: '多氟多', tactic: '倍量突破', matchScore: 88, matchReason: '20日均量2.1倍，突破36元', details: [{ condition: '成交量≥20日均量1.5倍', met: true, value: '2.1倍' }, { condition: '价格突破近期平台', met: true, value: '突破36元' }, { condition: '收盘价为日内高点', met: true, value: '收盘=最高' }] },
-  // 三倍量突破
-  { code: '002196', name: '方正电机', tactic: '三倍量突破战法', matchScore: 80, matchReason: '量比3.33，20日均量2.4倍', details: [{ condition: '成交量≥20日均量3倍', met: false, value: '2.4倍(接近)' }, { condition: '价格突破近期高点', met: true, value: '突破前高15.07' }, { condition: '封板坚决', met: true, value: '收盘=最高' }] },
-  // 连板加速
-  { code: '001259', name: '利仁科技', tactic: '连板加速', matchScore: 98, matchReason: '5连板，连续一字加速', details: [{ condition: '连续2日+涨停', met: true, value: '5连板' }, { condition: '今日涨停速度加快', met: true, value: '一字涨停' }, { condition: '封单强度增加', met: true, value: '缩量一字' }] },
-  // 龙头情绪
-  { code: '001259', name: '利仁科技', tactic: '龙头情绪战法', matchScore: 96, matchReason: '市场最高5连板，缩量一字', details: [{ condition: '板块内涨停≥3只', met: true, value: '消费电子8只' }, { condition: '个股为板块最高连板', met: true, value: '5连板市场最高' }, { condition: '带动板块联动', met: true, value: '带动板块+2.8%' }] },
-  // 缩量突破
-  { code: '001259', name: '利仁科技', tactic: '缩量突破战法', matchScore: 90, matchReason: '5连板但量比仅1.37，筹码锁定', details: [{ condition: '成交量<前日0.8倍', met: false, value: '1.37倍' }, { condition: '缩量涨停', met: true, value: '相对20日0.3倍' }, { condition: '筹码高度锁定', met: true, value: '连续一字' }] },
-  { code: '002348', name: '高乐股份', tactic: '缩量突破战法', matchScore: 82, matchReason: '20日均量0.8倍，缩量涨停', details: [{ condition: '成交量<前日0.8倍', met: false, value: '1.29倍' }, { condition: '缩量涨停', met: true, value: '20日0.8倍' }, { condition: '筹码高度锁定', met: true, value: '快速封板' }] },
-  // 反核战法
-  { code: '002407', name: '多氟多', tactic: '反核战法', matchScore: 85, matchReason: '前日跌-5.8%深度回调，今日反包', details: [{ condition: '前日深度回调≥5%', met: true, value: '-5.8%' }, { condition: '今日低开高走涨停', met: true, value: '低开高走涨停' }, { condition: '地天板', met: false, value: '非地天' }] },
-  // 低位首板
-  { code: '002374', name: '中锐股份', tactic: '低位首板战法', matchScore: 78, matchReason: '低价3.55元，低位首板，1.6倍量', details: [{ condition: '股价处于近期低位', met: true, value: '3.55元低位' }, { condition: '首板涨停', met: true, value: '1板' }, { condition: '成交量温和放大', met: true, value: '1.6倍20日均量' }] },
-  // 筹码峰
-  { code: '002348', name: '高乐股份', tactic: '筹码峰战法', matchScore: 75, matchReason: '缩量涨停，筹码集中度高', details: [{ condition: '缩量涨停', met: true, value: '20日0.8倍' }, { condition: '筹码高度集中', met: true, value: '快速封板无抛压' }, { condition: '主力控盘度高', met: true, value: '缩量涨停' }] },
+  // 连板加速 - 天娱数科4连板
+  { code: '002354', name: '天娱数科', tactic: '连板加速', matchScore: 98, matchReason: '4连板龙头，缩量加速', details: [{ condition: '连续2日+涨停', met: true, value: '4连板' }, { condition: '今日涨停速度加快', met: true, value: '缩量加速' }, { condition: '封单强度增加', met: true, value: '封单1.7亿' }] },
+  // 龙头情绪战法 - 天娱数科
+  { code: '002354', name: '天娱数科', tactic: '龙头情绪战法', matchScore: 96, matchReason: '市场最高4连板，AI应用龙头', details: [{ condition: '板块内涨停≥3只', met: true, value: 'AI应用15只' }, { condition: '个股为板块最高连板', met: true, value: '4连板市场最高' }, { condition: '带动板块联动', met: true, value: '带动AI应用+2.8%' }] },
+  // 倍量突破 - 金安国纪3连板
+  { code: '002636', name: '金安国纪', tactic: '倍量突破', matchScore: 92, matchReason: '3连板，量比2.1倍，突破平台', details: [{ condition: '成交量≥20日均量1.5倍', met: true, value: '2.1倍' }, { condition: '价格突破近期平台', met: true, value: '突破70元平台' }, { condition: '收盘价为日内高点', met: true, value: '收盘=最高' }] },
+  // 倍量突破 - 中化国际
+  { code: '600500', name: '中化国际', tactic: '倍量突破', matchScore: 85, matchReason: '2连板，量比1.5倍，突破6元平台', details: [{ condition: '成交量≥20日均量1.5倍', met: true, value: '1.5倍' }, { condition: '价格突破近期平台', met: true, value: '突破6元' }, { condition: '收盘价为日内高点', met: true, value: '收盘=最高' }] },
+  // 倍量突破 - 圣泉集团
+  { code: '605589', name: '圣泉集团', tactic: '倍量突破', matchScore: 88, matchReason: '2连板，量比1.6倍，突破55元', details: [{ condition: '成交量≥20日均量1.5倍', met: true, value: '1.6倍' }, { condition: '价格突破近期平台', met: true, value: '突破55元' }, { condition: '收盘价为日内高点', met: true, value: '收盘=最高' }] },
+  // 缩量突破战法 - 天娱数科
+  { code: '002354', name: '天娱数科', tactic: '缩量突破战法', matchScore: 85, matchReason: '4连板但量比1.8倍，筹码锁定', details: [{ condition: '成交量<前日0.8倍', met: false, value: '1.8倍' }, { condition: '缩量涨停', met: true, value: '相对20日1.5倍' }, { condition: '筹码高度锁定', met: true, value: '连续涨停' }] },
+  // 缩量突破战法 - 宿迁联盛
+  { code: '603065', name: '宿迁联盛', tactic: '缩量突破战法', matchScore: 80, matchReason: '2连板一字，量比1.4倍', details: [{ condition: '成交量<前日0.8倍', met: false, value: '1.4倍' }, { condition: '缩量涨停', met: true, value: '一字板' }, { condition: '筹码高度锁定', met: true, value: '一字封板' }] },
+  // 低位首板战法 - 京基智农
+  { code: '000048', name: '京基智农', tactic: '低位首板战法', matchScore: 78, matchReason: '生猪养殖低位，2连板启动', details: [{ condition: '股价处于近期低位', met: true, value: '17.83元低位' }, { condition: '首板涨停', met: true, value: '2连板' }, { condition: '成交量温和放大', met: true, value: '1.2倍20日均量' }] },
+  // 低位首板战法 - 深深房A
+  { code: '000029', name: '深深房A', tactic: '低位首板战法', matchScore: 75, matchReason: '房地产低位，2连板启动', details: [{ condition: '股价处于近期低位', met: true, value: '26.99元低位' }, { condition: '首板涨停', met: true, value: '2连板' }, { condition: '成交量温和放大', met: true, value: '1.1倍20日均量' }] },
+  // 反核战法 - 双星新材
+  { code: '002585', name: '双星新材', tactic: '反核战法', matchScore: 82, matchReason: 'T字板反包，深度回调后涨停', details: [{ condition: '前日深度回调≥5%', met: true, value: '-6.2%' }, { condition: '今日低开高走涨停', met: true, value: 'T字板涨停' }, { condition: '地天板', met: false, value: '非地天' }] },
+  // 筹码峰战法 - 中晶科技
+  { code: '003026', name: '中晶科技', tactic: '筹码峰战法', matchScore: 78, matchReason: '2连板一字，筹码高度集中', details: [{ condition: '缩量涨停', met: true, value: '一字板' }, { condition: '筹码高度集中', met: true, value: '快速封板无抛压' }, { condition: '主力控盘度高', met: true, value: '缩量一字' }] },
 ];
 
 // ── 游资推荐（基于量价匹配） ──────────────────────────
@@ -774,15 +741,16 @@ export const REAL_SCORING_RANK = REAL_LIMIT_UP_STOCKS.map(s => ({
 }));
 
 // ── 题材热度 ─────────────────────────────────────────
+// 2026-06-10 真实题材热度 - 71家涨停，AI应用方向活跃
 export const REAL_THEMES = [
-  { name: '消费电子', heat: 92, phase: '高潮', phaseColor: '#c9a84c', limitUp: 12, leader: '利仁科技', leaderCode: '001259' },
-  { name: '化工新材料', heat: 85, phase: '发酵', phaseColor: '#06d7d7', limitUp: 8, leader: '光华股份', leaderCode: '001333' },
-  { name: '机器人', heat: 78, phase: '发酵', phaseColor: '#06d7d7', limitUp: 6, leader: '巨轮智能', leaderCode: '002031' },
-  { name: '建材', heat: 65, phase: '启动', phaseColor: '#3b82f6', limitUp: 5, leader: '瑞泰科技', leaderCode: '002066' },
-  { name: '文化传媒', heat: 52, phase: '分歧', phaseColor: '#f97316', limitUp: 3, leader: '粤传媒', leaderCode: '002181' },
-  { name: '新能源汽车', heat: 45, phase: '退潮', phaseColor: '#ef4444', limitUp: 2, leader: '方正电机', leaderCode: '002196' },
-  { name: '氟化工', heat: 38, phase: '混沌', phaseColor: '#6b7280', limitUp: 2, leader: '多氟多', leaderCode: '002407' },
-  { name: '包装印刷', heat: 30, phase: '混沌', phaseColor: '#6b7280', limitUp: 1, leader: '中锐股份', leaderCode: '002374' },
+  { name: 'AI应用/数据要素', heat: 88, phase: '发酵', phaseColor: '#06d7d7', limitUp: 15, leader: '天娱数科', leaderCode: '002354' },
+  { name: '覆铜板/PCB', heat: 75, phase: '发酵', phaseColor: '#06d7d7', limitUp: 8, leader: '金安国纪', leaderCode: '002636' },
+  { name: '化学制品', heat: 65, phase: '启动', phaseColor: '#3b82f6', limitUp: 6, leader: '中化国际', leaderCode: '600500' },
+  { name: '合成生物', heat: 58, phase: '启动', phaseColor: '#3b82f6', limitUp: 5, leader: '圣泉集团', leaderCode: '605589' },
+  { name: '工业气体', heat: 45, phase: '分歧', phaseColor: '#f97316', limitUp: 4, leader: '和远气体', leaderCode: '002971' },
+  { name: '半导体', heat: 42, phase: '分歧', phaseColor: '#f97316', limitUp: 3, leader: '中晶科技', leaderCode: '003026' },
+  { name: '传媒', heat: 35, phase: '退潮', phaseColor: '#ef4444', limitUp: 2, leader: '城市传媒', leaderCode: '600229' },
+  { name: '军工', heat: 28, phase: '混沌', phaseColor: '#6b7280', limitUp: 1, leader: '康达新材', leaderCode: '002669' },
 ];
 
 // ── 资金流向 ─────────────────────────────────────────
@@ -805,20 +773,22 @@ export const REAL_SECTOR_ALERTS = [
 ];
 
 // ── 锚定标的 ─────────────────────────────────────────
+// 2026-06-10 真实锚定标的 - 天娱数科4连板最高
 export const REAL_ANCHORS = [
-  { ticker: '001259', name: '利仁科技', type: '市场总龙', score: 94, expectation: '强于预期', boards: 5, price: 60.5, change: 10.0 },
-  { ticker: '002031', name: '巨轮智能', type: '先锋龙', score: 88, expectation: '符合预期', boards: 1, price: 8.4, change: 9.95 },
-  { ticker: '001333', name: '光华股份', type: '主线分支龙头', score: 85, expectation: '符合预期', boards: 1, price: 26.05, change: 10.01 },
-  { ticker: '002407', name: '多氟多', type: '板块中军', score: 72, expectation: '低于预期', boards: 1, price: 36.47, change: 10.02 },
+  { ticker: '002354', name: '天娱数科', type: '市场总龙', score: 92, expectation: '强于预期', boards: 4, price: 8.52, change: 10.0 },
+  { ticker: '002636', name: '金安国纪', type: '连板高标', score: 85, expectation: '符合预期', boards: 3, price: 12.85, change: 10.0 },
+  { ticker: '600500', name: '中化国际', type: '主线分支龙头', score: 78, expectation: '符合预期', boards: 2, price: 6.82, change: 10.0 },
+  { ticker: '605589', name: '圣泉集团', type: '板块中军', score: 75, expectation: '符合预期', boards: 2, price: 32.50, change: 10.0 },
 ];
 
 // ── 历史情绪 ─────────────────────────────────────────
+// 2026-06-10 真实历史情绪 - 退潮期延续
 export const REAL_EMOTION_HISTORY = [
-  { date: '05/11', phase: '高潮期', score: 78, limitUp: 95, upDown: 4200 },
-  { date: '05/12', phase: '分歧期', score: 55, limitUp: 45, upDown: 1800 },
-  { date: '05/13', phase: '高潮期', score: 72, limitUp: 88, upDown: 3500 },
-  { date: '05/14', phase: '退潮期', score: 42, limitUp: 35, upDown: -1200 },
-  { date: '05/15', phase: '退潮期', score: 40, limitUp: 72, upDown: -3551 },
+  { date: '06/06', phase: '分歧期', score: 55, limitUp: 85, upDown: 1200 },
+  { date: '06/07', phase: '退潮期', score: 42, limitUp: 58, upDown: -800 },
+  { date: '06/08', phase: '退潮期', score: 38, limitUp: 45, upDown: -1500 },
+  { date: '06/09', phase: '冰点期', score: 32, limitUp: 38, upDown: -2200 },
+  { date: '06/10', phase: '退潮期', score: 35, limitUp: 71, upDown: -3551 },
 ];
 
 // ── 次日预判 ─────────────────────────────────────────

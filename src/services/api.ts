@@ -178,22 +178,35 @@ async function request<T>(
 
 export interface APIResponse<T = any> {
   code: number;
-  message: string;
+  message?: string;
   data: T;
-  timestamp: string;
+  source?: string;
+  timestamp?: string;
 }
 
 // ── 市场数据 ────────────────────────────────────────────
 
 export interface MarketOverviewData {
   date: string;
+  timestamp: string;
   indices: IndexData[];
-  limit_up_count: number;
-  limit_down_count: number;
-  total_stocks: number;
-  up_count: number;
-  down_count: number;
-  volume: number;
+  stats: {
+    total_stocks: number;
+    rise_count: number;
+    fall_count: number;
+    flat_count: number;
+    limit_up_count: number;
+    limit_down_count: number;
+    total_volume: number;
+    total_amount: number;
+  };
+  source: string;
+  limit_up_count?: number;
+  limit_down_count?: number;
+  total_stocks?: number;
+  up_count?: number;
+  down_count?: number;
+  volume?: number;
 }
 
 export interface IndexData {
@@ -404,7 +417,7 @@ export const swatAPI = {
   // ── 市场 ─────────────────────────────────────────
   market: {
     overview: (useCache = true) =>
-      request<APIResponse<{ data: MarketOverviewData }>>("/market/overview", {
+      request<APIResponse<MarketOverviewData>>("/market/overview", {
         cacheTtl: 60,
         useCache,
       }),
@@ -418,7 +431,7 @@ export const swatAPI = {
       sort_by?: string;
       limit?: number;
     }) =>
-      request<APIResponse<{ data: { stocks: LimitUpStock[]; total_limit_up: number } }>>(
+      request<APIResponse<{ date: string; total_limit_up: number; stocks: LimitUpStock[]; summary: any }>>(
         "/market/limit-up",
         { params, cacheTtl: 120 },
       ),

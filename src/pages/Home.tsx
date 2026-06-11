@@ -1,5 +1,5 @@
 // 融合首页 - 市场概览 + 情绪分析 + 核心数据
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import ReactECharts from 'echarts-for-react';
@@ -43,6 +43,7 @@ import {
   dataStatus,
 } from '@/data/mockData';
 import { cn } from '@/lib/utils';
+import swatAPI from '@/services/api';
 
 const moduleIconMap: Record<string, React.ElementType> = {
   Activity, Eye, Fingerprint, Target, BarChart3, ClipboardCheck, Newspaper,
@@ -355,9 +356,57 @@ const statusDotColor = (status: string) => {
 };
 
 /* ─── Market Overview ─── */
-function MarketOverview() {
-  const [indices, setIndices] = useState<MarketIndex[]>(marketIndices);
+interface ApiDataType {
+  indices: any[];
+  stats: any;
+  limitUpStocks: any[];
+  date: string;
+}
 
+function MarketOverview({ apiData }: { apiData: ApiDataType | null }) {
+  const [indices, setIndices] = useState<MarketIndex[]>(marketIndices);
+  const [breadth, setBreadth] = useState({
+    upCount: REAL_BREADTH.upCount,
+    downCount: REAL_BREADTH.downCount,
+    limitUp: REAL_BREADTH.limitUp,
+    limitDown: REAL_BREADTH.limitDown,
+    volume: REAL_BREADTH.volume,
+    prevVolume: REAL_BREADTH.prevVolume,
+    volumeChange: REAL_BREADTH.volumeChange,
+    totalStocks: REAL_BREADTH.totalStocks,
+  });
+
+  // 使用API数据更新指数
+  useEffect(() => {
+    if (apiData?.indices?.length) {
+      const apiIndices: MarketIndex[] = apiData.indices.map((idx: any) => ({
+        name: idx.name,
+        code: idx.code,
+        value: idx.current,
+        change: idx.change,
+        changePercent: idx.change_pct,
+      }));
+      setIndices(apiIndices);
+    }
+  }, [apiData?.indices]);
+
+  // 使用API数据更新市场宽度
+  useEffect(() => {
+    if (apiData?.stats) {
+      setBreadth({
+        upCount: apiData.stats.rise_count || REAL_BREADTH.upCount,
+        downCount: apiData.stats.fall_count || REAL_BREADTH.downCount,
+        limitUp: apiData.stats.limit_up_count || REAL_BREADTH.limitUp,
+        limitDown: apiData.stats.limit_down_count || REAL_BREADTH.limitDown,
+        volume: Math.round((apiData.stats.total_volume || 0) / 100000000),
+        prevVolume: REAL_BREADTH.prevVolume,
+        volumeChange: REAL_BREADTH.volumeChange,
+        totalStocks: apiData.stats.total_stocks || REAL_BREADTH.totalStocks,
+      });
+    }
+  }, [apiData?.stats]);
+
+  // 模拟实时波动
   useEffect(() => {
     const interval = setInterval(() => {
       setIndices((prev) =>
@@ -377,9 +426,9 @@ function MarketOverview() {
     return () => clearInterval(interval);
   }, []);
 
-  const totalStocks = REAL_BREADTH.upCount + REAL_BREADTH.downCount;
-  const upPercent = (REAL_BREADTH.upCount / totalStocks) * 100;
-  const downPercent = (REAL_BREADTH.downCount / totalStocks) * 100;
+  const totalStocks = breadth.upCount + breadth.downCount;
+  const upPercent = totalStocks > 0 ? (breadth.upCount / totalStocks) * 100 : 50;
+  const downPercent = totalStocks > 0 ? (breadth.downCount / totalStocks) * 100 : 50;
   const navigate = useNavigate();
 
   return (
@@ -424,8 +473,8 @@ function MarketOverview() {
           </div>
         </div>
         <div className="flex justify-between text-[10px] font-mono">
-          <span className="text-[#ef4444]">{REAL_BREADTH.upCount}</span>
-          <span className="text-[#22c55e]">{REAL_BREADTH.downCount}</span>
+          <span className="text-[#ef4444]">{breadth.upCount}</span>
+          <span className="text-[#22c55e]">{breadth.downCount}</span>
         </div>
       </div>
 
@@ -434,9 +483,9 @@ function MarketOverview() {
       <div className="flex flex-col gap-1 min-w-[80px]">
         <span className="text-[11px] text-[#475569]">涨停/跌停</span>
         <div className="flex items-center gap-2">
-          <span className="text-[18px] font-mono font-semibold text-[#ef4444]">{REAL_BREADTH.limitUp}</span>
+          <span className="text-[18px] font-mono font-semibold text-[#ef4444]">{breadth.limitUp}</span>
           <span className="text-[#475569]">/</span>
-          <span className="text-[18px] font-mono font-semibold text-[#22c55e]">{REAL_BREADTH.limitDown}</span>
+          <span className="text-[18px] font-mono font-semibold text-[#22c55e]">{breadth.limitDown}</span>
         </div>
       </div>
 
@@ -460,7 +509,7 @@ function MarketOverview() {
       <div className="flex flex-col gap-0.5 min-w-[100px]">
         <span className="text-[11px] text-[#475569]">成交额</span>
         <span className="text-[18px] font-mono font-semibold text-[#f1f5f9]">
-          <AnimatedNumber value={REAL_BREADTH.volume} decimals={0} />亿
+          <AnimatedNumber value={breadth.volume} decimals={0} />亿
         </span>
       </div>
     </motion.div>
@@ -1163,11 +1212,64 @@ function ModuleCards() {
 
 /* ─── Main Home Page ─── */
 export default function Home() {
+  const [apiData, setApiData] = useState<{
+    indices: any[];
+    stats: any;
+    limitUpStocks: any[];
+    date: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // 从API获取实时数据
+  const fetchRealtimeData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [marketRes, limitUpRes] = await Promise.all([
+        swatAPI.market.overview(false),
+        swatAPI.market.limitUp({ limit: 10 }),
+      ]);
+      
+      console.log('=== API Response Debug ===');
+      console.log('Market Response:', JSON.stringify(marketRes, null, 2));
+      console.log('Market Response data:', marketRes.data);
+      console.log('Market Response indices:', marketRes.data?.indices);
+      console.log('LimitUp Response:', JSON.stringify(limitUpRes, null, 2));
+      console.log('LimitUp Response data:', limitUpRes.data);
+      
+      // API返回格式: {code: 200, data: {date, indices, stats, source}, source: "cache", timestamp: "..."}
+      // marketRes 是 {code: 200, data: {date, indices, stats, source}, source: "cache", timestamp: "..."}
+      // marketRes.data 是 {date, indices, stats, source}
+      const marketData = marketRes.data;
+      const limitUpData = limitUpRes.data;
+      
+      console.log('Processed marketData:', marketData);
+      console.log('Processed limitUpData:', limitUpData);
+      
+      setApiData({
+        indices: marketData?.indices || [],
+        stats: marketData?.stats || {},
+        limitUpStocks: limitUpData?.stocks || [],
+        date: marketData?.date || '',
+      });
+    } catch (error) {
+      console.error('Failed to fetch realtime data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRealtimeData();
+    // 每30秒刷新一次数据
+    const interval = setInterval(fetchRealtimeData, 30000);
+    return () => clearInterval(interval);
+  }, [fetchRealtimeData]);
+
   return (
     <div className="space-y-4">
       {/* Row 1: Market Overview */}
       <div className="grid grid-cols-12 gap-4">
-        <MarketOverview />
+        <MarketOverview apiData={apiData} />
       </div>
 
       {/* Row 2: Sentiment Cycle + Indicators */}
